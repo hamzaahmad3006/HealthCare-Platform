@@ -70,6 +70,18 @@ app.use('/api/v1', auditLogMiddleware);
 // ── API Routes ────────────────────────────────────────────────────────────────
 app.use('/api/v1', apiRoutes);
 
+// ── 404 — runs when no earlier handler responded ─────────────────────────────
+app.use((req: Request, res: Response) => {
+  res.status(404).json({
+    success: false,
+    error: {
+      code: 'ROUTE_NOT_FOUND',
+      message: `Cannot ${req.method} ${req.path}`,
+    },
+    requestId: res.locals['requestId'] as string | undefined,
+  });
+});
+
 // ── Global error handler — must be last ──────────────────────────────────────
 app.use(globalErrorHandler);
 
