@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { prisma } from '../config/database';
 import { success, paginated } from '../helper/response.helper';
 import { NotFoundError, UnauthorizedError, ForbiddenError } from '../utils/stateMachine';
+import { pickParam } from '../helper/request.helper';
 
 const UpdateProfileSchema = z.object({
   fullName: z.string().min(1).max(150).optional(),
@@ -115,7 +116,7 @@ export const userController = {
     try {
       if (!req.user) throw new UnauthorizedError('UNAUTHENTICATED');
 
-      const patient = await prisma.patient.findUnique({ where: { id: req.params['id'] } });
+      const patient = await prisma.patient.findUnique({ where: { id: pickParam(req, 'id') } });
       if (!patient) throw new NotFoundError('PATIENT_NOT_FOUND');
 
       if (req.user.role !== 'ADMIN' && patient.customerUserId !== req.user.sub) {
@@ -130,7 +131,7 @@ export const userController = {
     try {
       if (!req.user) throw new UnauthorizedError('UNAUTHENTICATED');
 
-      const existing = await prisma.patient.findUnique({ where: { id: req.params['id'] } });
+      const existing = await prisma.patient.findUnique({ where: { id: pickParam(req, 'id') } });
       if (!existing) throw new NotFoundError('PATIENT_NOT_FOUND');
 
       if (req.user.role !== 'ADMIN' && existing.customerUserId !== req.user.sub) {
@@ -138,7 +139,7 @@ export const userController = {
       }
 
       const data = CreatePatientSchema.partial().parse(req.body);
-      const patient = await prisma.patient.update({ where: { id: req.params['id'] }, data });
+      const patient = await prisma.patient.update({ where: { id: pickParam(req, 'id') }, data });
       success(res, patient);
     } catch (err) { next(err); }
   },
@@ -175,7 +176,7 @@ export const userController = {
     try {
       if (!req.user) throw new UnauthorizedError('UNAUTHENTICATED');
 
-      const existing = await prisma.address.findUnique({ where: { id: req.params['id'] } });
+      const existing = await prisma.address.findUnique({ where: { id: pickParam(req, 'id') } });
       if (!existing) throw new NotFoundError('ADDRESS_NOT_FOUND');
 
       if (req.user.role !== 'ADMIN' && existing.customerUserId !== req.user.sub) {
@@ -183,7 +184,7 @@ export const userController = {
       }
 
       const data = CreateAddressSchema.partial().parse(req.body);
-      const address = await prisma.address.update({ where: { id: req.params['id'] }, data });
+      const address = await prisma.address.update({ where: { id: pickParam(req, 'id') }, data });
       success(res, address);
     } catch (err) { next(err); }
   },
@@ -192,7 +193,7 @@ export const userController = {
     try {
       if (!req.user) throw new UnauthorizedError('UNAUTHENTICATED');
 
-      const existing = await prisma.address.findUnique({ where: { id: req.params['id'] } });
+      const existing = await prisma.address.findUnique({ where: { id: pickParam(req, 'id') } });
       if (!existing) throw new NotFoundError('ADDRESS_NOT_FOUND');
 
       if (req.user.role !== 'ADMIN' && existing.customerUserId !== req.user.sub) {
@@ -200,14 +201,14 @@ export const userController = {
       }
 
       const activeBooking = await prisma.booking.findFirst({
-        where: { addressId: req.params['id'], status: { in: ['PENDING', 'CONFIRMED', 'ASSIGNED', 'IN_PROGRESS'] } },
+        where: { addressId: pickParam(req, 'id'), status: { in: ['PENDING', 'CONFIRMED', 'ASSIGNED', 'IN_PROGRESS'] } },
       });
 
       if (activeBooking) {
         throw new Error('ADDRESS_HAS_ACTIVE_BOOKINGS');
       }
 
-      await prisma.address.delete({ where: { id: req.params['id'] } });
+      await prisma.address.delete({ where: { id: pickParam(req, 'id') } });
       success(res, { message: 'Address deleted' });
     } catch (err) { next(err); }
   },

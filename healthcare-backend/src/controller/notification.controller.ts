@@ -3,11 +3,12 @@ import { prisma } from '../config/database';
 import { success } from '../helper/response.helper';
 import { NotFoundError } from '../utils/stateMachine';
 import { notificationQueue } from '../../worker/notification.worker';
+import { pickParam } from '../helper/request.helper';
 
 export const notificationController = {
   async retry(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const log = await prisma.notificationLog.findUnique({ where: { id: req.params['id'] } });
+      const log = await prisma.notificationLog.findUnique({ where: { id: pickParam(req, 'id') } });
       if (!log) throw new NotFoundError('NOTIFICATION_LOG_NOT_FOUND');
 
       await prisma.notificationLog.update({

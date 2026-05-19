@@ -9,6 +9,7 @@ import { success, paginated } from '../helper/response.helper';
 import { logger } from '../utils/logger';
 import { NotFoundError, UnauthorizedError, ForbiddenError } from '../utils/stateMachine';
 import { VerifStatus } from '@prisma/client';
+import { pickParam } from '../helper/request.helper';
 
 const CreateStaffSchema = z.object({
   fullName: z.string().min(1).max(150),
@@ -160,7 +161,7 @@ export const staffController = {
     try {
       if (!req.user) throw new UnauthorizedError('UNAUTHENTICATED');
 
-      const userId = req.params['userId']!;
+      const userId = pickParam(req, 'userId')!;
 
       if (req.user.role === 'STAFF' && req.user.sub !== userId) {
         throw new ForbiddenError('FORBIDDEN');
@@ -188,7 +189,7 @@ export const staffController = {
 
   async update(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const userId = req.params['userId']!;
+      const userId = pickParam(req, 'userId')!;
       const data = CreateStaffSchema.partial().omit({ serviceTypeIds: true, cnic: true, phone: true }).parse(req.body);
 
       const staff = await prisma.staffProfile.update({
@@ -219,7 +220,7 @@ export const staffController = {
     try {
       if (!req.user) throw new UnauthorizedError('UNAUTHENTICATED');
 
-      const userId = req.params['userId']!;
+      const userId = pickParam(req, 'userId')!;
       const staff = await prisma.staffProfile.findUnique({ where: { userId } });
       if (!staff) throw new NotFoundError('STAFF_NOT_FOUND');
 
@@ -240,7 +241,7 @@ export const staffController = {
     try {
       if (!req.user) throw new UnauthorizedError('UNAUTHENTICATED');
 
-      const userId = req.params['userId']!;
+      const userId = pickParam(req, 'userId')!;
 
       if (req.user.role === 'STAFF' && req.user.sub !== userId) {
         throw new ForbiddenError('FORBIDDEN');
@@ -262,7 +263,7 @@ export const staffController = {
     try {
       if (!req.user) throw new UnauthorizedError('UNAUTHENTICATED');
 
-      const userId = req.params['userId']!;
+      const userId = pickParam(req, 'userId')!;
 
       if (req.user.role === 'STAFF' && req.user.sub !== userId) {
         throw new ForbiddenError('FORBIDDEN');
@@ -278,7 +279,7 @@ export const staffController = {
     try {
       if (!req.user) throw new UnauthorizedError('UNAUTHENTICATED');
 
-      const userId = req.params['userId']!;
+      const userId = pickParam(req, 'userId')!;
 
       if (req.user.role === 'STAFF' && req.user.sub !== userId) {
         throw new ForbiddenError('FORBIDDEN');
@@ -304,7 +305,7 @@ export const staffController = {
 
   async getDocuments(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const userId = req.params['userId']!;
+      const userId = pickParam(req, 'userId')!;
       const docs = await prisma.staffDocument.findMany({
         where: { staffUserId: userId },
         orderBy: { uploadedAt: 'desc' },
@@ -316,7 +317,7 @@ export const staffController = {
 
   async addServiceType(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const userId = req.params['userId']!;
+      const userId = pickParam(req, 'userId')!;
       const { serviceTypeId } = z.object({ serviceTypeId: z.string().uuid() }).parse(req.body);
 
       const serviceType = await prisma.serviceType.findUnique({ where: { id: serviceTypeId } });

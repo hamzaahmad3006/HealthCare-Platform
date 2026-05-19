@@ -12,6 +12,7 @@ import {
   assertVisitTransition,
 } from '../utils/stateMachine';
 import { notificationQueue } from '../../worker/notification.worker';
+import { pickParam } from '../helper/request.helper';
 
 const CheckInSchema = z.object({
   checkInLatitude: z.number(),
@@ -70,7 +71,7 @@ export const visitController = {
       if (!req.user) throw new UnauthorizedError('UNAUTHENTICATED');
 
       const visit = await prisma.bookingVisit.findUnique({
-        where: { id: req.params['id'] },
+        where: { id: pickParam(req, 'id') },
         include: { booking: true },
       });
       if (!visit) throw new NotFoundError('VISIT_NOT_FOUND');
@@ -90,7 +91,7 @@ export const visitController = {
     try {
       if (!req.user) throw new UnauthorizedError('UNAUTHENTICATED');
 
-      const visit = await prisma.bookingVisit.findUnique({ where: { id: req.params['id'] } });
+      const visit = await prisma.bookingVisit.findUnique({ where: { id: pickParam(req, 'id') } });
       if (!visit) throw new NotFoundError('VISIT_NOT_FOUND');
 
       if (req.user.role === 'STAFF' && visit.assignedStaffUserId !== req.user.sub) {
@@ -128,7 +129,7 @@ export const visitController = {
       const offlineSyncId = req.headers['x-offline-sync-id'] as string | undefined;
       const data = CheckInSchema.parse(req.body);
 
-      const visit = await prisma.bookingVisit.findUnique({ where: { id: req.params['id'] } });
+      const visit = await prisma.bookingVisit.findUnique({ where: { id: pickParam(req, 'id') } });
       if (!visit) throw new NotFoundError('VISIT_NOT_FOUND');
 
       if (req.user.role === 'STAFF' && visit.assignedStaffUserId !== req.user.sub) {
@@ -172,7 +173,7 @@ export const visitController = {
       const offlineSyncId = req.headers['x-offline-sync-id'] as string | undefined;
       const data = CheckOutSchema.parse(req.body);
 
-      const visit = await prisma.bookingVisit.findUnique({ where: { id: req.params['id'] } });
+      const visit = await prisma.bookingVisit.findUnique({ where: { id: pickParam(req, 'id') } });
       if (!visit) throw new NotFoundError('VISIT_NOT_FOUND');
 
       if (req.user.role === 'STAFF' && visit.assignedStaffUserId !== req.user.sub) {
@@ -210,7 +211,7 @@ export const visitController = {
     try {
       if (!req.user) throw new UnauthorizedError('UNAUTHENTICATED');
 
-      const visit = await prisma.bookingVisit.findUnique({ where: { id: req.params['id'] } });
+      const visit = await prisma.bookingVisit.findUnique({ where: { id: pickParam(req, 'id') } });
       if (!visit) throw new NotFoundError('VISIT_NOT_FOUND');
 
       if (req.user.role === 'STAFF' && visit.assignedStaffUserId !== req.user.sub) {
@@ -259,7 +260,7 @@ export const visitController = {
     try {
       const { reason } = z.object({ reason: z.string().min(1) }).parse(req.body);
 
-      const visit = await prisma.bookingVisit.findUnique({ where: { id: req.params['id'] } });
+      const visit = await prisma.bookingVisit.findUnique({ where: { id: pickParam(req, 'id') } });
       if (!visit) throw new NotFoundError('VISIT_NOT_FOUND');
 
       const updated = await prisma.bookingVisit.update({
@@ -275,7 +276,7 @@ export const visitController = {
     try {
       const { reason } = z.object({ reason: z.string().min(1) }).parse(req.body);
 
-      const visit = await prisma.bookingVisit.findUnique({ where: { id: req.params['id'] } });
+      const visit = await prisma.bookingVisit.findUnique({ where: { id: pickParam(req, 'id') } });
       if (!visit) throw new NotFoundError('VISIT_NOT_FOUND');
 
       assertVisitTransition(visit.status, 'CANCELLED');
