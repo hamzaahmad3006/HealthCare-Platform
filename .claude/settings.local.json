@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm install *)",
+      "Bash(awk '{print $1}')",
+      "Bash(cat /tmp/priv_final.txt)",
+      "Read(//tmp/**)"
+    ]
+  }
+}
