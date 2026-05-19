@@ -1,20 +1,33 @@
+import { lazy, Suspense } from 'react';
 import type { RouteObject } from 'react-router-dom';
 import { ProtectedRoute } from '../../component/common/ProtectedRoute';
-import { AdminDashboard } from './AdminDashboard/AdminDashboard';
-import { Bookings } from './Bookings/Bookings';
-import { AdminBookingDetail } from './BookingDetail/BookingDetail';
-import { Staff } from './Staff/Staff';
-import { StaffDetail } from './StaffDetail/StaffDetail';
-import { Visits } from './Visits/Visits';
-import { Reports } from './Reports/Reports';
-import { Reviews } from './Reviews/Reviews';
+import { PageSpinner } from '../../component/common/LoadingSpinner';
+
+const AdminDashboard = lazy(() =>
+  import('./AdminDashboard/AdminDashboard').then((m) => ({ default: m.AdminDashboard })),
+);
+const Bookings = lazy(() => import('./Bookings/Bookings').then((m) => ({ default: m.Bookings })));
+const AdminBookingDetail = lazy(() =>
+  import('./BookingDetail/BookingDetail').then((m) => ({ default: m.AdminBookingDetail })),
+);
+const Staff = lazy(() => import('./Staff/Staff').then((m) => ({ default: m.Staff })));
+const StaffDetail = lazy(() =>
+  import('./StaffDetail/StaffDetail').then((m) => ({ default: m.StaffDetail })),
+);
+const Visits = lazy(() => import('./Visits/Visits').then((m) => ({ default: m.Visits })));
+const Reports = lazy(() => import('./Reports/Reports').then((m) => ({ default: m.Reports })));
+const Reviews = lazy(() => import('./Reviews/Reviews').then((m) => ({ default: m.Reviews })));
 
 const adminGate = (element: JSX.Element): JSX.Element => (
-  <ProtectedRoute roles={['ADMIN']}>{element}</ProtectedRoute>
+  <Suspense fallback={<PageSpinner />}>
+    <ProtectedRoute roles={['ADMIN']}>{element}</ProtectedRoute>
+  </Suspense>
 );
 
 const staffOrAdminGate = (element: JSX.Element): JSX.Element => (
-  <ProtectedRoute roles={['ADMIN', 'STAFF']}>{element}</ProtectedRoute>
+  <Suspense fallback={<PageSpinner />}>
+    <ProtectedRoute roles={['ADMIN', 'STAFF']}>{element}</ProtectedRoute>
+  </Suspense>
 );
 
 export const dashboardRoutes: RouteObject[] = [

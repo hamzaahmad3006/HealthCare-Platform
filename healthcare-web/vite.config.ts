@@ -19,4 +19,21 @@ export default defineConfig({
     port: 5173,
     host: true,
   },
+  build: {
+    sourcemap: false,
+    chunkSizeWarningLimit: 600,
+    rollupOptions: {
+      output: {
+        // Vendor chunks isolate large dependencies that rarely change so
+        // browser caching stays effective across application deploys.
+        manualChunks: {
+          'react-vendor': ['react', 'react-dom', 'react-router-dom'],
+          'redux-vendor': ['@reduxjs/toolkit', 'react-redux'],
+          'forms-vendor': ['react-hook-form', '@hookform/resolvers', 'zod'],
+          'ui-vendor': ['@headlessui/react', 'lucide-react', 'react-hot-toast'],
+          'utils-vendor': ['axios', 'clsx', 'date-fns', 'uuid'],
+        },
+      },
+    },
+  },
 });

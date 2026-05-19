@@ -1,27 +1,40 @@
+import { lazy, Suspense } from 'react';
 import type { RouteObject } from 'react-router-dom';
-import { Landing } from './Landing/Landing';
-import { BookingForm } from './BookingForm/BookingForm';
-import { MyBookings } from './MyBookings/MyBookings';
-import { BookingDetail } from './BookingDetail/BookingDetail';
 import { ProtectedRoute } from '../../component/common/ProtectedRoute';
+import { PageSpinner } from '../../component/common/LoadingSpinner';
+
+const Landing = lazy(() => import('./Landing/Landing').then((m) => ({ default: m.Landing })));
+const BookingForm = lazy(() =>
+  import('./BookingForm/BookingForm').then((m) => ({ default: m.BookingForm })),
+);
+const MyBookings = lazy(() =>
+  import('./MyBookings/MyBookings').then((m) => ({ default: m.MyBookings })),
+);
+const BookingDetail = lazy(() =>
+  import('./BookingDetail/BookingDetail').then((m) => ({ default: m.BookingDetail })),
+);
+
+const withSuspense = (element: JSX.Element): JSX.Element => (
+  <Suspense fallback={<PageSpinner />}>{element}</Suspense>
+);
 
 export const frontendRoutes: RouteObject[] = [
-  { path: '/', element: <Landing /> },
-  { path: '/book', element: <BookingForm /> },
+  { path: '/', element: withSuspense(<Landing />) },
+  { path: '/book', element: withSuspense(<BookingForm />) },
   {
     path: '/my-bookings',
-    element: (
+    element: withSuspense(
       <ProtectedRoute roles={['CUSTOMER', 'ADMIN']}>
         <MyBookings />
-      </ProtectedRoute>
+      </ProtectedRoute>,
     ),
   },
   {
     path: '/my-bookings/:id',
-    element: (
+    element: withSuspense(
       <ProtectedRoute roles={['CUSTOMER', 'ADMIN']}>
         <BookingDetail />
-      </ProtectedRoute>
+      </ProtectedRoute>,
     ),
   },
 ];
