@@ -124,6 +124,9 @@ srs_extracted.txt
 .tmp/
 tmp/
 .cache/
+skills/
+Production_Ready_SRS.docx
+RESUME_PHASE_2.md
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Uploaded files / media (should never be in git — use S3)
