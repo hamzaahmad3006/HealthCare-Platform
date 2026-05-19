@@ -7,6 +7,7 @@ import { renderTemplate } from '../helper/template.helper';
 import { success, paginated } from '../helper/response.helper';
 import { NotFoundError, UnauthorizedError, ForbiddenError } from '../utils/stateMachine';
 import { notificationQueue } from '../../worker/notification.worker';
+import { pickParam } from '../helper/request.helper';
 
 const CreateReportSchema = z.object({
   bookingId: z.string().uuid(),
@@ -101,7 +102,7 @@ export const reportController = {
       if (!req.user) throw new UnauthorizedError('UNAUTHENTICATED');
 
       const report = await prisma.report.findUnique({
-        where: { id: req.params['id'] },
+        where: { id: pickParam(req, 'id') },
         include: { files: true, booking: { select: { customerUserId: true } } },
       });
       if (!report) throw new NotFoundError('REPORT_NOT_FOUND');
@@ -118,7 +119,7 @@ export const reportController = {
     try {
       if (!req.user) throw new UnauthorizedError('UNAUTHENTICATED');
 
-      const report = await prisma.report.findUnique({ where: { id: req.params['id'] } });
+      const report = await prisma.report.findUnique({ where: { id: pickParam(req, 'id') } });
       if (!report) throw new NotFoundError('REPORT_NOT_FOUND');
 
       if (req.user.role !== 'ADMIN' && report.uploadedByUserId !== req.user.sub) {
@@ -135,7 +136,7 @@ export const reportController = {
     try {
       if (!req.user) throw new UnauthorizedError('UNAUTHENTICATED');
 
-      const report = await prisma.report.findUnique({ where: { id: req.params['id'] } });
+      const report = await prisma.report.findUnique({ where: { id: pickParam(req, 'id') } });
       if (!report) throw new NotFoundError('REPORT_NOT_FOUND');
 
       if (req.user.role !== 'ADMIN' && report.uploadedByUserId !== req.user.sub) {
@@ -153,7 +154,7 @@ export const reportController = {
       if (!req.user) throw new UnauthorizedError('UNAUTHENTICATED');
 
       const report = await prisma.report.findUnique({
-        where: { id: req.params['id'] },
+        where: { id: pickParam(req, 'id') },
         include: { booking: { select: { customerUserId: true, bookingNumber: true } }, patient: { select: { fullName: true } } },
       });
       if (!report) throw new NotFoundError('REPORT_NOT_FOUND');
@@ -197,7 +198,7 @@ export const reportController = {
 
   async deleteFile(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const file = await prisma.reportFile.findUnique({ where: { id: req.params['fileId'] } });
+      const file = await prisma.reportFile.findUnique({ where: { id: pickParam(req, 'fileId') } });
       if (!file) throw new NotFoundError('FILE_NOT_FOUND');
 
       await deleteFile(file.fileKey);

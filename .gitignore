@@ -53,6 +53,13 @@ out/
 *.tsbuildinfo
 .tscache/
 
+# Vite generated outputs (config compiled in repo root by `tsc -b`)
+healthcare-web/vite.config.js
+healthcare-web/vite.config.d.ts
+healthcare-web/tailwind.config.js
+healthcare-web/tailwind.config.d.ts
+healthcare-web/postcss.config.d.ts
+
 # ─────────────────────────────────────────────────────────────────────────────
 # Prisma — never commit generated client or local migrations to be ignored
 # (Keep migrations checked in — they're source of truth)

@@ -14,6 +14,7 @@ import {
   assertBookingTransition,
 } from '../utils/stateMachine';
 import { notificationQueue } from '../../worker/notification.worker';
+import { pickParam } from '../helper/request.helper';
 
 const CreateBookingSchema = z.object({
   patientId: z.string().uuid(),
@@ -171,7 +172,7 @@ export const bookingController = {
       if (!req.user) throw new UnauthorizedError('UNAUTHENTICATED');
 
       const booking = await prisma.booking.findUnique({
-        where: { id: req.params['id'] },
+        where: { id: pickParam(req, 'id') },
         include: {
           patient: true,
           serviceType: true,
@@ -197,7 +198,7 @@ export const bookingController = {
       if (!req.user) throw new UnauthorizedError('UNAUTHENTICATED');
       const adminId = req.user.sub;
 
-      const booking = await prisma.booking.findUnique({ where: { id: req.params['id'] } });
+      const booking = await prisma.booking.findUnique({ where: { id: pickParam(req, 'id') } });
       if (!booking) throw new NotFoundError('BOOKING_NOT_FOUND');
 
       assertBookingTransition(booking.status, 'CONFIRMED');
@@ -236,7 +237,7 @@ export const bookingController = {
       if (!req.user) throw new UnauthorizedError('UNAUTHENTICATED');
 
       const { reason } = z.object({ reason: z.string().min(1) }).parse(req.body);
-      const bookingId = req.params['id'];
+      const bookingId = pickParam(req, 'id');
       if (!bookingId) throw new NotFoundError('BOOKING_NOT_FOUND');
 
       const allowedStatuses: BookingStatus[] =
@@ -275,7 +276,7 @@ export const bookingController = {
       const { requestedStartAt } = z.object({ requestedStartAt: z.string().datetime() }).parse(req.body);
 
       const booking = await prisma.booking.findUnique({
-        where: { id: req.params['id'] },
+        where: { id: pickParam(req, 'id') },
         include: { package: true },
       });
       if (!booking) throw new NotFoundError('BOOKING_NOT_FOUND');
@@ -396,7 +397,7 @@ export const bookingController = {
     try {
       if (!req.user) throw new UnauthorizedError('UNAUTHENTICATED');
 
-      const booking = await prisma.booking.findUnique({ where: { id: req.params['id'] } });
+      const booking = await prisma.booking.findUnique({ where: { id: pickParam(req, 'id') } });
       if (!booking) throw new NotFoundError('BOOKING_NOT_FOUND');
 
       if (req.user.role === 'CUSTOMER' && booking.customerUserId !== req.user.sub) {
@@ -404,7 +405,7 @@ export const bookingController = {
       }
 
       const visits = await prisma.bookingVisit.findMany({
-        where: { bookingId: req.params['id'] },
+        where: { bookingId: pickParam(req, 'id') },
         orderBy: { sequenceNo: 'asc' },
       });
 

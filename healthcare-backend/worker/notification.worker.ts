@@ -5,7 +5,15 @@ import { redis } from '../src/config/redis';
 import { sendWhatsAppMessage } from '../src/helper/axios';
 import { logger } from '../src/utils/logger';
 
-export const notificationQueue = new Queue('notifications', { connection: redis });
+export const notificationQueue = new Queue('notifications', {
+  connection: redis,
+  defaultJobOptions: {
+    attempts: 3,
+    backoff: { type: 'exponential', delay: 5000 },
+    removeOnComplete: { count: 1000 },
+    removeOnFail: { count: 5000 },
+  },
+});
 
 const worker = new Worker(
   'notifications',
@@ -63,12 +71,6 @@ const worker = new Worker(
   {
     connection: redis,
     concurrency: 5,
-    defaultJobOptions: {
-      attempts: 3,
-      backoff: { type: 'exponential', delay: 5000 },
-      removeOnComplete: { count: 1000 },
-      removeOnFail: { count: 5000 },
-    },
   },
 );
 

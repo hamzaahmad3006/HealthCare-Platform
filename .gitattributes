@@ -1,0 +1,29 @@
+# Enforce consistent LF line endings in the repository
+
+# Let Git detect text files and normalize them
+* text=auto
+
+# Force LF in the working tree for common source and text files
+*.js    text eol=lf
+*.jsx   text eol=lf
+*.ts    text eol=lf
+*.tsx   text eol=lf
+*.json  text eol=lf
+*.css   text eol=lf
+*.scss  text eol=lf
+*.html  text eol=lf
+*.md    text eol=lf
+*.yml   text eol=lf
+*.yaml  text eol=lf
+package-lock.json text eol=lf
+
+# Binary files (do not normalize)
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.zip binary
+*.gz binary
+*.jar binary
+*.exe binary
