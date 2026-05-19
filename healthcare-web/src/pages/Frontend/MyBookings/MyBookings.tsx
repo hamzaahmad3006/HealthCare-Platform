@@ -1,15 +1,12 @@
-import { Link, useNavigate } from 'react-router-dom';
 import clsx from 'clsx';
-import { Heart, Plus, CalendarPlus, LogOut } from 'lucide-react';
+import { Plus, CalendarPlus } from 'lucide-react';
 import { Button } from '../../../constant/Button';
 import { BookingCard } from '../../../component/booking/BookingCard';
-import { LoadingSpinner } from '../../../component/common/LoadingSpinner';
+import { BookingCardSkeleton } from '../../../component/common/Skeleton';
 import { EmptyState } from '../../../component/common/EmptyState';
 import { Pagination } from '../../../component/common/Pagination';
-import { useAppDispatch, useAppSelector } from '../../../redux/store';
-import { clearAuth } from '../../../redux/slices/authSlice';
-import { api } from '../../../helper/axios';
-import { API } from '../../../constant/apiUrls';
+import { TopNav } from '../../../component/common/TopNav';
+import { useAppSelector } from '../../../redux/store';
 import { useMyBookings, type MyBookingsTab } from './useMyBookings';
 
 const TABS: { id: MyBookingsTab; label: string }[] = [
@@ -21,48 +18,22 @@ const TABS: { id: MyBookingsTab; label: string }[] = [
 export function MyBookings(): JSX.Element {
   const m = useMyBookings();
   const user = useAppSelector((s) => s.auth.user);
-  const dispatch = useAppDispatch();
-  const navigate = useNavigate();
-
-  const handleLogout = async (): Promise<void> => {
-    await api.post(API.AUTH.LOGOUT).catch(() => null);
-    dispatch(clearAuth());
-    navigate('/login', { replace: true });
-  };
 
   return (
     <div className="min-h-screen bg-ink-50">
-      {/* Top bar */}
-      <header className="bg-white border-b border-ink-100 sticky top-0 z-30">
-        <div className="max-w-6xl mx-auto px-6 py-3.5 flex items-center justify-between gap-4">
-          <Link to="/" className="flex items-center gap-2.5">
-            <div className="h-8 w-8 rounded-xl bg-gradient-brand flex items-center justify-center text-white">
-              <Heart className="h-4 w-4" fill="currentColor" />
-            </div>
-            <p className="font-bold text-ink-900">HomeHealth</p>
-          </Link>
-          <div className="flex items-center gap-2">
-            <Button variant="outline" size="sm" onClick={m.handleNewBooking} leftIcon={<Plus className="h-4 w-4" />}>
-              New booking
-            </Button>
-            <button
-              onClick={handleLogout}
-              className="p-2 rounded-lg hover:bg-ink-100 text-ink-500"
-              title="Log out"
-              aria-label="Log out"
-            >
-              <LogOut className="h-4 w-4" />
-            </button>
-          </div>
-        </div>
-      </header>
+      <TopNav />
 
       <main className="max-w-6xl mx-auto px-6 py-8">
-        <div className="mb-6 animate-slide-up">
-          <h1 className="text-3xl font-bold text-ink-900 tracking-tight">
-            {user?.fullName ? `Hi, ${user.fullName.split(' ')[0]}` : 'My bookings'}
-          </h1>
-          <p className="text-ink-500 mt-1">Track your scheduled, ongoing, and past bookings.</p>
+        <div className="mb-6 flex flex-wrap items-end justify-between gap-4 animate-slide-up">
+          <div>
+            <h1 className="text-3xl font-bold text-ink-900 tracking-tight">
+              {user?.fullName ? `Hi, ${user.fullName.split(' ')[0]}` : 'My bookings'}
+            </h1>
+            <p className="text-ink-500 mt-1">Track your scheduled, ongoing, and past bookings.</p>
+          </div>
+          <Button onClick={m.handleNewBooking} leftIcon={<Plus className="h-4 w-4" />}>
+            New booking
+          </Button>
         </div>
 
         {/* Tabs */}
@@ -91,7 +62,11 @@ export function MyBookings(): JSX.Element {
         ) : null}
 
         {m.isLoading ? (
-          <LoadingSpinner size="lg" label="Loading your bookings…" className="py-20" />
+          <div className="mt-6 grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {Array.from({ length: 6 }).map((_, i) => (
+              <BookingCardSkeleton key={i} />
+            ))}
+          </div>
         ) : m.bookings.length === 0 ? (
           <EmptyState
             icon={<CalendarPlus className="h-7 w-7" />}

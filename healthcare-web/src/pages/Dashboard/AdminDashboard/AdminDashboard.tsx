@@ -4,7 +4,7 @@ import { KpiCard } from '../../../component/admin/KpiCard';
 import { DataTable, type ColumnDef } from '../../../component/admin/DataTable';
 import { Card } from '../../../constant/Card';
 import { StatusBadge } from '../../../component/common/StatusBadge';
-import { LoadingSpinner } from '../../../component/common/LoadingSpinner';
+import { KpiCardSkeleton, Skeleton } from '../../../component/common/Skeleton';
 import { EmptyState } from '../../../component/common/EmptyState';
 import { formatDateTime, formatCurrency } from '../../../helper/format';
 import { useAdminDashboard } from './useAdminDashboard';
@@ -65,7 +65,24 @@ export function AdminDashboard(): JSX.Element {
       ) : null}
 
       {d.isLoading || !d.summary ? (
-        <LoadingSpinner size="lg" label="Loading dashboard…" className="py-20" />
+        <div className="animate-fade-in">
+          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            {Array.from({ length: 4 }).map((_, i) => (
+              <KpiCardSkeleton key={i} />
+            ))}
+          </div>
+          <div className="mt-6 bg-white rounded-2xl ring-1 ring-ink-100 shadow-card overflow-hidden">
+            <div className="px-6 py-4 border-b border-ink-100 flex items-center justify-between">
+              <Skeleton className="h-4 w-36" />
+              <Skeleton className="h-3 w-16" />
+            </div>
+            <div className="p-6 space-y-3">
+              {Array.from({ length: 5 }).map((_, i) => (
+                <Skeleton key={i} className="h-12 w-full" />
+              ))}
+            </div>
+          </div>
+        </div>
       ) : (
         <>
           {/* KPI row */}

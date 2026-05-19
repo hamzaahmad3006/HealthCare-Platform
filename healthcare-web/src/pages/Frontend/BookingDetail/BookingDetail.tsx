@@ -1,11 +1,11 @@
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
-import { ArrowLeft, Calendar, MapPin, User, Phone, Heart, AlertCircle } from 'lucide-react';
+import { ArrowLeft, Calendar, MapPin, User, Phone, AlertCircle } from 'lucide-react';
 import { Button } from '../../../constant/Button';
 import { Card } from '../../../constant/Card';
 import { StatusBadge } from '../../../component/common/StatusBadge';
 import { LoadingSpinner } from '../../../component/common/LoadingSpinner';
 import { VisitTimeline } from '../../../component/booking/VisitTimeline';
+import { TopNav } from '../../../component/common/TopNav';
 import { formatCurrency, formatDateTime } from '../../../helper/format';
 import { useBookingDetail } from './useBookingDetail';
 
@@ -41,21 +41,18 @@ export function BookingDetail(): JSX.Element {
 
   return (
     <div className="min-h-screen bg-ink-50">
-      <header className="bg-white border-b border-ink-100 sticky top-0 z-30">
-        <div className="max-w-5xl mx-auto px-6 py-3.5 flex items-center justify-between gap-4">
-          <Link to="/" className="flex items-center gap-2.5">
-            <div className="h-8 w-8 rounded-xl bg-gradient-brand flex items-center justify-center text-white">
-              <Heart className="h-4 w-4" fill="currentColor" />
-            </div>
-            <p className="font-bold text-ink-900">HomeHealth</p>
-          </Link>
-          <Button variant="ghost" size="sm" onClick={d.goBack} leftIcon={<ArrowLeft className="h-4 w-4" />}>
-            Back
-          </Button>
-        </div>
-      </header>
+      <TopNav />
 
       <main className="max-w-5xl mx-auto px-6 py-8 animate-slide-up">
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={d.goBack}
+          leftIcon={<ArrowLeft className="h-4 w-4" />}
+          className="mb-4"
+        >
+          Back to my bookings
+        </Button>
         {/* Header card */}
         <Card variant="elevated" padding="lg" className="mb-6">
           <div className="flex flex-wrap items-start justify-between gap-4">
