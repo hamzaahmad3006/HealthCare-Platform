@@ -14,7 +14,9 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
   ({ label, helperText, error, leftIcon, rightIcon, containerClassName, className, id, ...rest }, ref) => {
     const autoId = useId();
     const inputId = id ?? autoId;
+    const messageId = `${inputId}-msg`;
     const hasError = Boolean(error);
+    const hasMessage = hasError || Boolean(helperText);
 
     return (
       <div className={clsx('flex flex-col gap-1.5', containerClassName)}>
@@ -33,6 +35,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
             id={inputId}
             ref={ref}
             aria-invalid={hasError}
+            aria-describedby={hasMessage ? messageId : undefined}
             className={clsx(
               'w-full bg-white text-ink-900 placeholder:text-ink-400',
               'rounded-xl border ring-0 outline-none',
@@ -53,9 +56,13 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
           ) : null}
         </div>
         {error ? (
-          <p className="text-xs font-medium text-danger-700 animate-slide-down">{error}</p>
+          <p id={messageId} role="alert" className="text-xs font-medium text-danger-700 animate-slide-down">
+            {error}
+          </p>
         ) : helperText ? (
-          <p className="text-xs text-ink-500">{helperText}</p>
+          <p id={messageId} className="text-xs text-ink-500">
+            {helperText}
+          </p>
         ) : null}
       </div>
     );
