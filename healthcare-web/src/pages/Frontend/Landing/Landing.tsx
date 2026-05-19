@@ -21,7 +21,8 @@ import {
 } from 'lucide-react';
 import { Button } from '../../../constant/Button';
 import { Badge } from '../../../constant/Badge';
-import { LoadingSpinner } from '../../../component/common/LoadingSpinner';
+import { ServiceCardSkeleton } from '../../../component/common/Skeleton';
+import { TopNav } from '../../../component/common/TopNav';
 import { useLanding } from './useLanding';
 import type { ServiceType } from '../../../types/booking.types';
 
@@ -70,34 +71,7 @@ export function Landing(): JSX.Element {
 
   return (
     <div className="min-h-screen bg-white">
-      {/* ───── Header ───── */}
-      <header className="sticky top-0 z-40 glass border-b border-ink-100/60">
-        <div className="max-w-7xl mx-auto px-6 py-3.5 flex items-center justify-between gap-4">
-          <Link to="/" className="flex items-center gap-2.5">
-            <div className="h-9 w-9 rounded-xl bg-gradient-brand flex items-center justify-center text-white shadow-brand">
-              <Heart className="h-4.5 w-4.5" fill="currentColor" />
-            </div>
-            <div className="leading-tight">
-              <p className="font-bold text-ink-900">HomeHealth</p>
-              <p className="text-2xs text-ink-500 -mt-0.5">Faisalabad</p>
-            </div>
-          </Link>
-          <nav className="hidden md:flex items-center gap-7 text-sm font-medium text-ink-600">
-            <a href="#services" className="hover:text-ink-900 transition-colors">Services</a>
-            <a href="#how" className="hover:text-ink-900 transition-colors">How it works</a>
-            <a href="#trust" className="hover:text-ink-900 transition-colors">Why us</a>
-            <a href="#contact" className="hover:text-ink-900 transition-colors">Contact</a>
-          </nav>
-          <div className="flex items-center gap-2">
-            <Link to="/login" className="hidden sm:inline-block">
-              <Button variant="ghost" size="sm">Sign in</Button>
-            </Link>
-            <Button size="sm" onClick={() => handleBookNow()} rightIcon={<ArrowRight className="h-4 w-4" />}>
-              Book Now
-            </Button>
-          </div>
-        </div>
-      </header>
+      <TopNav variant="transparent" />
 
       {/* ───── Hero ───── */}
       <section className="relative overflow-hidden bg-gradient-hero text-white">
@@ -217,20 +191,18 @@ export function Landing(): JSX.Element {
             </p>
           </div>
 
-          {isLoading ? (
-            <LoadingSpinner size="lg" label="Loading services…" className="py-20" />
-          ) : (
-            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
-              {services.map((service, idx) => (
-                <ServiceCard
-                  key={service.id}
-                  service={service}
-                  index={idx}
-                  onBook={() => handleBookNow(service.code)}
-                />
-              ))}
-            </div>
-          )}
+          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
+            {isLoading
+              ? Array.from({ length: 6 }).map((_, i) => <ServiceCardSkeleton key={i} />)
+              : services.map((service, idx) => (
+                  <ServiceCard
+                    key={service.id}
+                    service={service}
+                    index={idx}
+                    onBook={() => handleBookNow(service.code)}
+                  />
+                ))}
+          </div>
         </div>
       </section>
 
@@ -346,7 +318,7 @@ export function Landing(): JSX.Element {
           <div>
             <Link to="/" className="flex items-center gap-2.5">
               <div className="h-9 w-9 rounded-xl bg-gradient-brand flex items-center justify-center text-white">
-                <Heart className="h-4.5 w-4.5" fill="currentColor" />
+                <Heart className="h-5 w-5" fill="currentColor" />
               </div>
               <div className="leading-tight">
                 <p className="font-bold text-white">HomeHealth</p>

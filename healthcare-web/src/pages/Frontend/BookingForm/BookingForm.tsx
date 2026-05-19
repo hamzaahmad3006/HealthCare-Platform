@@ -1,7 +1,5 @@
-import { Link } from 'react-router-dom';
 import clsx from 'clsx';
 import {
-  Heart,
   ArrowLeft,
   ArrowRight,
   Check,
@@ -25,6 +23,7 @@ import { Card } from '../../../constant/Card';
 import { Badge } from '../../../constant/Badge';
 import { LoadingSpinner } from '../../../component/common/LoadingSpinner';
 import { EmptyState } from '../../../component/common/EmptyState';
+import { TopNav } from '../../../component/common/TopNav';
 import { formatCurrency, formatDate } from '../../../helper/format';
 import { useBookingForm, type StepNumber } from './useBookingForm';
 
@@ -49,20 +48,7 @@ export function BookingForm(): JSX.Element {
 
   return (
     <div className="min-h-screen bg-ink-50">
-      {/* Top bar */}
-      <header className="bg-white border-b border-ink-100 sticky top-0 z-30">
-        <div className="max-w-5xl mx-auto px-6 py-3.5 flex items-center justify-between">
-          <Link to="/" className="flex items-center gap-2.5">
-            <div className="h-8 w-8 rounded-xl bg-gradient-brand flex items-center justify-center text-white">
-              <Heart className="h-4 w-4" fill="currentColor" />
-            </div>
-            <p className="font-bold text-ink-900">HomeHealth</p>
-          </Link>
-          <Link to="/my-bookings" className="text-sm font-medium text-ink-600 hover:text-ink-900">
-            My bookings →
-          </Link>
-        </div>
-      </header>
+      <TopNav />
 
       <main className="max-w-5xl mx-auto px-6 py-10">
         {/* Stepper */}
