@@ -53,3 +53,11 @@ export function uploadLimiter(req: Request, res: Response, next: NextFunction): 
   const key = `upload:${userId}`;
   slidingWindowLimit(key, RATE_LIMIT.UPLOAD_MAX, RATE_LIMIT.UPLOAD_WINDOW_SECONDS, req, res, next).catch(next);
 }
+
+// Webhook limit: protect Stripe endpoint from brute-force replay attempts.
+// Stripe signs each request — invalid signatures throw inside the controller,
+// but unauthenticated callers must be rate-limited at the network edge.
+export function webhookLimiter(req: Request, res: Response, next: NextFunction): void {
+  const key = `webhook:${req.ip ?? 'unknown'}`;
+  slidingWindowLimit(key, RATE_LIMIT.WEBHOOK_MAX, RATE_LIMIT.WEBHOOK_WINDOW_SECONDS, req, res, next).catch(next);
+}

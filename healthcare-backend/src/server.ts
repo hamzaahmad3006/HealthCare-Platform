@@ -9,7 +9,7 @@ import { env } from './config/env';
 import { prisma } from './config/database';
 import { redis } from './config/redis';
 import { logger } from './utils/logger';
-import { apiLimiter } from './middleware/rateLimit.middleware';
+import { apiLimiter, webhookLimiter } from './middleware/rateLimit.middleware';
 import { auditLogMiddleware } from './middleware/auditLog.middleware';
 import { globalErrorHandler } from './middleware/error.middleware';
 import { paymentController } from './controller/payment.controller';
@@ -18,8 +18,10 @@ import apiRoutes from './routes/index';
 const app = express();
 
 // ── Stripe webhook — MUST be before express.json() ───────────────────────────
+// webhookLimiter throttles brute-force replays of invalid signatures.
 app.post(
   '/api/v1/webhooks/stripe',
+  webhookLimiter,
   express.raw({ type: 'application/json' }),
   paymentController.stripeWebhook,
 );
