@@ -2,13 +2,15 @@ import { Router, Request, Response, NextFunction } from 'express';
 import { prisma } from '../config/database';
 import { success } from '../helper/response.helper';
 import { authenticateToken } from '../middleware/auth.middleware';
-import { adminOnly } from '../middleware/role.middleware';
 
 const router = Router();
 
-// Cities + nested zones — read-only reference data used by admin Add Staff form
-// and customer-facing forms. Cached at the DB level (small table).
-router.get('/', authenticateToken, adminOnly, async (_req: Request, res: Response, next: NextFunction) => {
+// Cities + nested zones — read-only reference data. Used by:
+//   - admin Add Staff form (admin role)
+//   - staff /complete-profile self-onboarding (staff role)
+//   - customer booking form (customer role)
+// Any authenticated user can read; no PII here.
+router.get('/', authenticateToken, async (_req: Request, res: Response, next: NextFunction) => {
   try {
     const cities = await prisma.city.findMany({
       where: { isActive: true },
