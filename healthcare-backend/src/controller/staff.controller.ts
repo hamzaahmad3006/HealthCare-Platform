@@ -188,7 +188,14 @@ export const staffController = {
       const [staff, total] = await prisma.$transaction([
         prisma.staffProfile.findMany({
           where,
-          include: { user: { select: { fullName: true, phone: true, email: true } } },
+          include: {
+            user: { select: { fullName: true, phone: true, email: true } },
+            city: { select: { name: true, slug: true } },
+            zone: { select: { name: true, slug: true } },
+            serviceTypes: {
+              include: { serviceType: { select: { id: true, code: true, name: true } } },
+            },
+          },
           skip: (page - 1) * limit,
           take: limit,
         }),

@@ -109,8 +109,10 @@ export function StaffAssignPanel({
                               ) : null}
                             </div>
                             <p className="text-xs text-ink-500 mt-1">
-                              {staff.experienceYears} yrs exp ·{' '}
-                              {staff.serviceTypes.map((s) => s.serviceType.name).join(', ')}
+                              {staff.experienceYears} yrs exp
+                              {staff.serviceTypes?.length
+                                ? ` · ${staff.serviceTypes.map((s) => s.serviceType.name).join(', ')}`
+                                : ''}
                             </p>
                           </div>
                         </div>
