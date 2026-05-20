@@ -63,15 +63,23 @@ export function useLogin(): UseLoginReturn {
       const defaultDestination =
         role === 'ADMIN' ? '/admin' : role === 'STAFF' ? '/complete-profile' : '/my-bookings';
 
-      // Only honor `from` if it points to a route this role can actually use —
-      // otherwise an unrelated path (e.g. the public landing `/`) would bounce
-      // the user back instead of taking them to their dashboard.
-      const isValidFrom =
-        from && from !== '/login' && (
-          role === 'CUSTOMER'
-            ? from.startsWith('/my-bookings') || from.startsWith('/book')
-            : from.startsWith('/admin') || from === '/complete-profile'
-        );
+      // Only honor `from` if it points to a route this role can actually use.
+      // STAFF can only reach /complete-profile and /admin/visits — every other
+      // /admin/* path is admin-only and would bounce them to "/" via
+      // ProtectedRoute's role-mismatch redirect, stranding them on landing.
+      const canRoleUsePath = (path: string): boolean => {
+        if (path === '/login') return false;
+        if (role === 'CUSTOMER') {
+          return path.startsWith('/my-bookings') || path.startsWith('/book');
+        }
+        if (role === 'STAFF') {
+          return path === '/complete-profile' || path === '/admin/visits';
+        }
+        // ADMIN
+        return path.startsWith('/admin');
+      };
+
+      const isValidFrom = Boolean(from && canRoleUsePath(from));
 
       navigate(isValidFrom ? from! : defaultDestination, { replace: true });
     } catch (err) {

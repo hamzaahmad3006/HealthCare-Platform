@@ -26,7 +26,14 @@ export function AuthBootstrap({ children }: AuthBootstrapProps): JSX.Element {
     const bootstrap = async (): Promise<void> => {
       dispatch(setLoading(true));
       try {
-        const { data } = await api.get<{ success: true; data: UserProfile }>(API.AUTH.ME);
+        // Hard timeout — axios has its own 15s default, but a stuck refresh +
+        // retry chain can compound. If anything takes >8s, we'd rather render
+        // the public app as anonymous than freeze the user on a spinner.
+        const meRequest = api.get<{ success: true; data: UserProfile }>(API.AUTH.ME);
+        const timeout = new Promise<never>((_, reject) => {
+          setTimeout(() => reject(new Error('AUTH_BOOTSTRAP_TIMEOUT')), 8000);
+        });
+        const { data } = await Promise.race([meRequest, timeout]);
         if (cancelled) return;
         const token = store.getState().auth.accessToken ?? '';
         if (token) {
@@ -38,7 +45,8 @@ export function AuthBootstrap({ children }: AuthBootstrapProps): JSX.Element {
         }
       } catch {
         if (cancelled) return;
-        // No refresh cookie or it expired — that's fine, user is just anonymous.
+        // No refresh cookie, it expired, or the timeout fired — treat as
+        // anonymous. Public pages still render; protected pages bounce to /login.
         dispatch(clearAuth());
       } finally {
         if (!cancelled) {
