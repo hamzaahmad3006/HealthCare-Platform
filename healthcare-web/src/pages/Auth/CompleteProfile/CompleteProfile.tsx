@@ -1,5 +1,5 @@
 import { Controller } from 'react-hook-form';
-import { CheckCircle2, CreditCard, MapPin, Briefcase } from 'lucide-react';
+import { CheckCircle2, CreditCard, MapPin, Briefcase, Siren } from 'lucide-react';
 import { Button } from '../../../constant/Button';
 import { Input } from '../../../constant/Input';
 import { LoadingSpinner } from '../../../component/common/LoadingSpinner';
@@ -120,6 +120,11 @@ export function CompleteProfile(): JSX.Element {
                   </option>
                 ))}
               </Select>
+              {c.form.watch('cityId') && c.zonesForSelectedCity.length === 0 ? (
+                <p className="text-xs text-ink-500">
+                  No active zones are configured for this city yet. Please contact admin or select a different city.
+                </p>
+              ) : null}
             </div>
 
             <SectionHeader icon={<Briefcase className="h-4 w-4" />} title="Experience &amp; services" />
@@ -161,6 +166,25 @@ export function CompleteProfile(): JSX.Element {
                 </p>
               ) : null}
             </div>
+
+            {c.needsAmbulanceNumber ? (
+              <div className="rounded-xl bg-accent-50 ring-1 ring-accent-200 px-4 py-4 animate-slide-down">
+                <div className="flex items-start gap-3">
+                  <div className="h-9 w-9 rounded-lg bg-accent-100 text-accent-700 flex items-center justify-center flex-shrink-0">
+                    <Siren className="h-4 w-4" />
+                  </div>
+                  <div className="flex-1">
+                    <Input
+                      label="Ambulance number *"
+                      placeholder="FSD-1234 or LE-ABC-123"
+                      helperText="Vehicle registration plate. Required for ambulance service."
+                      error={formState.errors.ambulanceNumber?.message}
+                      {...register('ambulanceNumber')}
+                    />
+                  </div>
+                </div>
+              </div>
+            ) : null}
 
             <div className="rounded-xl bg-brand-50 ring-1 ring-brand-200/60 px-4 py-3 text-xs text-brand-800 leading-relaxed">
               <strong>Next step after saving:</strong> upload your CNIC scan and any certifications.

@@ -19,6 +19,12 @@ const CompleteProfileSchema = z.object({
   dateOfBirth: z.string().optional().or(z.literal('').transform(() => undefined)),
   experienceYears: z.coerce.number().int().min(0).max(60).default(0),
   serviceTypeIds: z.array(z.string().uuid()).min(1, 'Pick at least one service'),
+  ambulanceNumber: z
+    .string()
+    .max(20, 'Ambulance number is too long')
+    .regex(/^[A-Za-z0-9\- ]*$/, 'Letters, digits, dashes, and spaces only')
+    .optional()
+    .or(z.literal('').transform(() => undefined)),
 });
 
 export type CompleteProfileFormValues = z.infer<typeof CompleteProfileSchema>;
@@ -44,6 +50,7 @@ export interface StaffMe {
   cnic: string | null;
   dateOfBirth: string | null;
   experienceYears: number;
+  ambulanceNumber: string | null;
   user: { fullName: string; phone: string; email: string | null };
   serviceTypes: Array<{ serviceType: ServiceTypeOption }>;
 }
@@ -59,6 +66,7 @@ interface UseCompleteProfileReturn {
   zonesForSelectedCity: Array<{ id: string; name: string }>;
   selectedServiceIds: string[];
   toggleService: (id: string) => void;
+  needsAmbulanceNumber: boolean;
 }
 
 export function useCompleteProfile(): UseCompleteProfileReturn {
@@ -79,6 +87,7 @@ export function useCompleteProfile(): UseCompleteProfileReturn {
       dateOfBirth: '',
       experienceYears: 0,
       serviceTypeIds: [],
+      ambulanceNumber: '',
     },
     mode: 'onBlur',
   });
@@ -114,6 +123,7 @@ export function useCompleteProfile(): UseCompleteProfileReturn {
           dateOfBirth: meData.dateOfBirth ? meData.dateOfBirth.slice(0, 10) : '',
           experienceYears: meData.experienceYears ?? 0,
           serviceTypeIds: meData.serviceTypes.map((s) => s.serviceType.id),
+          ambulanceNumber: meData.ambulanceNumber ?? '',
         });
       } catch (err) {
         toast.error(extractApiError(err).message);
@@ -131,6 +141,12 @@ export function useCompleteProfile(): UseCompleteProfileReturn {
   const selectedCityId = form.watch('cityId');
   const zonesForSelectedCity = cities.find((c) => c.id === selectedCityId)?.zones ?? [];
   const selectedServiceIds = form.watch('serviceTypeIds') ?? [];
+  // Mirror the backend rule: ambulance number is required iff the AMBULANCE
+  // service is among the selected ones. We look up the code so the trigger
+  // doesn't break if the service ID shifts between environments.
+  const needsAmbulanceNumber = services.some(
+    (s) => s.code === 'AMBULANCE' && selectedServiceIds.includes(s.id),
+  );
 
   const toggleService = (id: string): void => {
     const next = selectedServiceIds.includes(id)
@@ -140,6 +156,16 @@ export function useCompleteProfile(): UseCompleteProfileReturn {
   };
 
   const onSubmit = async (values: CompleteProfileFormValues): Promise<void> => {
+    // Client-side mirror of the backend rule — short-circuit so the staff
+    // sees the error inline instead of as a server toast.
+    if (needsAmbulanceNumber && !values.ambulanceNumber) {
+      form.setError('ambulanceNumber', {
+        type: 'manual',
+        message: 'Ambulance number is required when offering ambulance service',
+      });
+      return;
+    }
+
     setIsSubmitting(true);
     try {
       await api.patch(API.STAFF.MY_PROFILE, values);
@@ -163,5 +189,6 @@ export function useCompleteProfile(): UseCompleteProfileReturn {
     zonesForSelectedCity,
     selectedServiceIds,
     toggleService,
+    needsAmbulanceNumber,
   };
 }
