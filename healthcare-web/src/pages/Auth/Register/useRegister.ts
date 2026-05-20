@@ -4,11 +4,11 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import toast from 'react-hot-toast';
-import { extractApiError } from '../../../helper/axios';
-
-// NOTE: Public customer self-registration is not currently a backend endpoint
-// (SRS Section 3 — customers are created on first booking). This hook is wired
-// for the form UI; when the endpoint is added it will POST to /users/register.
+import { api, extractApiError } from '../../../helper/axios';
+import { API } from '../../../constant/apiUrls';
+import { useAppDispatch } from '../../../redux/store';
+import { setAuth, setInitialized } from '../../../redux/slices/authSlice';
+import type { LoginResponse } from '../../../types/auth.types';
 
 const RegisterSchema = z
   .object({
@@ -35,7 +35,15 @@ interface UseRegisterReturn {
   serverError: string | null;
 }
 
+interface RegisterRequest {
+  fullName: string;
+  phone: string;
+  email?: string;
+  password: string;
+}
+
 export function useRegister(): UseRegisterReturn {
+  const dispatch = useAppDispatch();
   const navigate = useNavigate();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [serverError, setServerError] = useState<string | null>(null);
@@ -46,18 +54,31 @@ export function useRegister(): UseRegisterReturn {
     mode: 'onBlur',
   });
 
-  const onSubmit = async (_values: RegisterFormValues): Promise<void> => {
+  const onSubmit = async (values: RegisterFormValues): Promise<void> => {
     setIsSubmitting(true);
     setServerError(null);
     try {
-      // Placeholder — the customer registration endpoint will be added once
-      // the booking-form flow auto-provisions accounts is removed. For now,
-      // direct users to call the support number.
-      await new Promise((r) => setTimeout(r, 800));
-      toast.success('Account created. Please log in to continue.');
-      navigate('/login');
+      const payload: RegisterRequest = {
+        fullName: values.fullName.trim(),
+        phone: values.phone.trim(),
+        password: values.password,
+      };
+      if (values.email && values.email.length > 0) {
+        payload.email = values.email.trim();
+      }
+
+      const { data } = await api.post<{ success: true; data: LoginResponse }>(
+        API.AUTH.REGISTER,
+        payload,
+      );
+
+      dispatch(setAuth({ accessToken: data.data.accessToken, user: data.data.user }));
+      dispatch(setInitialized(true));
+      toast.success(`Welcome, ${data.data.user.fullName.split(' ')[0] ?? 'there'}!`);
+      navigate('/my-bookings', { replace: true });
     } catch (err) {
-      setServerError(extractApiError(err).message);
+      const apiErr = extractApiError(err);
+      setServerError(apiErr.message);
     } finally {
       setIsSubmitting(false);
     }
