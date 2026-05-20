@@ -29,11 +29,14 @@ const LoginSchema = z.object({
 
 const RegisterSchema = z.object({
   fullName: z.string().min(2).max(150),
+  // Accept E.164 PK numbers from the new frontend (+92 + 10 digits) and also
+  // older legacy forms (03..., 923..., bare 10 digits) so existing scripts /
+  // partner integrations don't break. Server normalises to +92XXXXXXXXXX.
   phone: z
     .string()
     .min(10)
     .max(20)
-    .regex(/^\+?[0-9]{10,15}$/, 'Phone must be 10-15 digits, optional leading +'),
+    .regex(/^(\+?92|0)?[0-9]{10,11}$/, 'Phone must be 10-11 digits, optional leading +92 or 0'),
   email: z.string().email().optional().or(z.literal('').transform(() => undefined)),
   password: z.string().min(8, 'Password must be at least 8 characters'),
 });
@@ -141,9 +144,15 @@ export const authController = {
     try {
       const data = RegisterSchema.parse(req.body);
 
-      // Normalise phone — accept "03001234567" and "923001234567" by ensuring
-      // a leading +. The DB constraint expects E.164-ish.
-      const phone = data.phone.startsWith('+') ? data.phone : `+${data.phone.replace(/^0/, '92')}`;
+      // Normalise to E.164 +92XXXXXXXXXX regardless of input format.
+      // Strip non-digits, drop leading 92/0, ensure exactly 10 digits, prepend.
+      const stripped = data.phone.replace(/\D/g, '');
+      const withoutCountry = stripped.startsWith('92') ? stripped.slice(2) : stripped;
+      const local = withoutCountry.replace(/^0/, '');
+      if (local.length !== 10) {
+        throw new AppError(400, 'INVALID_PHONE', 'Phone must be exactly 10 digits after +92');
+      }
+      const phone = `+92${local}`;
 
       const existing = await prisma.user.findUnique({ where: { phone } });
       if (existing) {

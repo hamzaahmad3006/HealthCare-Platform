@@ -1,9 +1,11 @@
 import { Dialog, Transition } from '@headlessui/react';
 import { Fragment } from 'react';
+import { Controller } from 'react-hook-form';
 import { X, UserPlus, CheckCircle2, Copy, Mail, MessageCircle, AlertTriangle } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { Button } from '../../../constant/Button';
 import { Input } from '../../../constant/Input';
+import { PhoneInput } from '../../../component/common/PhoneInput';
 import { useCreateStaff, type CreateStaffSuccess } from './useCreateStaff';
 
 interface AddStaffModalProps {
@@ -14,7 +16,7 @@ interface AddStaffModalProps {
 
 export function AddStaffModal({ open, onClose, onCreated }: AddStaffModalProps): JSX.Element {
   const c = useCreateStaff(open);
-  const { register, handleSubmit, formState, setValue, watch } = c.form;
+  const { register, handleSubmit, formState, setValue, watch, control } = c.form;
 
   const selectedServiceIds = watch('serviceTypeIds') ?? [];
 
@@ -65,6 +67,7 @@ export function AddStaffModal({ open, onClose, onCreated }: AddStaffModalProps):
                 ) : (
                   <FormView
                     register={register}
+                    control={control}
                     formState={formState}
                     handleSubmit={handleSubmit(c.onSubmit)}
                     services={c.services}
@@ -89,9 +92,8 @@ export function AddStaffModal({ open, onClose, onCreated }: AddStaffModalProps):
 // ─── Form view ──────────────────────────────────────────────────────────────
 
 interface FormViewProps {
-  register: ReturnType<ReturnType<typeof useCreateStaff>['form']['register']> extends infer R
-    ? ReturnType<typeof useCreateStaff>['form']['register']
-    : never;
+  register: ReturnType<typeof useCreateStaff>['form']['register'];
+  control: ReturnType<typeof useCreateStaff>['form']['control'];
   formState: ReturnType<typeof useCreateStaff>['form']['formState'];
   handleSubmit: () => void;
   services: Array<{ id: string; code: string; name: string }>;
@@ -106,6 +108,7 @@ interface FormViewProps {
 
 function FormView({
   register,
+  control,
   formState,
   handleSubmit,
   services,
@@ -147,12 +150,19 @@ function FormView({
         />
 
         <div className="grid sm:grid-cols-2 gap-4">
-          <Input
-            label="Phone *"
-            placeholder="+923001234567"
-            helperText="E.164 format — 03... will be normalised to +92..."
-            error={formState.errors.phone?.message}
-            {...register('phone')}
+          <Controller
+            control={control}
+            name="phone"
+            render={({ field }) => (
+              <PhoneInput
+                label="Phone *"
+                value={field.value}
+                onChange={field.onChange}
+                onBlur={field.onBlur}
+                name={field.name}
+                error={formState.errors.phone?.message}
+              />
+            )}
           />
           <Input
             label="Email (optional)"

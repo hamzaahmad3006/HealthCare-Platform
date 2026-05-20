@@ -9,14 +9,15 @@ import { API } from '../../../constant/apiUrls';
 import { useAppDispatch } from '../../../redux/store';
 import { setAuth, setInitialized } from '../../../redux/slices/authSlice';
 import type { LoginResponse } from '../../../types/auth.types';
+import { toE164 } from '../../../component/common/PhoneInput';
 
 const RegisterSchema = z
   .object({
     fullName: z.string().min(2, 'Enter your full name').max(150),
     phone: z
       .string()
-      .min(1, 'Phone is required')
-      .regex(/^\+?[0-9]{10,15}$/, 'Enter a valid phone number'),
+      .length(10, 'Phone must be exactly 10 digits after +92')
+      .regex(/^[0-9]{10}$/, 'Digits only'),
     email: z.string().email('Enter a valid email').optional().or(z.literal('')),
     password: z.string().min(8, 'Minimum 8 characters'),
     confirmPassword: z.string().min(1, 'Confirm your password'),
@@ -60,7 +61,7 @@ export function useRegister(): UseRegisterReturn {
     try {
       const payload: RegisterRequest = {
         fullName: values.fullName.trim(),
-        phone: values.phone.trim(),
+        phone: toE164(values.phone),
         password: values.password,
       };
       if (values.email && values.email.length > 0) {

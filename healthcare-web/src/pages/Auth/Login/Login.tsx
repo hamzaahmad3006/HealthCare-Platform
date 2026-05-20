@@ -1,12 +1,14 @@
 import { Link } from 'react-router-dom';
-import { Heart, Phone, Lock, Eye, EyeOff, ShieldCheck, BadgeCheck, Star } from 'lucide-react';
+import { Controller } from 'react-hook-form';
+import { Heart, Lock, Eye, EyeOff, ShieldCheck, BadgeCheck, Star } from 'lucide-react';
 import { Button } from '../../../constant/Button';
 import { Input } from '../../../constant/Input';
+import { PhoneInput } from '../../../component/common/PhoneInput';
 import { useLogin } from './useLogin';
 
 export function Login(): JSX.Element {
   const { form, onSubmit, isSubmitting, serverError, showPassword, toggleShowPassword } = useLogin();
-  const { register, handleSubmit, formState } = form;
+  const { register, handleSubmit, formState, control } = form;
 
   return (
     <div className="min-h-screen flex">
@@ -29,14 +31,20 @@ export function Login(): JSX.Element {
           </div>
 
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-5 animate-slide-up" noValidate>
-            <Input
-              label="Phone number"
-              type="tel"
-              autoComplete="tel"
-              placeholder="+923001234567"
-              leftIcon={<Phone className="h-4 w-4" />}
-              error={formState.errors.phone?.message}
-              {...register('phone')}
+            <Controller
+              control={control}
+              name="phone"
+              render={({ field }) => (
+                <PhoneInput
+                  label="Phone number"
+                  value={field.value}
+                  onChange={field.onChange}
+                  onBlur={field.onBlur}
+                  name={field.name}
+                  autoComplete="tel-national"
+                  error={formState.errors.phone?.message}
+                />
+              )}
             />
 
             <Input

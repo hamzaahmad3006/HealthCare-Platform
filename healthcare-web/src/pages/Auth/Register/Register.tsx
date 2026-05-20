@@ -1,12 +1,14 @@
 import { Link } from 'react-router-dom';
-import { Heart, User, Phone, Mail, Lock } from 'lucide-react';
+import { Controller } from 'react-hook-form';
+import { Heart, User, Mail, Lock } from 'lucide-react';
 import { Button } from '../../../constant/Button';
 import { Input } from '../../../constant/Input';
+import { PhoneInput } from '../../../component/common/PhoneInput';
 import { useRegister } from './useRegister';
 
 export function Register(): JSX.Element {
   const { form, onSubmit, isSubmitting, serverError } = useRegister();
-  const { register, handleSubmit, formState } = form;
+  const { register, handleSubmit, formState, control } = form;
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-mesh px-6 py-12">
@@ -34,13 +36,19 @@ export function Register(): JSX.Element {
               {...register('fullName')}
             />
             <div className="grid sm:grid-cols-2 gap-4">
-              <Input
-                label="Phone"
-                type="tel"
-                placeholder="+923001234567"
-                leftIcon={<Phone className="h-4 w-4" />}
-                error={formState.errors.phone?.message}
-                {...register('phone')}
+              <Controller
+                control={control}
+                name="phone"
+                render={({ field }) => (
+                  <PhoneInput
+                    label="Phone"
+                    value={field.value}
+                    onChange={field.onChange}
+                    onBlur={field.onBlur}
+                    name={field.name}
+                    error={formState.errors.phone?.message}
+                  />
+                )}
               />
               <Input
                 label="Email (optional)"
