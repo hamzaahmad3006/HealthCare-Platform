@@ -120,6 +120,11 @@ export function CompleteProfile(): JSX.Element {
                   </option>
                 ))}
               </Select>
+              {c.form.watch('cityId') && c.zonesForSelectedCity.length === 0 ? (
+                <p className="text-xs text-ink-500">
+                  No active zones are configured for this city yet. Please contact admin or select a different city.
+                </p>
+              ) : null}
             </div>
 
             <SectionHeader icon={<Briefcase className="h-4 w-4" />} title="Experience &amp; services" />
