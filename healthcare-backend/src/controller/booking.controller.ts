@@ -198,10 +198,17 @@ export const bookingController = {
       if (!req.user) throw new UnauthorizedError('UNAUTHENTICATED');
       const adminId = req.user.sub;
 
-      const booking = await prisma.booking.findUnique({ where: { id: pickParam(req, 'id') } });
+      const booking = await prisma.booking.findUnique({
+        where: { id: pickParam(req, 'id') },
+        include: { address: { select: { contactPhone: true } }, customer: { select: { phone: true } } },
+      });
       if (!booking) throw new NotFoundError('BOOKING_NOT_FOUND');
 
       assertBookingTransition(booking.status, 'CONFIRMED');
+
+      // NotificationLog.recipient is VarChar(20) — must be a phone number,
+      // never a UUID. Prefer the address contact, fall back to the customer.
+      const recipient = booking.address.contactPhone ?? booking.customer.phone;
 
       // SRS §11 — NotificationLog must be created atomically with the status change.
       const { updated, notifLogId } = await prisma.$transaction(async (tx) => {
@@ -214,7 +221,7 @@ export const bookingController = {
           data: {
             bookingId: booking.id,
             templateCode: 'BOOKING_CONFIRMED',
-            recipient: booking.customerUserId,
+            recipient,
             renderedContent: renderTemplate('BOOKING_CONFIRMED', {
               bookingNumber: booking.bookingNumber,
               scheduledDate: booking.requestedStartAt.toISOString(),
@@ -367,15 +374,21 @@ export const bookingController = {
             },
           });
 
+          // recipient is VarChar(20); we send to a phone number, not a UUID.
+          const staffUser = await tx.user.findUniqueOrThrow({
+            where: { id: staffUserId },
+            select: { phone: true, fullName: true },
+          });
+
           // NotificationLog created inside the same transaction — atomic with the assignment write.
           const notifLog = await tx.notificationLog.create({
             data: {
               bookingId: visit.bookingId,
               bookingVisitId: visitId,
               templateCode: 'STAFF_ASSIGNED',
-              recipient: staffUserId,
+              recipient: staffUser.phone,
               renderedContent: renderTemplate('STAFF_ASSIGNED', {
-                staffName: 'Staff',
+                staffName: staffUser.fullName,
                 bookingNumber: visit.bookingId,
               }),
               status: 'PENDING',
