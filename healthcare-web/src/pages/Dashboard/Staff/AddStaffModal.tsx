@@ -15,17 +15,8 @@ interface AddStaffModalProps {
 }
 
 export function AddStaffModal({ open, onClose, onCreated }: AddStaffModalProps): JSX.Element {
-  const c = useCreateStaff(open);
-  const { register, handleSubmit, formState, setValue, watch, control } = c.form;
-
-  const selectedServiceIds = watch('serviceTypeIds') ?? [];
-
-  const toggleService = (id: string): void => {
-    const next = selectedServiceIds.includes(id)
-      ? selectedServiceIds.filter((s) => s !== id)
-      : [...selectedServiceIds, id];
-    setValue('serviceTypeIds', next, { shouldValidate: true });
-  };
+  const c = useCreateStaff();
+  const { register, handleSubmit, formState, control } = c.form;
 
   const handleClose = (): void => {
     if (c.result) {
@@ -61,24 +52,91 @@ export function AddStaffModal({ open, onClose, onCreated }: AddStaffModalProps):
               leaveFrom="opacity-100 scale-100"
               leaveTo="opacity-0 scale-95"
             >
-              <Dialog.Panel className="w-full max-w-2xl bg-white rounded-2xl shadow-card-hover ring-1 ring-ink-100 overflow-hidden">
+              <Dialog.Panel className="w-full max-w-lg bg-white rounded-2xl shadow-card-hover ring-1 ring-ink-100 overflow-hidden">
                 {c.result ? (
                   <SuccessView result={c.result} onClose={handleClose} />
                 ) : (
-                  <FormView
-                    register={register}
-                    control={control}
-                    formState={formState}
-                    handleSubmit={handleSubmit(c.onSubmit)}
-                    services={c.services}
-                    cities={c.cities}
-                    zones={c.zonesForSelectedCity}
-                    selectedServiceIds={selectedServiceIds}
-                    toggleService={toggleService}
-                    isSubmitting={c.isSubmitting}
-                    isLoadingOptions={c.isLoadingOptions}
-                    onClose={onClose}
-                  />
+                  <>
+                    <div className="flex items-center justify-between px-6 py-4 border-b border-ink-100 bg-gradient-brand-soft">
+                      <div className="flex items-center gap-3">
+                        <div className="h-9 w-9 rounded-xl bg-gradient-brand text-white flex items-center justify-center">
+                          <UserPlus className="h-4 w-4" />
+                        </div>
+                        <div>
+                          <Dialog.Title className="font-bold text-ink-900">Invite new staff</Dialog.Title>
+                          <p className="text-xs text-ink-600">
+                            They&apos;ll complete their own profile after signing in
+                          </p>
+                        </div>
+                      </div>
+                      <button
+                        onClick={onClose}
+                        className="p-2 rounded-lg text-ink-500 hover:bg-white/60"
+                        aria-label="Close"
+                      >
+                        <X className="h-5 w-5" />
+                      </button>
+                    </div>
+
+                    <form
+                      onSubmit={(e) => {
+                        e.preventDefault();
+                        void handleSubmit(c.onSubmit)();
+                      }}
+                      className="px-6 py-5 space-y-4"
+                    >
+                      <Input
+                        label="Full name *"
+                        placeholder="Sarah Khan"
+                        error={formState.errors.fullName?.message}
+                        {...register('fullName')}
+                      />
+
+                      <Controller
+                        control={control}
+                        name="phone"
+                        render={({ field }) => (
+                          <PhoneInput
+                            label="Phone *"
+                            value={field.value}
+                            onChange={field.onChange}
+                            onBlur={field.onBlur}
+                            name={field.name}
+                            helperText="Used for login + WhatsApp invite"
+                            error={formState.errors.phone?.message}
+                          />
+                        )}
+                      />
+
+                      <Input
+                        label="Email *"
+                        type="email"
+                        placeholder="sarah@example.com"
+                        helperText="Invite link with temp password is sent here"
+                        error={formState.errors.email?.message}
+                        {...register('email')}
+                      />
+
+                      <div className="rounded-xl bg-brand-50 ring-1 ring-brand-200/60 px-4 py-3 text-xs text-brand-800 leading-relaxed">
+                        <strong>What happens next:</strong> we email them a temp password +
+                        a login link. After first login they fill their CNIC, city, services,
+                        and upload verification documents. You then review and approve.
+                      </div>
+                    </form>
+
+                    <div className="flex items-center justify-end gap-2 px-6 py-4 border-t border-ink-100 bg-ink-50">
+                      <Button variant="ghost" onClick={onClose} disabled={c.isSubmitting}>
+                        Cancel
+                      </Button>
+                      <Button
+                        onClick={() => void handleSubmit(c.onSubmit)()}
+                        isLoading={c.isSubmitting}
+                        leftIcon={<UserPlus className="h-4 w-4" />}
+                      >
+                        Send invite
+                      </Button>
+                    </div>
+                  </>
                 )}
               </Dialog.Panel>
             </Transition.Child>
@@ -88,228 +146,6 @@ export function AddStaffModal({ open, onClose, onCreated }: AddStaffModalProps):
     </Transition>
   );
 }
-
-// ─── Form view ──────────────────────────────────────────────────────────────
-
-interface FormViewProps {
-  register: ReturnType<typeof useCreateStaff>['form']['register'];
-  control: ReturnType<typeof useCreateStaff>['form']['control'];
-  formState: ReturnType<typeof useCreateStaff>['form']['formState'];
-  handleSubmit: () => void;
-  services: Array<{ id: string; code: string; name: string }>;
-  cities: Array<{ id: string; name: string; zones?: Array<{ id: string; name: string }> }>;
-  zones: Array<{ id: string; name: string }>;
-  selectedServiceIds: string[];
-  toggleService: (id: string) => void;
-  isSubmitting: boolean;
-  isLoadingOptions: boolean;
-  onClose: () => void;
-}
-
-function FormView({
-  register,
-  control,
-  formState,
-  handleSubmit,
-  services,
-  cities,
-  zones,
-  selectedServiceIds,
-  toggleService,
-  isSubmitting,
-  isLoadingOptions,
-  onClose,
-}: FormViewProps): JSX.Element {
-  return (
-    <>
-      <div className="flex items-center justify-between px-6 py-4 border-b border-ink-100 bg-gradient-brand-soft">
-        <div className="flex items-center gap-3">
-          <div className="h-9 w-9 rounded-xl bg-gradient-brand text-white flex items-center justify-center">
-            <UserPlus className="h-4 w-4" />
-          </div>
-          <div>
-            <Dialog.Title className="font-bold text-ink-900">Onboard new staff</Dialog.Title>
-            <p className="text-xs text-ink-600">Invite sent to phone (WhatsApp) and email automatically</p>
-          </div>
-        </div>
-        <button
-          onClick={onClose}
-          className="p-2 rounded-lg text-ink-500 hover:bg-white/60"
-          aria-label="Close"
-        >
-          <X className="h-5 w-5" />
-        </button>
-      </div>
-
-      <form onSubmit={(e) => { e.preventDefault(); handleSubmit(); }} className="px-6 py-5 space-y-4 max-h-[70vh] overflow-y-auto">
-        <Input
-          label="Full name *"
-          placeholder="Sarah Khan"
-          error={formState.errors.fullName?.message}
-          {...register('fullName')}
-        />
-
-        <div className="grid sm:grid-cols-2 gap-4">
-          <Controller
-            control={control}
-            name="phone"
-            render={({ field }) => (
-              <PhoneInput
-                label="Phone *"
-                value={field.value}
-                onChange={field.onChange}
-                onBlur={field.onBlur}
-                name={field.name}
-                error={formState.errors.phone?.message}
-              />
-            )}
-          />
-          <Input
-            label="Email (optional)"
-            type="email"
-            placeholder="sarah@example.com"
-            error={formState.errors.email?.message}
-            {...register('email')}
-          />
-        </div>
-
-        <div className="grid sm:grid-cols-2 gap-4">
-          <Input
-            label="CNIC *"
-            placeholder="35201-1234567-1"
-            error={formState.errors.cnic?.message}
-            {...register('cnic')}
-          />
-          <Input
-            label="Experience (years)"
-            type="number"
-            min={0}
-            max={60}
-            error={formState.errors.experienceYears?.message}
-            {...register('experienceYears')}
-          />
-        </div>
-
-        <div className="grid sm:grid-cols-2 gap-4">
-          <Select
-            label="Gender"
-            error={formState.errors.gender?.message}
-            {...register('gender')}
-          >
-            <option value="">— Select —</option>
-            <option value="MALE">Male</option>
-            <option value="FEMALE">Female</option>
-            <option value="OTHER">Other</option>
-          </Select>
-          <Input
-            label="Date of birth"
-            type="date"
-            error={formState.errors.dateOfBirth?.message}
-            {...register('dateOfBirth')}
-          />
-        </div>
-
-        <div className="grid sm:grid-cols-2 gap-4">
-          <Select
-            label="City *"
-            disabled={isLoadingOptions}
-            error={formState.errors.cityId?.message}
-            {...register('cityId')}
-          >
-            <option value="">— Select city —</option>
-            {cities.map((city) => (
-              <option key={city.id} value={city.id}>
-                {city.name}
-              </option>
-            ))}
-          </Select>
-          <Select
-            label="Zone"
-            disabled={zones.length === 0}
-            error={formState.errors.zoneId?.message}
-            {...register('zoneId')}
-          >
-            <option value="">— Select zone —</option>
-            {zones.map((zone) => (
-              <option key={zone.id} value={zone.id}>
-                {zone.name}
-              </option>
-            ))}
-          </Select>
-        </div>
-
-        <div>
-          <label className="text-sm font-medium text-ink-700 block mb-2">
-            Services this staff can deliver *
-          </label>
-          {isLoadingOptions ? (
-            <div className="text-xs text-ink-500 py-3">Loading services…</div>
-          ) : (
-            <div className="flex flex-wrap gap-2">
-              {services.map((svc) => {
-                const active = selectedServiceIds.includes(svc.id);
-                return (
-                  <button
-                    type="button"
-                    key={svc.id}
-                    onClick={() => toggleService(svc.id)}
-                    className={`px-3 py-1.5 text-xs font-semibold rounded-lg ring-1 transition-all ${
-                      active
-                        ? 'bg-brand-600 text-white ring-brand-700 shadow-brand'
-                        : 'bg-white text-ink-700 ring-ink-200 hover:ring-brand-300'
-                    }`}
-                  >
-                    {svc.name}
-                  </button>
-                );
-              })}
-            </div>
-          )}
-          {formState.errors.serviceTypeIds ? (
-            <p className="text-xs font-medium text-danger-700 mt-2">
-              {formState.errors.serviceTypeIds.message}
-            </p>
-          ) : null}
-        </div>
-      </form>
-
-      <div className="flex items-center justify-end gap-2 px-6 py-4 border-t border-ink-100 bg-ink-50">
-        <Button variant="ghost" onClick={onClose} disabled={isSubmitting}>
-          Cancel
-        </Button>
-        <Button onClick={handleSubmit} isLoading={isSubmitting} leftIcon={<UserPlus className="h-4 w-4" />}>
-          Create &amp; send invite
-        </Button>
-      </div>
-    </>
-  );
-}
-
-// ─── Native <select> styled to match Input ──────────────────────────────────
-
-const Select = (
-  { label, error, children, disabled, ...props }: React.SelectHTMLAttributes<HTMLSelectElement> & {
-    label?: string;
-    error?: string;
-  } & React.RefAttributes<HTMLSelectElement>,
-): JSX.Element => (
-  <div className="flex flex-col gap-1.5">
-    {label ? <label className="text-sm font-medium text-ink-700">{label}</label> : null}
-    <select
-      {...props}
-      disabled={disabled}
-      aria-invalid={Boolean(error)}
-      className={`w-full bg-white text-ink-900 rounded-xl border px-4 py-2.5 text-sm transition-all
-        ${error
-          ? 'border-danger-500 focus:border-danger-500 focus:ring-2 focus:ring-danger-500/20'
-          : 'border-ink-200 hover:border-ink-300 focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20'}
-        disabled:bg-ink-50 disabled:cursor-not-allowed outline-none`}
-    >
-      {children}
-    </select>
-    {error ? <p className="text-xs font-medium text-danger-700">{error}</p> : null}
-  </div>
-);
 
 // ─── Success view ───────────────────────────────────────────────────────────
 
@@ -332,7 +168,7 @@ function SuccessView({
           <CheckCircle2 className="h-6 w-6" />
         </div>
         <div>
-          <Dialog.Title className="font-bold text-ink-900 text-lg">Staff onboarded</Dialog.Title>
+          <Dialog.Title className="font-bold text-ink-900 text-lg">Invite sent</Dialog.Title>
           <p className="text-sm text-ink-600">
             {result.fullName} · {result.staffCode}
           </p>
@@ -357,8 +193,7 @@ function SuccessView({
           </Button>
         </div>
         <p className="text-xs text-ink-500 mt-2">
-          Staff must change this on first login. It is shown only once — save it now if delivery
-          channels below failed.
+          Shown once. The staff will be prompted to change it on first login.
         </p>
       </div>
 
@@ -372,9 +207,8 @@ function SuccessView({
         <DeliveryRow
           icon={<Mail className="h-4 w-4" />}
           label="Email"
-          target={result.email ?? 'No email on file'}
+          target={result.email ?? '—'}
           delivered={result.delivery.email}
-          skipped={!result.email}
         />
       </div>
 
@@ -382,8 +216,8 @@ function SuccessView({
         <div className="flex items-start gap-2 rounded-xl bg-warning-50 ring-1 ring-warning-500/20 px-4 py-3 mb-5">
           <AlertTriangle className="h-4 w-4 text-warning-700 mt-0.5" />
           <div className="text-xs text-warning-700 leading-relaxed">
-            <strong>No automated delivery succeeded.</strong> Copy the password above and share it
-            with the staff member manually (WhatsApp, SMS, or in-person).
+            <strong>No automated delivery succeeded.</strong> Copy the password above and share
+            it with the staff member manually.
           </div>
         </div>
       ) : null}
@@ -400,13 +234,11 @@ function DeliveryRow({
   label,
   target,
   delivered,
-  skipped = false,
 }: {
   icon: JSX.Element;
   label: string;
   target: string;
   delivered: boolean;
-  skipped?: boolean;
 }): JSX.Element {
   return (
     <div className="flex items-center justify-between rounded-lg ring-1 ring-ink-100 bg-white px-3 py-2">
@@ -415,9 +247,7 @@ function DeliveryRow({
         <span className="text-sm font-medium">{label}</span>
         <span className="text-xs text-ink-500 truncate">— {target}</span>
       </div>
-      {skipped ? (
-        <span className="text-xs font-semibold text-ink-400">Skipped</span>
-      ) : delivered ? (
+      {delivered ? (
         <span className="text-xs font-semibold text-success-700 inline-flex items-center gap-1">
           <CheckCircle2 className="h-3.5 w-3.5" />
           Sent

@@ -72,7 +72,7 @@ export const adminController = {
         staffUserId: s.userId,
         fullName: s.user.fullName,
         phone: s.user.phone,
-        city: s.city.name,
+        city: s.city?.name ?? null,
         staffCode: s.staffCode,
         isAvailable: s.isAvailable,
         verificationStatus: s.verificationStatus,
