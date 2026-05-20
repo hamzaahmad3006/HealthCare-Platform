@@ -13,11 +13,9 @@ const envSchema = z.object({
   JWT_ACCESS_TTL: z.coerce.number().default(900),
   JWT_REFRESH_TTL: z.coerce.number().default(2592000),
 
-  AWS_ACCESS_KEY_ID: z.string().min(1, 'AWS_ACCESS_KEY_ID is required'),
-  AWS_SECRET_ACCESS_KEY: z.string().min(1, 'AWS_SECRET_ACCESS_KEY is required'),
-  AWS_BUCKET_NAME: z.string().min(1, 'AWS_BUCKET_NAME is required'),
-  AWS_REGION: z.string().min(1, 'AWS_REGION is required'),
-  S3_PRESIGN_TTL: z.coerce.number().default(300),
+  CLOUDINARY_CLOUD_NAME: z.string().min(1, 'CLOUDINARY_CLOUD_NAME is required'),
+  CLOUDINARY_API_KEY: z.string().min(1, 'CLOUDINARY_API_KEY is required'),
+  CLOUDINARY_API_SECRET: z.string().min(1, 'CLOUDINARY_API_SECRET is required'),
 
   WHATSAPP_API_URL: z.string().url('WHATSAPP_API_URL must be a valid URL'),
   WHATSAPP_API_TOKEN: z.string().min(1, 'WHATSAPP_API_TOKEN is required'),

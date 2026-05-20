@@ -3,7 +3,7 @@ import crypto from 'crypto';
 import { z } from 'zod';
 import { prisma } from '../config/database';
 import { hashPassword } from '../helper/hash.helper';
-import { getPresignedUploadUrl } from '../helper/s3.helper';
+import { getPresignedUploadUrl } from '../helper/cloudinary.helper';
 import { maskCnic } from '../helper/mask.helper';
 import { success, paginated } from '../helper/response.helper';
 import { logger } from '../utils/logger';
@@ -291,7 +291,7 @@ export const staffController = {
         data: {
           staffUserId: userId,
           documentType: data.documentType,
-          fileProvider: 'S3',
+          fileProvider: 'CLOUDINARY',
           fileKey: data.fileKey,
           fileUrl: data.fileUrl,
           mimeType: data.mimeType,
