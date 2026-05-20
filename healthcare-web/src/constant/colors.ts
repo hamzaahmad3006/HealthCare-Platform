@@ -2,25 +2,27 @@
  * Design tokens — synced 1:1 with tailwind.config.ts.
  * NEVER hardcode hex values in components. Always import from here
  * or use the Tailwind class names.
+ *
+ * Palette: "Fresh & Trusted" — forest green primary + sky blue accent.
  */
 
 export const COLOR = {
-  // Brand (teal)
+  // Brand (forest green — trust, wellness, growth)
   brand: {
-    50: '#F0FDFA',
-    100: '#CCFBF1',
-    300: '#5EEAD4',
-    500: '#14B8A6',
-    600: '#0D9488',
-    700: '#0F766E',
-    800: '#115E59',
-    900: '#134E4A',
+    50: '#ECFDF5',
+    100: '#D1FAE5',
+    300: '#6EE7B7',
+    500: '#10B981',
+    600: '#059669',
+    700: '#047857',
+    800: '#065F46',
+    900: '#064E3B',
   },
-  // Accent (warm coral)
+  // Accent (sky blue — clarity, info, modern)
   accent: {
-    100: '#FFEDD5',
-    500: '#F97316',
-    600: '#EA580C',
+    100: '#E0F2FE',
+    500: '#0EA5E9',
+    600: '#0284C7',
   },
   // Neutral ink
   ink: {
