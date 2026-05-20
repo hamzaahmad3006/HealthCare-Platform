@@ -2,7 +2,7 @@ import { Request, Response, NextFunction } from 'express';
 import { z } from 'zod';
 import { Prisma } from '@prisma/client';
 import { prisma } from '../config/database';
-import { getPresignedUploadUrl, deleteFile } from '../helper/s3.helper';
+import { getPresignedUploadUrl, deleteFile } from '../helper/cloudinary.helper';
 import { renderTemplate } from '../helper/template.helper';
 import { success, paginated } from '../helper/response.helper';
 import { NotFoundError, UnauthorizedError, ForbiddenError } from '../utils/stateMachine';
@@ -167,7 +167,7 @@ export const reportController = {
       const file = await prisma.reportFile.create({
         data: {
           reportId: report.id,
-          fileProvider: 'S3',
+          fileProvider: 'CLOUDINARY',
           fileKey: data.fileKey,
           fileUrl: data.fileUrl,
           mimeType: data.mimeType,
@@ -201,7 +201,7 @@ export const reportController = {
       const file = await prisma.reportFile.findUnique({ where: { id: pickParam(req, 'fileId') } });
       if (!file) throw new NotFoundError('FILE_NOT_FOUND');
 
-      await deleteFile(file.fileKey);
+      await deleteFile(file.fileKey, file.mimeType);
       await prisma.reportFile.delete({ where: { id: file.id } });
 
       success(res, { message: 'File deleted' });
