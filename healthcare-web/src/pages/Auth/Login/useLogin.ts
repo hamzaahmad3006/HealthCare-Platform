@@ -9,12 +9,13 @@ import { API } from '../../../constant/apiUrls';
 import { useAppDispatch } from '../../../redux/store';
 import { setAuth, setInitialized } from '../../../redux/slices/authSlice';
 import type { LoginResponse } from '../../../types/auth.types';
+import { toE164 } from '../../../component/common/PhoneInput';
 
 const LoginSchema = z.object({
   phone: z
     .string()
-    .min(1, 'Phone number is required')
-    .regex(/^\+?[0-9]{10,15}$/, 'Enter a valid phone number'),
+    .length(10, 'Phone must be exactly 10 digits after +92')
+    .regex(/^[0-9]{10}$/, 'Digits only'),
   password: z.string().min(1, 'Password is required'),
 });
 
@@ -49,7 +50,7 @@ export function useLogin(): UseLoginReturn {
     try {
       const { data } = await api.post<{ success: true; data: LoginResponse }>(
         API.AUTH.LOGIN,
-        values,
+        { ...values, phone: toE164(values.phone) },
       );
       dispatch(setAuth({ accessToken: data.data.accessToken, user: data.data.user }));
       dispatch(setInitialized(true));

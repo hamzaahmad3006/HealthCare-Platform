@@ -5,14 +5,14 @@ import { z } from 'zod';
 import toast from 'react-hot-toast';
 import { api, extractApiError } from '../../../helper/axios';
 import { API } from '../../../constant/apiUrls';
+import { toE164 } from '../../../component/common/PhoneInput';
 
 const CreateStaffSchema = z.object({
   fullName: z.string().min(2, 'Enter full name').max(150),
   phone: z
     .string()
-    .min(10, 'Enter a valid phone')
-    .max(20)
-    .regex(/^\+?[0-9]{10,15}$/, 'Phone must be 10-15 digits'),
+    .length(10, 'Phone must be exactly 10 digits after +92')
+    .regex(/^[0-9]{10}$/, 'Digits only'),
   email: z.string().email('Invalid email').optional().or(z.literal('').transform(() => undefined)),
   cityId: z.string().uuid('Select a city'),
   zoneId: z.string().uuid().optional().or(z.literal('').transform(() => undefined)),
@@ -116,15 +116,9 @@ export function useCreateStaff(open: boolean): UseCreateStaffReturn {
   const onSubmit = async (values: CreateStaffFormValues): Promise<void> => {
     setIsSubmitting(true);
     try {
-      // Normalise phone to E.164. Backend also normalises but we keep the
-      // submitted value clean for the success modal display.
-      const phone = values.phone.startsWith('+')
-        ? values.phone
-        : `+${values.phone.replace(/^0/, '92')}`;
-
       const { data } = await api.post<{ success: true; data: CreateStaffSuccess }>(
         API.STAFF.LIST,
-        { ...values, phone },
+        { ...values, phone: toE164(values.phone) },
       );
       setResult(data.data);
       form.reset();
