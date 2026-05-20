@@ -10,61 +10,63 @@ interface AuthBootstrapProps {
   children: ReactNode;
 }
 
-// Runs once at app mount on EVERY route (public or protected). Attempts to
-// fetch /auth/me — the axios interceptor will silently use the httpOnly refresh
-// cookie to mint a new access token on 401. Without this, a page reload (or
-// Vite HMR full-reload) leaves the user "logged out" in memory until they hit
-// a ProtectedRoute. Now they stay signed in on the landing page too.
+// Module-level guard: React 18 StrictMode mounts the effect twice in dev. We
+// only want one /auth/me + refresh chain — and we want every code path to end
+// with isInitialized=true so the user is never stranded on the spinner.
+let bootstrapStarted = false;
+
+function dispatchBootstrap(dispatchFn: ReturnType<typeof useAppDispatch>): void {
+  if (bootstrapStarted) return;
+  bootstrapStarted = true;
+
+  // Last-resort guarantee: 6 seconds from now, force isInitialized=true no
+  // matter what is happening with the network. The user always sees the app.
+  const failsafeTimer = setTimeout(() => {
+    if (!store.getState().auth.isInitialized) {
+      dispatchFn(clearAuth());
+      dispatchFn(setLoading(false));
+      dispatchFn(setInitialized(true));
+    }
+  }, 6000);
+
+  dispatchFn(setLoading(true));
+
+  void api
+    .get<{ success: true; data: UserProfile }>(API.AUTH.ME)
+    .then(({ data }) => {
+      const token = store.getState().auth.accessToken ?? '';
+      if (token) {
+        dispatchFn(setAuth({ accessToken: token, user: data.data }));
+      } else {
+        // /auth/me succeeded but refresh didn't mint a token — treat as anon.
+        dispatchFn(clearAuth());
+      }
+    })
+    .catch(() => {
+      // 401 + refresh-failed, network error, anything else — render anonymous.
+      dispatchFn(clearAuth());
+    })
+    .finally(() => {
+      clearTimeout(failsafeTimer);
+      dispatchFn(setLoading(false));
+      dispatchFn(setInitialized(true));
+    });
+}
+
+// Runs once at app mount on EVERY route. Attempts /auth/me — the axios
+// interceptor uses the httpOnly refresh cookie to mint a new access token on
+// 401. The dispatchBootstrap helper is idempotent (module-level guard) so
+// StrictMode double-mount is harmless, and a 6s failsafe timer guarantees
+// isInitialized=true no matter what happens with the network.
 export function AuthBootstrap({ children }: AuthBootstrapProps): JSX.Element {
   const dispatch = useAppDispatch();
   const { isInitialized, isLoading } = useAppSelector((s) => s.auth);
 
   useEffect(() => {
     if (isInitialized) return;
-    let cancelled = false;
-
-    const bootstrap = async (): Promise<void> => {
-      dispatch(setLoading(true));
-      try {
-        // Hard timeout — axios has its own 15s default, but a stuck refresh +
-        // retry chain can compound. If anything takes >8s, we'd rather render
-        // the public app as anonymous than freeze the user on a spinner.
-        const meRequest = api.get<{ success: true; data: UserProfile }>(API.AUTH.ME);
-        const timeout = new Promise<never>((_, reject) => {
-          setTimeout(() => reject(new Error('AUTH_BOOTSTRAP_TIMEOUT')), 8000);
-        });
-        const { data } = await Promise.race([meRequest, timeout]);
-        if (cancelled) return;
-        const token = store.getState().auth.accessToken ?? '';
-        if (token) {
-          dispatch(setAuth({ accessToken: token, user: data.data }));
-        } else {
-          // /auth/me succeeded but no token in store — refresh path didn't run.
-          // Treat as logged out so ProtectedRoute can redirect cleanly.
-          dispatch(clearAuth());
-        }
-      } catch {
-        if (cancelled) return;
-        // No refresh cookie, it expired, or the timeout fired — treat as
-        // anonymous. Public pages still render; protected pages bounce to /login.
-        dispatch(clearAuth());
-      } finally {
-        if (!cancelled) {
-          dispatch(setLoading(false));
-          dispatch(setInitialized(true));
-        }
-      }
-    };
-
-    void bootstrap();
-    return () => {
-      cancelled = true;
-    };
+    dispatchBootstrap(dispatch);
   }, [dispatch, isInitialized]);
 
-  // Block the first paint until we know whether the user is signed in, so
-  // public pages don't briefly render a "logged out" state before the silent
-  // refresh completes.
   if (!isInitialized || isLoading) return <PageSpinner />;
 
   return <>{children}</>;
