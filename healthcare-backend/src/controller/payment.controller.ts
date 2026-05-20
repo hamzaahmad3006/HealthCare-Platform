@@ -8,6 +8,7 @@ import { BusinessError, NotFoundError, UnauthorizedError } from '../utils/stateM
 import { logger } from '../utils/logger';
 import { STRIPE_EVENT_DEDUP_TTL } from '../utils/constants';
 import { notificationQueue } from '../../worker/notification.worker';
+import { renderTemplate } from '../helper/template.helper';
 
 const stripe = new Stripe(env.STRIPE_SECRET_KEY, { apiVersion: '2024-06-20' });
 
@@ -115,18 +116,33 @@ async function handlePaymentSucceeded(pi: Stripe.PaymentIntent): Promise<void> {
   const bookingId = pi.metadata['bookingId'];
   if (!bookingId) return;
 
-  await prisma.$transaction(async (tx) => {
+  const notifLogId = await prisma.$transaction(async (tx) => {
     await tx.payment.update({
       where: { stripePaymentIntentId: pi.id },
       data: { status: 'PAID', paidAt: new Date() },
     });
-    await tx.booking.update({
+    const booking = await tx.booking.update({
       where: { id: bookingId },
       data: { status: 'CONFIRMED', confirmedAt: new Date() },
     });
+
+    const log = await tx.notificationLog.create({
+      data: {
+        bookingId: booking.id,
+        templateCode: 'BOOKING_CONFIRMED',
+        recipient: booking.customerUserId,
+        renderedContent: renderTemplate('BOOKING_CONFIRMED', {
+          bookingNumber: booking.bookingNumber,
+          scheduledDate: booking.requestedStartAt.toISOString(),
+        }),
+        status: 'PENDING',
+      },
+    });
+
+    return log.id;
   });
 
-  await notificationQueue.add('send', { bookingId, templateCode: 'BOOKING_CONFIRMED' }).catch(() => null);
+  await notificationQueue.add('send', { notificationLogId: notifLogId }).catch(() => null);
 }
 
 async function handlePaymentFailed(pi: Stripe.PaymentIntent): Promise<void> {

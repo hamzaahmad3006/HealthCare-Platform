@@ -3,7 +3,7 @@
 process.env['NODE_ENV'] = 'test';
 process.env['PORT'] = '3000';
 process.env['DATABASE_URL'] = 'postgresql://test:test@localhost:5432/test';
-process.env['REDIS_URL'] = 'redis://localhost:6379';
+// REDIS_URL intentionally omitted — tests exercise the in-memory cache shim.
 process.env['JWT_PRIVATE_KEY'] = 'test-private-key';
 process.env['JWT_PUBLIC_KEY'] = 'test-public-key';
 process.env['JWT_ACCESS_TTL'] = '15m';
