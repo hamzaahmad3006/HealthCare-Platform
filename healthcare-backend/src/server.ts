@@ -7,7 +7,7 @@ import cookieParser from 'cookie-parser';
 import { v4 as uuidv4 } from 'uuid';
 import { env } from './config/env';
 import { prisma } from './config/database';
-import { redis } from './config/redis';
+import { redis, usingRedis } from './config/redis';
 import { logger } from './utils/logger';
 import { apiLimiter, webhookLimiter } from './middleware/rateLimit.middleware';
 import { auditLogMiddleware } from './middleware/auditLog.middleware';
@@ -103,7 +103,7 @@ async function shutdown(signal: string): Promise<void> {
     logger.info('Database disconnected');
 
     await redis.quit();
-    logger.info('Redis disconnected');
+    if (usingRedis) logger.info('Redis disconnected');
 
     process.exit(0);
   });

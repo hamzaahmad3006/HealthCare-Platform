@@ -6,7 +6,12 @@ const envSchema = z.object({
   PORT: z.coerce.number().default(3000),
 
   DATABASE_URL: z.string().min(1, 'DATABASE_URL is required'),
-  REDIS_URL: z.string().min(1, 'REDIS_URL is required'),
+  // Optional. When unset, an in-memory cache shim takes over for rate limits,
+  // idempotency, login lockout, dashboard cache, and Stripe event dedup; the
+  // notification queue runs the WhatsApp send inline; the reminder job runs on
+  // a setInterval. Single-process only — set REDIS_URL for any multi-instance
+  // deploy.
+  REDIS_URL: z.string().optional(),
 
   JWT_PRIVATE_KEY: z.string().min(1, 'JWT_PRIVATE_KEY is required'),
   JWT_PUBLIC_KEY: z.string().min(1, 'JWT_PUBLIC_KEY is required'),

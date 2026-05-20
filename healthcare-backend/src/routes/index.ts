@@ -1,6 +1,6 @@
 import { Router, Request, Response } from 'express';
 import { prisma } from '../config/database';
-import { redis } from '../config/redis';
+import { redis, usingRedis } from '../config/redis';
 import authRoutes from './auth.routes';
 import userRoutes from './user.routes';
 import staffRoutes from './staff.routes';
@@ -23,9 +23,13 @@ router.get('/health', (_req: Request, res: Response) => {
 });
 
 // Readiness — checks downstream dependencies. Used by load balancers to decide
-// whether the instance should receive traffic.
+// whether the instance should receive traffic. When REDIS_URL is unset the
+// Redis check is skipped — the in-memory shim is always "ready".
 router.get('/readyz', async (_req: Request, res: Response) => {
-  const checks: Record<string, 'ok' | 'fail'> = { db: 'fail', redis: 'fail' };
+  const checks: Record<string, 'ok' | 'fail' | 'skipped'> = {
+    db: 'fail',
+    redis: usingRedis ? 'fail' : 'skipped',
+  };
 
   try {
     await prisma.$queryRaw`SELECT 1`;
@@ -34,14 +38,16 @@ router.get('/readyz', async (_req: Request, res: Response) => {
     // db stays 'fail'
   }
 
-  try {
-    const pong = await redis.ping();
-    if (pong === 'PONG') checks['redis'] = 'ok';
-  } catch {
-    // redis stays 'fail'
+  if (usingRedis) {
+    try {
+      const pong = await redis.ping();
+      if (pong === 'PONG') checks['redis'] = 'ok';
+    } catch {
+      // redis stays 'fail'
+    }
   }
 
-  const allOk = Object.values(checks).every((v) => v === 'ok');
+  const allOk = Object.values(checks).every((v) => v === 'ok' || v === 'skipped');
   res.status(allOk ? 200 : 503).json({
     success: allOk,
     data: { checks, timestamp: new Date().toISOString() },

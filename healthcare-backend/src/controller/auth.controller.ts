@@ -48,7 +48,7 @@ export const authController = {
 
       const recordFailure = async (): Promise<void> => {
         const next = currentAttempts + 1;
-        await redis.set(attemptKey, next, 'EX', FAILED_LOGIN_LOCKOUT.WINDOW_MINUTES * 60);
+        await redis.set(attemptKey, String(next), 'EX', FAILED_LOGIN_LOCKOUT.WINDOW_MINUTES * 60);
       };
 
       const user = await prisma.user.findUnique({ where: { phone } });

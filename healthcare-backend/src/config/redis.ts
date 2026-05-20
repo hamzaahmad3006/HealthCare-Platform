@@ -1,7 +1,19 @@
 import Redis from 'ioredis';
 import { env } from './env';
+import { memoryCache, type MemoryCache } from './memoryCache';
 
-const createRedisClient = (): Redis => {
+// When REDIS_URL is set, exports a real ioredis client. When it isn't, exports
+// the in-memory shim that implements the methods this app uses. See
+// memoryCache.ts for the supported subset and limitations.
+
+export type RedisLike = Redis | MemoryCache;
+
+function createClient(): RedisLike {
+  if (!env.REDIS_URL) {
+    console.warn('⚠️  REDIS_URL not set — using in-memory cache (single-process only)');
+    return memoryCache;
+  }
+
   const client = new Redis(env.REDIS_URL, {
     maxRetriesPerRequest: null,
     enableReadyCheck: false,
@@ -17,6 +29,8 @@ const createRedisClient = (): Redis => {
   client.on('reconnecting', () => console.warn('⚠️  Redis reconnecting...'));
 
   return client;
-};
+}
 
-export const redis = createRedisClient();
+export const redis = createClient();
+
+export const usingRedis = Boolean(env.REDIS_URL);

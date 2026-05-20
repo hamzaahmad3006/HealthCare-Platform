@@ -1,11 +1,8 @@
 import '../src/config/env';
-import { Queue } from 'bullmq';
 import { prisma } from '../src/config/database';
-import { redis } from '../src/config/redis';
 import { renderTemplate } from '../src/helper/template.helper';
 import { logger } from '../src/utils/logger';
-
-const notificationQueue = new Queue('notifications', { connection: redis });
+import { notificationQueue } from './notification.worker';
 
 const REMINDER_WINDOW_MINUTES = 75;
 const REMINDER_THRESHOLD_MINUTES = 60;
