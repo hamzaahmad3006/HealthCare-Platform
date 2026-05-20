@@ -11,7 +11,7 @@ import { sendEmail } from '../helper/email.helper';
 import { renderTemplate } from '../helper/template.helper';
 import { success, paginated } from '../helper/response.helper';
 import { logger } from '../utils/logger';
-import { NotFoundError, UnauthorizedError, ForbiddenError } from '../utils/stateMachine';
+import { NotFoundError, UnauthorizedError, ForbiddenError, AppError } from '../utils/stateMachine';
 import { VerifStatus } from '@prisma/client';
 import { pickParam } from '../helper/request.helper';
 
@@ -38,6 +38,15 @@ const CompleteProfileSchema = z.object({
   dateOfBirth: z.string().optional(),
   experienceYears: z.number().int().min(0).max(60).default(0),
   serviceTypeIds: z.array(z.string().uuid()).min(1),
+  // Required only when AMBULANCE service is selected (enforced below by
+  // looking up service codes for the submitted IDs). Format kept loose to
+  // handle PK plate variants like "FSD-1234", "LE-ABC-123", or numeric-only.
+  ambulanceNumber: z
+    .string()
+    .min(3, 'Ambulance number must be at least 3 characters')
+    .max(20, 'Ambulance number is too long')
+    .regex(/^[A-Za-z0-9\- ]+$/, 'Letters, digits, dashes, and spaces only')
+    .optional(),
 });
 
 const StaffListQuerySchema = z.object({
@@ -419,6 +428,25 @@ export const staffController = {
       const data = CompleteProfileSchema.parse(req.body);
       const userId = req.user.sub;
 
+      // Look up the codes for the chosen services so we can enforce the
+      // conditional "AMBULANCE service requires ambulanceNumber" rule on the
+      // server (frontend validation is a hint; this is the authority).
+      const chosenServices = await prisma.serviceType.findMany({
+        where: { id: { in: data.serviceTypeIds } },
+        select: { id: true, code: true },
+      });
+      if (chosenServices.length !== data.serviceTypeIds.length) {
+        throw new NotFoundError('SERVICE_TYPE_NOT_FOUND');
+      }
+      const needsAmbulanceNumber = chosenServices.some((s) => s.code === 'AMBULANCE');
+      if (needsAmbulanceNumber && !data.ambulanceNumber) {
+        throw new AppError(
+          400,
+          'AMBULANCE_NUMBER_REQUIRED',
+          'Ambulance number is required when offering ambulance service',
+        );
+      }
+
       const updated = await prisma.$transaction(async (tx) => {
         const profile = await tx.staffProfile.update({
           where: { userId },
@@ -429,6 +457,9 @@ export const staffController = {
             cnic: data.cnic,
             dateOfBirth: data.dateOfBirth ? new Date(data.dateOfBirth) : null,
             experienceYears: data.experienceYears,
+            // Persist ambulanceNumber only when the staff actually offers
+            // the service. If they remove the service later we clear it.
+            ambulanceNumber: needsAmbulanceNumber ? data.ambulanceNumber : null,
             profileCompletedAt: new Date(),
           },
         });

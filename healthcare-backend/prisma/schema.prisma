@@ -284,6 +284,10 @@ model StaffProfile {
   idCardIssuedAt     DateTime?
   uniformIssued      Boolean     @default(false)
   uniformIssuedAt    DateTime?
+  // Required only when AMBULANCE is one of the staff's serviceTypes —
+  // enforced at the API layer (see staff.controller.completeMyProfile).
+  // Kept nullable in the schema so non-ambulance staff don't need it.
+  ambulanceNumber    String?     @db.VarChar(20)
   isAvailable        Boolean     @default(true)
   createdAt          DateTime    @default(now())
   updatedAt          DateTime    @updatedAt
