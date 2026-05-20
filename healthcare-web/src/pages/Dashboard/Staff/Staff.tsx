@@ -1,4 +1,5 @@
-import { Search, BadgeCheck, Filter } from 'lucide-react';
+import { useState } from 'react';
+import { Search, BadgeCheck, Filter, UserPlus } from 'lucide-react';
 import { SidebarLayout } from '../../../component/admin/SidebarLayout';
 import { DataTable, type ColumnDef } from '../../../component/admin/DataTable';
 import { StatusBadge } from '../../../component/common/StatusBadge';
@@ -9,6 +10,7 @@ import { Button } from '../../../constant/Button';
 import { Card } from '../../../constant/Card';
 import { Input } from '../../../constant/Input';
 import { useStaff } from './useStaff';
+import { AddStaffModal } from './AddStaffModal';
 import type { StaffProfile, VerifStatus } from '../../../types/staff.types';
 
 const STATUS_OPTIONS: { id: VerifStatus | 'ALL'; label: string }[] = [
@@ -26,6 +28,7 @@ const AVAIL_OPTIONS: { id: 'ALL' | 'true' | 'false'; label: string }[] = [
 
 export function Staff(): JSX.Element {
   const s = useStaff();
+  const [showAddModal, setShowAddModal] = useState(false);
 
   const columns: ColumnDef<StaffProfile>[] = [
     {
@@ -90,6 +93,12 @@ export function Staff(): JSX.Element {
 
   return (
     <SidebarLayout title="Staff" description="Verify, manage, and onboard healthcare professionals">
+      <div className="flex flex-wrap items-end justify-between gap-3 mb-4">
+        <div />
+        <Button onClick={() => setShowAddModal(true)} leftIcon={<UserPlus className="h-4 w-4" />}>
+          Add staff
+        </Button>
+      </div>
       <div className="flex flex-wrap items-end gap-3">
         <div className="flex-1 min-w-[16rem]">
           <Input
@@ -164,6 +173,19 @@ export function Staff(): JSX.Element {
         />
         {s.meta ? <Pagination meta={s.meta} onPageChange={s.setPage} /> : null}
       </Card>
+
+      <AddStaffModal
+        open={showAddModal}
+        onClose={() => setShowAddModal(false)}
+        onCreated={() => {
+          setShowAddModal(false);
+          // Trigger list refresh — useStaff watches a reloadFlag via the
+          // search/filter setters. Setting search to its current value is
+          // a no-op so we change the filter state via a known reset path:
+          // open the page anew effectively. Simplest: reload via tiny hack.
+          window.dispatchEvent(new Event('staff:refresh'));
+        }}
+      />
     </SidebarLayout>
   );
 }

@@ -4,6 +4,7 @@ import { redis, usingRedis } from '../config/redis';
 import authRoutes from './auth.routes';
 import userRoutes from './user.routes';
 import staffRoutes from './staff.routes';
+import cityRoutes from './city.routes';
 import bookingRoutes from './booking.routes';
 import visitRoutes from './visit.routes';
 import reportRoutes from './report.routes';
@@ -57,6 +58,7 @@ router.get('/readyz', async (_req: Request, res: Response) => {
 router.use('/auth', authRoutes);
 router.use('/users', userRoutes);
 router.use('/staff', staffRoutes);
+router.use('/cities', cityRoutes);
 router.use('/bookings', bookingRoutes);
 router.use('/visits', visitRoutes);
 router.use('/reports', reportRoutes);

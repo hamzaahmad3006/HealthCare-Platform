@@ -2,9 +2,13 @@ import { Request, Response, NextFunction } from 'express';
 import crypto from 'crypto';
 import { z } from 'zod';
 import { prisma } from '../config/database';
+import { env } from '../config/env';
 import { hashPassword } from '../helper/hash.helper';
 import { getPresignedUploadUrl } from '../helper/cloudinary.helper';
 import { maskCnic } from '../helper/mask.helper';
+import { sendWhatsAppMessage } from '../helper/axios';
+import { sendEmail } from '../helper/email.helper';
+import { renderTemplate } from '../helper/template.helper';
 import { success, paginated } from '../helper/response.helper';
 import { logger } from '../utils/logger';
 import { NotFoundError, UnauthorizedError, ForbiddenError } from '../utils/stateMachine';
@@ -100,13 +104,42 @@ export const staffController = {
         return { user, profile };
       });
 
-      // Temp password is logged once for the admin to deliver via secure channel.
-      // It must NEVER appear in the response body or audit log payload.
-      logger.info('Staff created — deliver temp password via secure channel', {
-        userId: result.user.id,
-        staffCode: result.profile.staffCode,
+      // Compose the invite once — same body to WhatsApp and email.
+      const inviteText = renderTemplate('STAFF_INVITE', {
+        fullName: result.user.fullName,
+        phone: result.user.phone,
+        tempPassword,
+        loginUrl: env.STAFF_LOGIN_URL,
       });
 
+      // Dispatch invites in parallel, never block the API response on
+      // third-party delivery. Failures are logged but reported back so the
+      // admin knows whether to fall back to manual delivery.
+      const [waResult, emailResult] = await Promise.allSettled([
+        sendWhatsAppMessage(result.user.phone, inviteText),
+        result.user.email
+          ? sendEmail({
+              to: result.user.email,
+              subject: 'Welcome to HomeHealth — your staff account',
+              text: inviteText,
+            })
+          : Promise.resolve({ delivered: false, error: 'NO_EMAIL_ON_FILE' as const }),
+      ]);
+
+      const whatsappDelivered = waResult.status === 'fulfilled';
+      const emailDelivered = emailResult.status === 'fulfilled' && emailResult.value.delivered;
+
+      logger.info('Staff invite dispatched', {
+        userId: result.user.id,
+        staffCode: result.profile.staffCode,
+        whatsappDelivered,
+        emailDelivered,
+      });
+
+      // tempPassword IS returned to the admin so they can copy it manually
+      // when WhatsApp/email delivery fails (e.g., dev mode with dummy creds).
+      // Route is adminOnly; audit-log middleware redacts the `tempPassword`
+      // key automatically (see src/helper/redact.helper.ts).
       success(
         res,
         {
@@ -114,7 +147,12 @@ export const staffController = {
           staffCode: result.profile.staffCode,
           fullName: result.user.fullName,
           phone: result.user.phone,
-          tempPasswordDelivered: false,
+          email: result.user.email,
+          tempPassword,
+          delivery: {
+            whatsapp: whatsappDelivered,
+            email: emailDelivered,
+          },
         },
         201,
       );

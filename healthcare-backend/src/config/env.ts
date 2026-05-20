@@ -29,6 +29,12 @@ const envSchema = z.object({
   STRIPE_SECRET_KEY: z.string().min(1, 'STRIPE_SECRET_KEY is required'),
   STRIPE_WEBHOOK_SECRET: z.string().min(1, 'STRIPE_WEBHOOK_SECRET is required'),
 
+  // Optional. When unset, email invitations silently no-op (admin still gets
+  // tempPassword in API response to share manually). Resend free tier: 3000/mo.
+  RESEND_API_KEY: z.string().optional(),
+  EMAIL_FROM: z.string().default('HomeHealth <onboarding@resend.dev>'),
+  STAFF_LOGIN_URL: z.string().default('http://localhost:5173/login'),
+
   CORS_ORIGINS: z.string().default('http://localhost:5173'),
 });
 

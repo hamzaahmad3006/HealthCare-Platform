@@ -7,6 +7,7 @@ const REDACTED_KEYS = new Set([
   'password',
   'newPassword',
   'currentPassword',
+  'tempPassword',
   'token',
   'refreshToken',
   'accessToken',
