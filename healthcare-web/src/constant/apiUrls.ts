@@ -18,6 +18,8 @@ export const API = {
   PACKAGES: '/packages',
   STAFF: {
     LIST: '/staff',
+    ME: '/staff/me',
+    MY_PROFILE: '/staff/me/profile',
     BY_ID: (id: string): string => `/staff/${id}`,
     VERIFY: (id: string): string => `/staff/${id}/verify`,
     AVAILABILITY: (id: string): string => `/staff/${id}/availability`,

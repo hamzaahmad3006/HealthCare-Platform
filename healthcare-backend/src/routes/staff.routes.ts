@@ -8,6 +8,11 @@ const router = Router();
 
 router.post('/', authenticateToken, adminOnly, staffController.create);
 router.get('/', authenticateToken, adminOnly, staffController.list);
+
+// "/me" must come before "/:userId" so it isn't swallowed by the param.
+router.get('/me', authenticateToken, staffController.getMyProfile);
+router.patch('/me/profile', authenticateToken, staffController.completeMyProfile);
+
 router.get('/:userId', authenticateToken, adminOrStaff, staffController.getById);
 router.patch('/:userId', authenticateToken, adminOnly, staffController.update);
 router.post('/:userId/verify', authenticateToken, adminOnly, staffController.verify);

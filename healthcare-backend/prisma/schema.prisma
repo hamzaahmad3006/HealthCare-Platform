@@ -263,14 +263,19 @@ model StaffProfile {
   userId             String      @id
   user               User        @relation(fields: [userId], references: [id])
   staffCode          String      @unique @db.VarChar(30)
-  cityId             String
-  city               City        @relation(fields: [cityId], references: [id])
+  // Self-onboarding flow: admin only collects name/phone/email at invite
+  // time. cityId and cnic become required once the staff completes their
+  // own profile via /complete-profile. profileCompletedAt is the gate the
+  // verification flow checks before allowing admin to mark VERIFIED.
+  cityId             String?
+  city               City?       @relation(fields: [cityId], references: [id])
   zoneId             String?
   zone               Zone?       @relation(fields: [zoneId], references: [id])
   gender             Gender?
-  cnic               String      @unique @db.VarChar(25)
+  cnic               String?     @unique @db.VarChar(25)
   dateOfBirth        DateTime?   @db.Date
   experienceYears    Int         @default(0)
+  profileCompletedAt DateTime?
   verificationStatus VerifStatus @default(PENDING)
   verifiedAt         DateTime?
   verifiedByUserId   String?

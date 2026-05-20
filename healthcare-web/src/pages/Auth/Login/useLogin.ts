@@ -57,13 +57,16 @@ export function useLogin(): UseLoginReturn {
       toast.success(`Welcome back, ${data.data.user.fullName}`);
 
       const from = (location.state as { from?: string } | null)?.from;
+      // STAFF always lands on /complete-profile first — that page short-
+      // circuits to /admin/visits if the profile is already completed, so
+      // there's no UX cost for returning staff.
       const destination =
         from && from !== '/login'
           ? from
           : data.data.user.role === 'ADMIN'
             ? '/admin'
             : data.data.user.role === 'STAFF'
-              ? '/admin/visits'
+              ? '/complete-profile'
               : '/my-bookings';
       navigate(destination, { replace: true });
     } catch (err) {

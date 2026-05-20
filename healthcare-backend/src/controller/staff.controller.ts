@@ -15,16 +15,28 @@ import { NotFoundError, UnauthorizedError, ForbiddenError } from '../utils/state
 import { VerifStatus } from '@prisma/client';
 import { pickParam } from '../helper/request.helper';
 
+// Self-onboarding flow: admin invite only needs identity (name + how to reach
+// them). Staff fills the rest themselves via PATCH /staff/me/profile after
+// first login. Email is required because the invite is the only handoff the
+// admin makes; WhatsApp is best-effort fallback.
 const CreateStaffSchema = z.object({
-  fullName: z.string().min(1).max(150),
-  phone: z.string().min(1).max(20),
-  email: z.string().email().optional(),
+  fullName: z.string().min(2).max(150),
+  phone: z.string().min(10).max(20),
+  email: z.string().email(),
+});
+
+// Schema used when the staff completes their own profile post-invite.
+const CompleteProfileSchema = z.object({
   cityId: z.string().uuid(),
   zoneId: z.string().uuid().optional(),
   gender: z.enum(['MALE', 'FEMALE', 'OTHER']).optional(),
-  cnic: z.string().min(1).max(25),
+  cnic: z
+    .string()
+    .min(13)
+    .max(25)
+    .regex(/^[0-9-]+$/, 'CNIC must be digits and dashes only'),
   dateOfBirth: z.string().optional(),
-  experienceYears: z.number().int().min(0).default(0),
+  experienceYears: z.number().int().min(0).max(60).default(0),
   serviceTypeIds: z.array(z.string().uuid()).min(1),
 });
 
@@ -81,24 +93,14 @@ export const staffController = {
           },
         });
 
+        // City/cnic/services intentionally left null — the staff fills them
+        // via PATCH /staff/me/profile after first login. staffCode is the
+        // only identifier we generate upfront for HR tracking.
         const profile = await tx.staffProfile.create({
           data: {
             userId: user.id,
             staffCode: generateStaffCode(),
-            cityId: data.cityId,
-            zoneId: data.zoneId,
-            gender: data.gender,
-            cnic: data.cnic,
-            dateOfBirth: data.dateOfBirth ? new Date(data.dateOfBirth) : undefined,
-            experienceYears: data.experienceYears,
           },
-        });
-
-        await tx.staffServiceType.createMany({
-          data: data.serviceTypeIds.map((serviceTypeId) => ({
-            staffUserId: user.id,
-            serviceTypeId,
-          })),
         });
 
         return { user, profile };
@@ -225,10 +227,18 @@ export const staffController = {
     } catch (err) { next(err); }
   },
 
+  // Admin update — accepts any subset of staff profile fields (CompleteProfile
+  // shape) plus name/email/phone on the underlying User. Phone changes are
+  // rare and require admin scope.
   async update(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const userId = pickParam(req, 'userId')!;
-      const data = CreateStaffSchema.partial().omit({ serviceTypeIds: true, cnic: true, phone: true }).parse(req.body);
+      const UpdateSchema = CompleteProfileSchema.partial().extend({
+        fullName: z.string().min(2).max(150).optional(),
+        email: z.string().email().optional(),
+        phone: z.string().min(10).max(20).optional(),
+      });
+      const data = UpdateSchema.parse(req.body);
 
       const staff = await prisma.staffProfile.update({
         where: { userId },
@@ -240,12 +250,13 @@ export const staffController = {
         },
       });
 
-      if (data.fullName || data.email) {
+      if (data.fullName || data.email || data.phone) {
         await prisma.user.update({
           where: { id: userId },
           data: {
             ...(data.fullName && { fullName: data.fullName }),
             ...(data.email && { email: data.email }),
+            ...(data.phone && { phone: data.phone }),
           },
         });
       }
@@ -373,6 +384,71 @@ export const staffController = {
         where: { staffUserId_serviceTypeId: { staffUserId: userId, serviceTypeId: svcTypeId } },
       });
       success(res, { message: 'Service type removed' });
+    } catch (err) { next(err); }
+  },
+
+  // GET /staff/me — current staff fetches their own profile + service types
+  // so the complete-profile page can pre-fill anything already set.
+  async getMyProfile(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      if (!req.user) throw new UnauthorizedError('UNAUTHENTICATED');
+      if (req.user.role !== 'STAFF') throw new ForbiddenError('STAFF_ONLY');
+
+      const profile = await prisma.staffProfile.findUnique({
+        where: { userId: req.user.sub },
+        include: {
+          user: { select: { fullName: true, phone: true, email: true } },
+          city: { select: { id: true, name: true } },
+          zone: { select: { id: true, name: true } },
+          serviceTypes: { include: { serviceType: { select: { id: true, code: true, name: true } } } },
+        },
+      });
+      if (!profile) throw new NotFoundError('PROFILE_NOT_FOUND');
+      success(res, profile);
+    } catch (err) { next(err); }
+  },
+
+  // PATCH /staff/me/profile — staff self-onboarding. Replaces any prior values
+  // (idempotent). Marks profileCompletedAt so the verification flow knows the
+  // profile is ready for admin review.
+  async completeMyProfile(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      if (!req.user) throw new UnauthorizedError('UNAUTHENTICATED');
+      if (req.user.role !== 'STAFF') throw new ForbiddenError('STAFF_ONLY');
+
+      const data = CompleteProfileSchema.parse(req.body);
+      const userId = req.user.sub;
+
+      const updated = await prisma.$transaction(async (tx) => {
+        const profile = await tx.staffProfile.update({
+          where: { userId },
+          data: {
+            cityId: data.cityId,
+            zoneId: data.zoneId,
+            gender: data.gender,
+            cnic: data.cnic,
+            dateOfBirth: data.dateOfBirth ? new Date(data.dateOfBirth) : null,
+            experienceYears: data.experienceYears,
+            profileCompletedAt: new Date(),
+          },
+        });
+
+        // Replace the staff's service types with the submitted set. The
+        // staff can only pick from active service types; admin can later
+        // adjust this via the existing POST /staff/:userId/services endpoint.
+        await tx.staffServiceType.deleteMany({ where: { staffUserId: userId } });
+        await tx.staffServiceType.createMany({
+          data: data.serviceTypeIds.map((serviceTypeId) => ({
+            staffUserId: userId,
+            serviceTypeId,
+          })),
+        });
+
+        return profile;
+      });
+
+      logger.info('Staff profile completed', { userId, staffCode: updated.staffCode });
+      success(res, updated);
     } catch (err) { next(err); }
   },
 };
