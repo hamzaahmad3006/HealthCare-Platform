@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom';
 import { Controller } from 'react-hook-form';
-import { Heart, User, Mail, Lock } from 'lucide-react';
+import { User, Mail, Lock } from 'lucide-react';
 import { Button } from '../../../constant/Button';
 import { Input } from '../../../constant/Input';
 import { PhoneInput } from '../../../component/common/PhoneInput';
@@ -14,9 +14,12 @@ export function Register(): JSX.Element {
     <div className="min-h-screen flex items-center justify-center bg-gradient-mesh px-6 py-12">
       <div className="w-full max-w-lg">
         <Link to="/" className="inline-flex items-center gap-2.5 mb-8">
-          <div className="h-10 w-10 rounded-xl bg-gradient-brand flex items-center justify-center text-white shadow-brand">
-            <Heart className="h-5 w-5" fill="currentColor" />
-          </div>
+          <img
+            src="/assets/logo-icon.jpg"
+            alt=""
+            aria-hidden
+            className="h-11 w-11 object-contain"
+          />
           <div>
             <p className="font-bold text-ink-900 text-lg leading-tight">HomeHealth</p>
             <p className="text-xs text-ink-500">Create your account</p>
