@@ -2,9 +2,12 @@ import axios from 'axios';
 import { env } from '../config/env';
 import { logger } from '../utils/logger';
 
-// Thin wrapper over Resend's REST API. We don't bundle the SDK to keep the
-// dependency footprint small — Resend has a single POST endpoint.
-const RESEND_URL = 'https://api.resend.com/emails';
+// Brevo (formerly Sendinblue) transactional email — chosen over Resend for the
+// 3x larger free tier (300/day) and because Brevo's same dashboard also
+// exposes WhatsApp + SMS APIs we can consolidate onto later.
+//
+// Reference: https://developers.brevo.com/reference/sendtransacemail
+const BREVO_URL = 'https://api.brevo.com/v3/smtp/email';
 
 export interface SendEmailInput {
   to: string;
@@ -19,36 +22,47 @@ export interface SendEmailResult {
   error?: string;
 }
 
+interface BrevoSuccess {
+  messageId: string;
+}
+
 export async function sendEmail(input: SendEmailInput): Promise<SendEmailResult> {
-  if (!env.RESEND_API_KEY) {
-    logger.debug('Email skipped — RESEND_API_KEY not configured', { to: input.to });
+  if (!env.BREVO_API_KEY) {
+    logger.debug('Email skipped — BREVO_API_KEY not configured', { to: input.to });
     return { delivered: false, error: 'EMAIL_NOT_CONFIGURED' };
   }
 
   try {
-    const response = await axios.post<{ id: string }>(
-      RESEND_URL,
+    const response = await axios.post<BrevoSuccess>(
+      BREVO_URL,
       {
-        from: env.EMAIL_FROM,
-        to: input.to,
+        sender: { name: env.BREVO_SENDER_NAME, email: env.BREVO_SENDER_EMAIL },
+        to: [{ email: input.to }],
         subject: input.subject,
-        text: input.text,
-        ...(input.html ? { html: input.html } : {}),
+        textContent: input.text,
+        ...(input.html ? { htmlContent: input.html } : {}),
       },
       {
         headers: {
-          Authorization: `Bearer ${env.RESEND_API_KEY}`,
+          'api-key': env.BREVO_API_KEY,
           'Content-Type': 'application/json',
+          Accept: 'application/json',
         },
         timeout: 10000,
       },
     );
 
-    logger.info('Email sent', { to: input.to, messageId: response.data.id });
-    return { delivered: true, messageId: response.data.id };
+    logger.info('Email sent', { to: input.to, messageId: response.data.messageId });
+    return { delivered: true, messageId: response.data.messageId };
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Unknown email error';
-    logger.warn('Email send failed', { to: input.to, error: message });
-    return { delivered: false, error: message };
+    // Brevo returns useful errors in response.data — surface them so the
+    // admin success modal can show why delivery failed.
+    const apiError =
+      axios.isAxiosError(err) && err.response?.data
+        ? JSON.stringify(err.response.data)
+        : message;
+    logger.warn('Email send failed', { to: input.to, error: apiError });
+    return { delivered: false, error: apiError };
   }
 }

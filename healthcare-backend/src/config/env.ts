@@ -30,9 +30,12 @@ const envSchema = z.object({
   STRIPE_WEBHOOK_SECRET: z.string().min(1, 'STRIPE_WEBHOOK_SECRET is required'),
 
   // Optional. When unset, email invitations silently no-op (admin still gets
-  // tempPassword in API response to share manually). Resend free tier: 3000/mo.
-  RESEND_API_KEY: z.string().optional(),
-  EMAIL_FROM: z.string().default('HomeHealth <onboarding@resend.dev>'),
+  // tempPassword in API response to share manually). Brevo free tier:
+  // 300/day. Sender email MUST be verified in the Brevo dashboard or sends
+  // will return 401/400.
+  BREVO_API_KEY: z.string().optional(),
+  BREVO_SENDER_EMAIL: z.string().email().default('noreply@homehealth.local'),
+  BREVO_SENDER_NAME: z.string().default('HomeHealth'),
   STAFF_LOGIN_URL: z.string().default('http://localhost:5173/login'),
 
   CORS_ORIGINS: z.string().default('http://localhost:5173'),
