@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useSelector, useDispatch } from 'react-redux';
-import { Heart, Menu, X, LogOut, User as UserIcon, Calendar } from 'lucide-react';
+import { Menu, X, LogOut, User as UserIcon, Calendar } from 'lucide-react';
 import clsx from 'clsx';
 import { Button } from '../../constant/Button';
 import type { RootState } from '../../redux/store';
@@ -67,9 +67,12 @@ export function TopNav({ variant = 'solid' }: TopNavProps): JSX.Element {
     <header className={wrapperClass}>
       <div className="max-w-7xl mx-auto px-6 py-3.5 flex items-center justify-between gap-4">
         <Link to="/" className="flex items-center gap-2.5">
-          <div className="h-9 w-9 rounded-xl bg-gradient-brand flex items-center justify-center text-white shadow-brand">
-            <Heart className="h-5 w-5" fill="currentColor" />
-          </div>
+          <img
+            src="/assets/logo-icon.jpg"
+            alt=""
+            aria-hidden
+            className="h-10 w-10 object-contain"
+          />
           <div className="leading-tight">
             <p className="font-bold text-ink-900">HomeHealth</p>
             <p className="text-2xs text-ink-500 -mt-0.5">Faisalabad</p>

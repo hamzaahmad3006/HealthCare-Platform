@@ -10,7 +10,6 @@ import {
   LogOut,
   Menu,
   X,
-  Heart,
 } from 'lucide-react';
 import clsx from 'clsx';
 import { useAppDispatch, useAppSelector } from '../../redux/store';
@@ -109,9 +108,12 @@ function SidebarContent({
     <>
       <div className="flex items-center justify-between p-6 border-b border-ink-100">
         <div className="flex items-center gap-2.5">
-          <div className="h-9 w-9 rounded-xl bg-gradient-brand flex items-center justify-center text-white">
-            <Heart className="h-5 w-5" fill="currentColor" />
-          </div>
+          <img
+            src="/assets/logo-icon.jpg"
+            alt=""
+            aria-hidden
+            className="h-10 w-10 object-contain"
+          />
           <div>
             <p className="font-bold text-ink-900 leading-tight">HomeHealth</p>
             <p className="text-2xs text-ink-500">Admin Console</p>

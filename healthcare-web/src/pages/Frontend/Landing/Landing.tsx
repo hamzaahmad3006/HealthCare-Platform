@@ -1,6 +1,5 @@
 import { Link } from 'react-router-dom';
 import {
-  Heart,
   ShieldCheck,
   BadgeCheck,
   Star,
@@ -317,9 +316,12 @@ export function Landing(): JSX.Element {
         <div className="max-w-7xl mx-auto px-6 py-12 grid sm:grid-cols-2 lg:grid-cols-4 gap-8">
           <div>
             <Link to="/" className="flex items-center gap-2.5">
-              <div className="h-9 w-9 rounded-xl bg-gradient-brand flex items-center justify-center text-white">
-                <Heart className="h-5 w-5" fill="currentColor" />
-              </div>
+              <img
+                src="/assets/logo-icon.jpg"
+                alt=""
+                aria-hidden
+                className="h-10 w-10 object-contain bg-white rounded-lg p-1"
+              />
               <div className="leading-tight">
                 <p className="font-bold text-white">HomeHealth</p>
                 <p className="text-2xs text-ink-500">Faisalabad</p>

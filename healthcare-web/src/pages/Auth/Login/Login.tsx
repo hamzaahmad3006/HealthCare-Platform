@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom';
 import { Controller } from 'react-hook-form';
-import { Heart, Lock, Eye, EyeOff, ShieldCheck, BadgeCheck, Star } from 'lucide-react';
+import { Lock, Eye, EyeOff, ShieldCheck, BadgeCheck, Star } from 'lucide-react';
 import { Button } from '../../../constant/Button';
 import { Input } from '../../../constant/Input';
 import { PhoneInput } from '../../../component/common/PhoneInput';
@@ -16,9 +16,12 @@ export function Login(): JSX.Element {
       <div className="flex-1 flex flex-col justify-center px-6 py-10 sm:px-12 lg:px-20 xl:px-28">
         <div className="mx-auto w-full max-w-md">
           <Link to="/" className="inline-flex items-center gap-2.5 mb-10">
-            <div className="h-10 w-10 rounded-xl bg-gradient-brand flex items-center justify-center text-white shadow-brand">
-              <Heart className="h-5 w-5" fill="currentColor" />
-            </div>
+            <img
+              src="/assets/logo-icon.jpg"
+              alt=""
+              aria-hidden
+              className="h-11 w-11 object-contain"
+            />
             <div>
               <p className="font-bold text-ink-900 text-lg leading-tight">HomeHealth</p>
               <p className="text-xs text-ink-500">Healthcare at your doorstep</p>
