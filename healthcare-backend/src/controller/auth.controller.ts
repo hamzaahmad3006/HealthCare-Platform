@@ -15,14 +15,27 @@ import {
   UnauthorizedError,
   NotFoundError,
   AppError,
+  ConflictError,
 } from '../utils/stateMachine';
 import { FAILED_LOGIN_LOCKOUT } from '../utils/constants';
+import { Role } from '@prisma/client';
 
 const lockoutKey = (phone: string): string => `login_attempts:${phone}`;
 
 const LoginSchema = z.object({
   phone: z.string().min(1),
   password: z.string().min(1),
+});
+
+const RegisterSchema = z.object({
+  fullName: z.string().min(2).max(150),
+  phone: z
+    .string()
+    .min(10)
+    .max(20)
+    .regex(/^\+?[0-9]{10,15}$/, 'Phone must be 10-15 digits, optional leading +'),
+  email: z.string().email().optional().or(z.literal('').transform(() => undefined)),
+  password: z.string().min(8, 'Password must be at least 8 characters'),
 });
 
 const ChangePasswordSchema = z.object({
@@ -119,6 +132,94 @@ export const authController = {
           email: user.email,
         },
       });
+    } catch (err) {
+      next(err);
+    }
+  },
+
+  async register(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const data = RegisterSchema.parse(req.body);
+
+      // Normalise phone — accept "03001234567" and "923001234567" by ensuring
+      // a leading +. The DB constraint expects E.164-ish.
+      const phone = data.phone.startsWith('+') ? data.phone : `+${data.phone.replace(/^0/, '92')}`;
+
+      const existing = await prisma.user.findUnique({ where: { phone } });
+      if (existing) {
+        throw new ConflictError('PHONE_ALREADY_REGISTERED', 'An account with this phone already exists');
+      }
+
+      if (data.email) {
+        const existingEmail = await prisma.user.findUnique({ where: { email: data.email } });
+        if (existingEmail) {
+          throw new ConflictError('EMAIL_ALREADY_REGISTERED', 'An account with this email already exists');
+        }
+      }
+
+      const passwordHash = await hashPassword(data.password);
+      const rawRefreshToken = generateRefreshToken();
+      const tokenHash = hashRefreshToken(rawRefreshToken);
+      const sessionId = crypto.randomUUID();
+      const expiresAt = new Date(Date.now() + env.JWT_REFRESH_TTL * 1000);
+
+      const user = await prisma.$transaction(async (tx) => {
+        const created = await tx.user.create({
+          data: {
+            role: Role.CUSTOMER,
+            fullName: data.fullName,
+            phone,
+            email: data.email,
+            passwordHash,
+            phoneVerified: false,
+            emailVerified: false,
+            customerProfile: { create: {} },
+          },
+        });
+
+        await tx.refreshToken.create({
+          data: {
+            userId: created.id,
+            tokenHash,
+            expiresAt,
+            ipAddress: req.ip,
+            userAgent: req.headers['user-agent'],
+          },
+        });
+
+        return created;
+      });
+
+      const accessToken = generateAccessToken({
+        sub: user.id,
+        role: user.role,
+        phone: user.phone,
+        session_id: sessionId,
+      });
+
+      res.cookie('refresh_token', rawRefreshToken, {
+        httpOnly: true,
+        secure: env.NODE_ENV === 'production',
+        sameSite: 'strict',
+        maxAge: env.JWT_REFRESH_TTL * 1000,
+        path: '/api/v1/auth',
+      });
+
+      success(
+        res,
+        {
+          accessToken,
+          expiresIn: env.JWT_ACCESS_TTL,
+          user: {
+            id: user.id,
+            role: user.role,
+            fullName: user.fullName,
+            phone: user.phone,
+            email: user.email,
+          },
+        },
+        201,
+      );
     } catch (err) {
       next(err);
     }
