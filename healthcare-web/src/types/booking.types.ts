@@ -75,6 +75,16 @@ export interface City {
   isActive: boolean;
 }
 
+export interface Zone {
+  id: string;
+  name: string;
+  slug: string;
+}
+
+export interface CityWithZones extends City {
+  zones: Zone[];
+}
+
 export interface Booking {
   id: string;
   bookingNumber: string;

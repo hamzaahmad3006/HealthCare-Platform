@@ -24,14 +24,18 @@ interface SidebarLayoutProps {
   actions?: ReactNode;
 }
 
-const NAV_ITEMS = [
+const ADMIN_NAV_ITEMS = [
   { to: '/admin', label: 'Dashboard', icon: LayoutDashboard, end: true },
   { to: '/admin/bookings', label: 'Bookings', icon: CalendarClock },
   { to: '/admin/staff', label: 'Staff', icon: Users },
   { to: '/admin/visits', label: 'Visits', icon: Activity },
   { to: '/admin/reports', label: 'Reports', icon: FileText },
   { to: '/admin/reviews', label: 'Reviews', icon: Star },
-] as const;
+];
+
+const STAFF_NAV_ITEMS = [
+  { to: '/admin/visits', label: 'My Visits', icon: Activity },
+];
 
 export function SidebarLayout({ children, title, description, actions }: SidebarLayoutProps): JSX.Element {
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -45,11 +49,13 @@ export function SidebarLayout({ children, title, description, actions }: Sidebar
     navigate('/login', { replace: true });
   };
 
+  const isStaff = user?.role === 'STAFF';
+
   return (
     <div className="min-h-screen bg-ink-50 flex">
       {/* Sidebar — desktop */}
       <aside className="hidden lg:flex flex-col w-64 bg-white border-r border-ink-100 fixed inset-y-0 left-0 z-30">
-        <SidebarContent onNavigate={() => setMobileOpen(false)} onLogout={handleLogout} userName={user?.fullName ?? '—'} />
+        <SidebarContent onNavigate={() => setMobileOpen(false)} onLogout={handleLogout} userName={user?.fullName ?? '—'} isStaff={isStaff} />
       </aside>
 
       {/* Sidebar — mobile drawer */}
@@ -64,6 +70,7 @@ export function SidebarLayout({ children, title, description, actions }: Sidebar
               onNavigate={() => setMobileOpen(false)}
               onLogout={handleLogout}
               userName={user?.fullName ?? '—'}
+              isStaff={isStaff}
             />
           </aside>
         </>
@@ -99,11 +106,15 @@ function SidebarContent({
   onNavigate,
   onLogout,
   userName,
+  isStaff,
 }: {
   onNavigate: () => void;
   onLogout: () => void | Promise<void>;
   userName: string;
+  isStaff: boolean;
 }): JSX.Element {
+  const navItems = isStaff ? STAFF_NAV_ITEMS : ADMIN_NAV_ITEMS;
+
   return (
     <>
       <div className="flex items-center justify-between p-6 border-b border-ink-100">
@@ -116,7 +127,7 @@ function SidebarContent({
           />
           <div>
             <p className="font-bold text-ink-900 leading-tight">HomeHealth</p>
-            <p className="text-2xs text-ink-500">Admin Console</p>
+            <p className="text-2xs text-ink-500">{isStaff ? 'Staff Portal' : 'Admin Console'}</p>
           </div>
         </div>
         <button
@@ -128,11 +139,11 @@ function SidebarContent({
       </div>
 
       <nav className="flex-1 p-3 space-y-0.5 overflow-y-auto">
-        {NAV_ITEMS.map((item) => (
+        {navItems.map((item) => (
           <NavLink
             key={item.to}
             to={item.to}
-            end={'end' in item ? item.end : false}
+            end={'end' in item ? (item as { end?: boolean }).end : false}
             onClick={onNavigate}
             className={({ isActive }) =>
               clsx(

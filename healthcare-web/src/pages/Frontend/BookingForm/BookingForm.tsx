@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import clsx from 'clsx';
 import {
   ArrowLeft,
@@ -14,6 +15,7 @@ import {
   AlertTriangle,
   User,
   MapPin,
+  Plus,
   ChevronDown,
   CheckCircle2,
   Loader2,
@@ -22,8 +24,9 @@ import { Button } from '../../../constant/Button';
 import { Card } from '../../../constant/Card';
 import { Badge } from '../../../constant/Badge';
 import { LoadingSpinner } from '../../../component/common/LoadingSpinner';
-import { EmptyState } from '../../../component/common/EmptyState';
 import { TopNav } from '../../../component/common/TopNav';
+import { PatientFormModal } from '../../../component/booking/PatientFormModal';
+import { AddressFormModal } from '../../../component/booking/AddressFormModal';
 import { formatCurrency, formatDate } from '../../../helper/format';
 import { useBookingForm, type StepNumber } from './useBookingForm';
 
@@ -273,20 +276,41 @@ function Step1({ form }: { form: ReturnType<typeof useBookingForm> }): JSX.Eleme
 // Step 2 — Patient + Address
 // ──────────────────────────────────────────────────────────────────────────────
 function Step2({ form }: { form: ReturnType<typeof useBookingForm> }): JSX.Element {
+  const [patientModalOpen, setPatientModalOpen] = useState(false);
+  const [addressModalOpen, setAddressModalOpen] = useState(false);
+
   return (
     <div className="space-y-8">
       <div>
-        <label className="text-sm font-semibold text-ink-800 flex items-center gap-2">
-          <User className="h-4 w-4 text-brand-600" />
-          Patient
-        </label>
+        <div className="flex items-center justify-between">
+          <label className="text-sm font-semibold text-ink-800 flex items-center gap-2">
+            <User className="h-4 w-4 text-brand-600" />
+            Patient
+          </label>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            leftIcon={<Plus className="h-3.5 w-3.5" />}
+            onClick={() => setPatientModalOpen(true)}
+          >
+            Add patient
+          </Button>
+        </div>
         {form.patients.length === 0 ? (
-          <div className="mt-3">
-            <EmptyState
-              title="No patients on file yet"
-              description="Add a patient under your account before booking. (Coming soon — for now, contact us via WhatsApp.)"
-            />
-          </div>
+          <button
+            type="button"
+            onClick={() => setPatientModalOpen(true)}
+            className="mt-3 w-full p-6 rounded-xl border-2 border-dashed border-ink-200 hover:border-brand-400 hover:bg-brand-50/40 transition-all text-center group"
+          >
+            <Plus className="h-6 w-6 mx-auto text-ink-400 group-hover:text-brand-600 transition-colors" />
+            <p className="text-sm font-semibold text-ink-700 mt-2 group-hover:text-brand-700">
+              Add your first patient
+            </p>
+            <p className="text-xs text-ink-500 mt-1">
+              The person who&apos;ll receive care (yourself or a family member)
+            </p>
+          </button>
         ) : (
           <div className="mt-3 grid sm:grid-cols-2 gap-3">
             {form.patients.map((p) => {
@@ -316,17 +340,33 @@ function Step2({ form }: { form: ReturnType<typeof useBookingForm> }): JSX.Eleme
       </div>
 
       <div>
-        <label className="text-sm font-semibold text-ink-800 flex items-center gap-2">
-          <MapPin className="h-4 w-4 text-brand-600" />
-          Service address
-        </label>
+        <div className="flex items-center justify-between">
+          <label className="text-sm font-semibold text-ink-800 flex items-center gap-2">
+            <MapPin className="h-4 w-4 text-brand-600" />
+            Service address
+          </label>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            leftIcon={<Plus className="h-3.5 w-3.5" />}
+            onClick={() => setAddressModalOpen(true)}
+          >
+            Add address
+          </Button>
+        </div>
         {form.addresses.length === 0 ? (
-          <div className="mt-3">
-            <EmptyState
-              title="No saved addresses"
-              description="Add an address before booking. (Coming soon — for now, contact us via WhatsApp.)"
-            />
-          </div>
+          <button
+            type="button"
+            onClick={() => setAddressModalOpen(true)}
+            className="mt-3 w-full p-6 rounded-xl border-2 border-dashed border-ink-200 hover:border-brand-400 hover:bg-brand-50/40 transition-all text-center group"
+          >
+            <Plus className="h-6 w-6 mx-auto text-ink-400 group-hover:text-brand-600 transition-colors" />
+            <p className="text-sm font-semibold text-ink-700 mt-2 group-hover:text-brand-700">
+              Add a service address
+            </p>
+            <p className="text-xs text-ink-500 mt-1">Where should our staff arrive?</p>
+          </button>
         ) : (
           <div className="mt-3 grid sm:grid-cols-2 gap-3">
             {form.addresses.map((a) => {
@@ -354,6 +394,23 @@ function Step2({ form }: { form: ReturnType<typeof useBookingForm> }): JSX.Eleme
           </div>
         )}
       </div>
+
+      <PatientFormModal
+        open={patientModalOpen}
+        onClose={() => setPatientModalOpen(false)}
+        onCreated={(p) => {
+          form.addPatient(p);
+          setPatientModalOpen(false);
+        }}
+      />
+      <AddressFormModal
+        open={addressModalOpen}
+        onClose={() => setAddressModalOpen(false)}
+        onCreated={(a) => {
+          form.addAddress(a);
+          setAddressModalOpen(false);
+        }}
+      />
     </div>
   );
 }

@@ -67,7 +67,10 @@ export const authController = {
         await redis.set(attemptKey, String(next), 'EX', FAILED_LOGIN_LOCKOUT.WINDOW_MINUTES * 60);
       };
 
-      const user = await prisma.user.findUnique({ where: { phone } });
+      const user = await prisma.user.findUnique({
+        where: { phone },
+        include: { staffProfile: { select: { verificationStatus: true, profileCompletedAt: true } } },
+      });
 
       if (!user || user.deletedAt) {
         await recordFailure();
@@ -119,9 +122,9 @@ export const authController = {
       res.cookie('refresh_token', rawRefreshToken, {
         httpOnly: true,
         secure: env.NODE_ENV === 'production',
-        sameSite: 'strict',
+        sameSite: 'lax',
         maxAge: env.JWT_REFRESH_TTL * 1000,
-        path: '/api/v1/auth',
+        path: '/',
       });
 
       success(res, {
@@ -133,6 +136,8 @@ export const authController = {
           fullName: user.fullName,
           phone: user.phone,
           email: user.email,
+          staffVerificationStatus: user.staffProfile?.verificationStatus ?? null,
+          staffProfileCompletedAt: user.staffProfile?.profileCompletedAt ?? null,
         },
       });
     } catch (err) {
@@ -209,9 +214,9 @@ export const authController = {
       res.cookie('refresh_token', rawRefreshToken, {
         httpOnly: true,
         secure: env.NODE_ENV === 'production',
-        sameSite: 'strict',
+        sameSite: 'lax',
         maxAge: env.JWT_REFRESH_TTL * 1000,
-        path: '/api/v1/auth',
+        path: '/',
       });
 
       success(
@@ -307,7 +312,7 @@ export const authController = {
           .catch(() => null);
       }
 
-      res.clearCookie('refresh_token', { path: '/api/v1/auth' });
+      res.clearCookie('refresh_token', { path: '/' });
       success(res, { message: 'Logged out successfully' });
     } catch (err) {
       next(err);
@@ -331,12 +336,22 @@ export const authController = {
           emailVerified: true,
           lastLoginAt: true,
           createdAt: true,
+          // Include verification + onboarding state so the frontend can gate
+          // the dashboard without an extra round-trip to /staff/me.
+          staffProfile: {
+            select: { verificationStatus: true, profileCompletedAt: true },
+          },
         },
       });
 
       if (!user) throw new NotFoundError('USER_NOT_FOUND');
 
-      success(res, user);
+      const { staffProfile, ...rest } = user;
+      success(res, {
+        ...rest,
+        staffVerificationStatus: staffProfile?.verificationStatus ?? null,
+        staffProfileCompletedAt: staffProfile?.profileCompletedAt ?? null,
+      });
     } catch (err) {
       next(err);
     }
@@ -367,7 +382,7 @@ export const authController = {
         }),
       ]);
 
-      res.clearCookie('refresh_token', { path: '/api/v1/auth' });
+      res.clearCookie('refresh_token', { path: '/' });
       success(res, { message: 'Password changed successfully. Please log in again.' });
     } catch (err) {
       next(err);

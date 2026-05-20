@@ -20,7 +20,14 @@ const withSuspense = (element: JSX.Element): JSX.Element => (
 
 export const frontendRoutes: RouteObject[] = [
   { path: '/', element: withSuspense(<Landing />) },
-  { path: '/book', element: withSuspense(<BookingForm />) },
+  {
+    path: '/book',
+    element: withSuspense(
+      <ProtectedRoute roles={['CUSTOMER', 'ADMIN']}>
+        <BookingForm />
+      </ProtectedRoute>,
+    ),
+  },
   {
     path: '/my-bookings',
     element: withSuspense(

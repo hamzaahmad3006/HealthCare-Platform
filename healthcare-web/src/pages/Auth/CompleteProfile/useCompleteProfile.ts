@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -115,8 +115,9 @@ export function useCompleteProfile(): UseCompleteProfileReturn {
           navigate('/admin/visits', { replace: true });
           return;
         }
+        const faisalabadId = citiesRes.data.data.find((c) => c.name === 'Faisalabad')?.id ?? '';
         form.reset({
-          cityId: meData.cityId ?? '',
+          cityId: meData.cityId ?? faisalabadId,
           zoneId: meData.zoneId ?? '',
           gender: meData.gender ?? undefined,
           cnic: meData.cnic ?? '',
@@ -140,6 +141,15 @@ export function useCompleteProfile(): UseCompleteProfileReturn {
 
   const selectedCityId = form.watch('cityId');
   const zonesForSelectedCity = cities.find((c) => c.id === selectedCityId)?.zones ?? [];
+
+  // Reset zoneId whenever the user picks a different city.
+  const prevCityRef = useRef<string>('');
+  useEffect(() => {
+    if (prevCityRef.current !== '' && prevCityRef.current !== selectedCityId) {
+      form.setValue('zoneId', '', { shouldValidate: false });
+    }
+    prevCityRef.current = selectedCityId;
+  }, [selectedCityId, form]);
   const selectedServiceIds = form.watch('serviceTypeIds') ?? [];
   // Mirror the backend rule: ambulance number is required iff the AMBULANCE
   // service is among the selected ones. We look up the code so the trigger
@@ -168,7 +178,19 @@ export function useCompleteProfile(): UseCompleteProfileReturn {
 
     setIsSubmitting(true);
     try {
-      await api.patch(API.STAFF.MY_PROFILE, values);
+      // Backend treats empty strings as invalid for optional fields — strip
+      // them so the request omits the key entirely instead.
+      const payload = {
+        cityId: values.cityId,
+        cnic: values.cnic,
+        experienceYears: values.experienceYears,
+        serviceTypeIds: values.serviceTypeIds,
+        ...(values.zoneId ? { zoneId: values.zoneId } : {}),
+        ...(values.gender ? { gender: values.gender } : {}),
+        ...(values.dateOfBirth ? { dateOfBirth: values.dateOfBirth } : {}),
+        ...(values.ambulanceNumber ? { ambulanceNumber: values.ambulanceNumber } : {}),
+      };
+      await api.patch(API.STAFF.MY_PROFILE, payload);
       toast.success('Profile saved — upload your documents next');
       navigate('/admin/visits', { replace: true });
     } catch (err) {

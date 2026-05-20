@@ -16,6 +16,7 @@ export const API = {
   },
   SERVICE_TYPES: '/service-types',
   PACKAGES: '/packages',
+  CITIES: '/cities',
   STAFF: {
     LIST: '/staff',
     ME: '/staff/me',

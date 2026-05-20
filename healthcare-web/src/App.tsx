@@ -5,6 +5,7 @@ import { store } from './redux/store';
 import { router } from './pages/Routes';
 import { COLOR } from './constant/colors';
 import { ErrorBoundary } from './component/common/ErrorBoundary';
+import { AuthBootstrap } from './component/common/AuthBootstrap';
 
 const WHITE = '#FFFFFF';
 
@@ -12,7 +13,9 @@ export function App(): JSX.Element {
   return (
     <ErrorBoundary>
       <Provider store={store}>
-        <RouterProvider router={router} />
+        <AuthBootstrap>
+          <RouterProvider router={router} />
+        </AuthBootstrap>
         <Toaster
           position="bottom-right"
           toastOptions={{

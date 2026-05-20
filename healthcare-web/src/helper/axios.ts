@@ -68,10 +68,9 @@ api.interceptors.response.use(
         original.headers.Authorization = `Bearer ${newToken}`;
         return api.request(original);
       }
-      // Refresh failed — redirect handled by ProtectedRoute on next render
-      if (typeof window !== 'undefined' && !window.location.pathname.startsWith('/login')) {
-        window.location.href = '/login';
-      }
+      // Refresh failed — clearAuth already dispatched. ProtectedRoute renders
+      // <Navigate to="/login" /> on the next React render. Public routes (like
+      // landing) keep working; only protected pages bounce to login.
     }
 
     return Promise.reject(error);

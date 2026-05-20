@@ -57,18 +57,23 @@ export function useLogin(): UseLoginReturn {
       toast.success(`Welcome back, ${data.data.user.fullName}`);
 
       const from = (location.state as { from?: string } | null)?.from;
-      // STAFF always lands on /complete-profile first — that page short-
-      // circuits to /admin/visits if the profile is already completed, so
-      // there's no UX cost for returning staff.
-      const destination =
-        from && from !== '/login'
-          ? from
-          : data.data.user.role === 'ADMIN'
-            ? '/admin'
-            : data.data.user.role === 'STAFF'
-              ? '/complete-profile'
-              : '/my-bookings';
-      navigate(destination, { replace: true });
+      const role = data.data.user.role;
+      // Default landing per role. STAFF goes to /complete-profile which
+      // short-circuits to /admin/visits if the profile is already completed.
+      const defaultDestination =
+        role === 'ADMIN' ? '/admin' : role === 'STAFF' ? '/complete-profile' : '/my-bookings';
+
+      // Only honor `from` if it points to a route this role can actually use —
+      // otherwise an unrelated path (e.g. the public landing `/`) would bounce
+      // the user back instead of taking them to their dashboard.
+      const isValidFrom =
+        from && from !== '/login' && (
+          role === 'CUSTOMER'
+            ? from.startsWith('/my-bookings') || from.startsWith('/book')
+            : from.startsWith('/admin') || from === '/complete-profile'
+        );
+
+      navigate(isValidFrom ? from! : defaultDestination, { replace: true });
     } catch (err) {
       const apiErr = extractApiError(err);
       setServerError(apiErr.message);

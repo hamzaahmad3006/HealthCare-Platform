@@ -39,6 +39,8 @@ interface UseBookingFormReturn {
   selectedAddressId: string | null;
   selectPatient: (id: string) => void;
   selectAddress: (id: string) => void;
+  addPatient: (p: Patient) => void;
+  addAddress: (a: Address) => void;
 
   // Step 3
   requestedDate: string;
@@ -216,6 +218,16 @@ export function useBookingForm(): UseBookingFormReturn {
     setCurrentStep(s);
   }, []);
 
+  const addPatient = useCallback((p: Patient) => {
+    setPatients((prev) => [p, ...prev.filter((x) => x.id !== p.id)]);
+    setSelectedPatientId(p.id);
+  }, []);
+
+  const addAddress = useCallback((a: Address) => {
+    setAddresses((prev) => [a, ...prev.filter((x) => x.id !== a.id)]);
+    setSelectedAddressId(a.id);
+  }, []);
+
   // ── Submission ─────────────────────────────────────────────────────────────
   const submit = useCallback(async (): Promise<void> => {
     if (!selectedService || !selectedPackage || !selectedPatient || !selectedAddress) {
@@ -281,6 +293,8 @@ export function useBookingForm(): UseBookingFormReturn {
     selectedAddressId,
     selectPatient: setSelectedPatientId,
     selectAddress: setSelectedAddressId,
+    addPatient,
+    addAddress,
     requestedDate,
     requestedTime,
     urgencyLevel,

@@ -1,6 +1,7 @@
 import { lazy, Suspense } from 'react';
 import type { RouteObject } from 'react-router-dom';
 import { ProtectedRoute } from '../../component/common/ProtectedRoute';
+import { StaffVerificationGate } from '../../component/common/StaffVerificationGate';
 import { PageSpinner } from '../../component/common/LoadingSpinner';
 
 const AdminDashboard = lazy(() =>
@@ -36,7 +37,7 @@ export const dashboardRoutes: RouteObject[] = [
   { path: '/admin/bookings/:id', element: adminGate(<AdminBookingDetail />) },
   { path: '/admin/staff', element: adminGate(<Staff />) },
   { path: '/admin/staff/:userId', element: adminGate(<StaffDetail />) },
-  { path: '/admin/visits', element: staffOrAdminGate(<Visits />) },
+  { path: '/admin/visits', element: staffOrAdminGate(<StaffVerificationGate><Visits /></StaffVerificationGate>) },
   { path: '/admin/reports', element: adminGate(<Reports />) },
   { path: '/admin/reviews', element: adminGate(<Reviews />) },
 ];

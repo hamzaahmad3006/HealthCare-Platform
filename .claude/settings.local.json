@@ -1,10 +1,18 @@
 {
   "permissions": {
+    "defaultMode": "bypassPermissions",
     "allow": [
       "Bash(npm install *)",
       "Bash(awk '{print $1}')",
       "Bash(cat /tmp/priv_final.txt)",
-      "Read(//tmp/**)"
+      "Read(//tmp/**)",
+      "Bash(npm run *)",
+      "Bash(git checkout *)",
+      "Bash(npx jest *)",
+      "Bash(git merge *)",
+      "Bash(git add *)",
+      "Bash(git commit -m ' *)",
+      "Bash(git push *)"
     ]
   }
 }
