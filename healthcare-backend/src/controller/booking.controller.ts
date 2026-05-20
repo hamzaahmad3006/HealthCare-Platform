@@ -76,7 +76,7 @@ export const bookingController = {
         if (!city) throw new NotFoundError('CITY_NOT_FOUND');
 
         const sequenceResult = await tx.$queryRaw<[{ count: bigint }]>`
-          SELECT COUNT(*) as count FROM bookings WHERE city_id = ${data.cityId}
+          SELECT COUNT(*) as count FROM bookings WHERE "cityId" = ${data.cityId}
         `;
         const seq = Number(sequenceResult[0]?.count ?? 0) + 1;
         const bookingNumber = generateBookingNumber(city.slug, seq);
@@ -311,8 +311,8 @@ export const bookingController = {
 
       const result = await prisma.$transaction(
         async (tx) => {
-          const visits = await tx.$queryRaw<{ id: string; booking_id: string; status: string; scheduled_start_at: Date; scheduled_end_at: Date | null }[]>`
-            SELECT id, booking_id, status, scheduled_start_at, scheduled_end_at
+          const visits = await tx.$queryRaw<{ id: string; bookingId: string; status: string; scheduledStartAt: Date; scheduledEndAt: Date | null }[]>`
+            SELECT id, "bookingId", status, "scheduledStartAt", "scheduledEndAt"
             FROM booking_visits
             WHERE id = ${visitId}
             FOR UPDATE NOWAIT
@@ -324,29 +324,29 @@ export const bookingController = {
             throw new ConflictError('VISIT_ALREADY_IN_PROGRESS');
           }
 
-          const staffRows = await tx.$queryRaw<{ user_id: string; verification_status: string; is_available: boolean }[]>`
-            SELECT user_id, verification_status, is_available
+          const staffRows = await tx.$queryRaw<{ userId: string; verificationStatus: string; isAvailable: boolean }[]>`
+            SELECT "userId", "verificationStatus", "isAvailable"
             FROM staff_profiles
-            WHERE user_id = ${staffUserId}
+            WHERE "userId" = ${staffUserId}
             FOR UPDATE NOWAIT
           `;
 
           const staff = staffRows[0];
           if (!staff) throw new NotFoundError('STAFF_NOT_FOUND');
-          if (staff.verification_status !== 'VERIFIED') {
+          if (staff.verificationStatus !== 'VERIFIED') {
             throw new BusinessError('STAFF_NOT_VERIFIED', 'Staff must be verified before assignment');
           }
-          if (!staff.is_available) {
+          if (!staff.isAvailable) {
             throw new ConflictError('STAFF_NOT_AVAILABLE', 'Staff is currently unavailable');
           }
 
-          const endAt = visit.scheduled_end_at ?? visit.scheduled_start_at;
+          const endAt = visit.scheduledEndAt ?? visit.scheduledStartAt;
           const collision = await tx.bookingVisit.findFirst({
             where: {
               assignedStaffUserId: staffUserId,
               status: { in: ['ASSIGNED', 'EN_ROUTE', 'CHECKED_IN'] },
               scheduledStartAt: { lte: endAt },
-              scheduledEndAt: { gte: visit.scheduled_start_at },
+              scheduledEndAt: { gte: visit.scheduledStartAt },
             },
           });
 
@@ -359,7 +359,7 @@ export const bookingController = {
 
           await tx.bookingAssignment.create({
             data: {
-              bookingId: visit.booking_id,
+              bookingId: visit.bookingId,
               bookingVisitId: visitId,
               staffUserId,
               assignedByUserId: adminUserId,
@@ -370,19 +370,19 @@ export const bookingController = {
           // NotificationLog created inside the same transaction — atomic with the assignment write.
           const notifLog = await tx.notificationLog.create({
             data: {
-              bookingId: visit.booking_id,
+              bookingId: visit.bookingId,
               bookingVisitId: visitId,
               templateCode: 'STAFF_ASSIGNED',
               recipient: staffUserId,
               renderedContent: renderTemplate('STAFF_ASSIGNED', {
                 staffName: 'Staff',
-                bookingNumber: visit.booking_id,
+                bookingNumber: visit.bookingId,
               }),
               status: 'PENDING',
             },
           });
 
-          return { visitId, staffUserId, bookingId: visit.booking_id, notifLogId: notifLog.id };
+          return { visitId, staffUserId, bookingId: visit.bookingId, notifLogId: notifLog.id };
         },
         { timeout: 5000, isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
       );
