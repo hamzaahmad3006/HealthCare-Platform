@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Calendar, Navigation, LogIn, LogOut, CheckCircle2, Loader2, X, CalendarX } from 'lucide-react';
+import { Calendar, Navigation, LogIn, LogOut, CheckCircle2, Loader2, X, CalendarX, FileText, ClipboardList } from 'lucide-react';
 import { SidebarLayout } from '../../../component/admin/SidebarLayout';
 import { DataTable, type ColumnDef } from '../../../component/admin/DataTable';
 import { StatusBadge } from '../../../component/common/StatusBadge';
@@ -31,9 +31,16 @@ interface ActionModalState {
   visitId: string;
 }
 
+function hasAnyNotes(row: BookingVisit): boolean {
+  return Boolean(
+    row.beforeConditionText || row.afterConditionText || row.visitNotes || row.checkInAt,
+  );
+}
+
 export function Visits(): JSX.Element {
   const v = useVisits();
   const [modal, setModal] = useState<ActionModalState | null>(null);
+  const [detailsVisit, setDetailsVisit] = useState<VisitRow | null>(null);
 
   const columns: ColumnDef<VisitRow>[] = [
     {
@@ -127,11 +134,23 @@ export function Visits(): JSX.Element {
           );
         }
 
+        if (hasAnyNotes(row)) {
+          buttons.push(
+            <ActionButton
+              key="details"
+              icon={<FileText className="h-3.5 w-3.5" />}
+              label="Details"
+              busy={false}
+              onClick={() => setDetailsVisit(row)}
+            />,
+          );
+        }
+
         if (buttons.length === 0) {
           return <span className="text-2xs text-ink-400">—</span>;
         }
 
-        return <div className="inline-flex gap-2 justify-end">{buttons}</div>;
+        return <div className="inline-flex gap-2 justify-end flex-wrap">{buttons}</div>;
       },
     },
   ];
@@ -226,7 +245,102 @@ export function Visits(): JSX.Element {
           }}
         />
       ) : null}
+
+      {detailsVisit ? (
+        <DetailsModal visit={detailsVisit} onClose={() => setDetailsVisit(null)} />
+      ) : null}
     </SidebarLayout>
+  );
+}
+
+// ── Internal: details modal — read-only view of saved notes & timestamps ─────
+interface DetailsModalProps {
+  visit: VisitRow;
+  onClose: () => void;
+}
+
+function DetailsModal({ visit, onClose }: DetailsModalProps): JSX.Element {
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-ink-900/40 backdrop-blur-sm p-4">
+      <div className="bg-white rounded-2xl shadow-xl ring-1 ring-ink-200 w-full max-w-lg p-6 animate-slide-up max-h-[90vh] overflow-y-auto">
+        <div className="flex items-start justify-between mb-4">
+          <div className="min-w-0">
+            <h2 className="text-lg font-bold text-ink-900 flex items-center gap-2">
+              <ClipboardList className="h-5 w-5 text-brand-600" />
+              Visit details
+            </h2>
+            <p className="text-xs text-ink-500 mt-0.5 font-mono">
+              {visit.booking?.bookingNumber ?? '—'} · Visit #{visit.sequenceNo}
+            </p>
+          </div>
+          <button
+            onClick={onClose}
+            className="p-1.5 rounded-lg text-ink-500 hover:bg-ink-100"
+            aria-label="Close"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+
+        <div className="space-y-4">
+          <DetailRow label="Scheduled" value={formatDateTime(visit.scheduledStartAt)} />
+
+          <div className="grid grid-cols-2 gap-3">
+            <DetailRow
+              label="Checked in"
+              value={visit.checkInAt ? formatDateTime(visit.checkInAt) : '—'}
+            />
+            <DetailRow
+              label="Checked out"
+              value={visit.checkOutAt ? formatDateTime(visit.checkOutAt) : '—'}
+            />
+          </div>
+
+          <NoteBlock
+            label="Patient condition on arrival"
+            value={visit.beforeConditionText}
+          />
+          <NoteBlock
+            label="Patient condition on departure"
+            value={visit.afterConditionText}
+          />
+          <NoteBlock label="Visit notes" value={visit.visitNotes} />
+        </div>
+
+        <div className="mt-6 flex justify-end">
+          <button
+            onClick={onClose}
+            className="px-4 py-2 text-sm font-semibold text-ink-700 rounded-xl hover:bg-ink-100"
+          >
+            Close
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function DetailRow({ label, value }: { label: string; value: string }): JSX.Element {
+  return (
+    <div>
+      <p className="text-2xs font-semibold uppercase tracking-wider text-ink-500">{label}</p>
+      <p className="text-sm text-ink-800 mt-0.5">{value}</p>
+    </div>
+  );
+}
+
+function NoteBlock({ label, value }: { label: string; value: string | null }): JSX.Element {
+  return (
+    <div>
+      <p className="text-2xs font-semibold uppercase tracking-wider text-ink-500 mb-1">{label}</p>
+      {value ? (
+        <p className="text-sm text-ink-800 whitespace-pre-wrap bg-ink-50 ring-1 ring-ink-100 rounded-xl px-3 py-2 leading-relaxed">
+          {value}
+        </p>
+      ) : (
+        <p className="text-sm text-ink-400 italic">Not recorded</p>
+      )}
+    </div>
   );
 }
 
