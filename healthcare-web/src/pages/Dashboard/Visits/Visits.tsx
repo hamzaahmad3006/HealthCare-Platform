@@ -1,4 +1,5 @@
-import { Calendar } from 'lucide-react';
+import { useState } from 'react';
+import { Calendar, Navigation, LogIn, LogOut, CheckCircle2, Loader2, X } from 'lucide-react';
 import { SidebarLayout } from '../../../component/admin/SidebarLayout';
 import { DataTable, type ColumnDef } from '../../../component/admin/DataTable';
 import { StatusBadge } from '../../../component/common/StatusBadge';
@@ -23,8 +24,16 @@ const STATUS_OPTIONS: { id: VisitStatus | 'ALL'; label: string }[] = [
   { id: 'MISSED', label: 'Missed' },
 ];
 
+type ModalMode = 'check-in' | 'check-out';
+
+interface ActionModalState {
+  mode: ModalMode;
+  visitId: string;
+}
+
 export function Visits(): JSX.Element {
   const v = useVisits();
+  const [modal, setModal] = useState<ActionModalState | null>(null);
 
   const columns: ColumnDef<VisitRow>[] = [
     {
@@ -59,6 +68,71 @@ export function Visits(): JSX.Element {
       key: 'status',
       header: 'Status',
       render: (row) => <StatusBadge status={row.status} kind="visit" />,
+    },
+    {
+      key: 'actions',
+      header: 'Actions',
+      align: 'right',
+      render: (row) => {
+        const busy = v.actionLoadingId === row.id;
+        const buttons: JSX.Element[] = [];
+
+        if (row.status === 'ASSIGNED' || row.status === 'SCHEDULED') {
+          buttons.push(
+            <ActionButton
+              key="en-route"
+              icon={<Navigation className="h-3.5 w-3.5" />}
+              label="Start"
+              busy={busy}
+              onClick={() => void v.handleEnRoute(row.id)}
+            />,
+          );
+        }
+
+        if (row.status === 'ASSIGNED' || row.status === 'EN_ROUTE') {
+          buttons.push(
+            <ActionButton
+              key="check-in"
+              icon={<LogIn className="h-3.5 w-3.5" />}
+              label="Check In"
+              variant="primary"
+              busy={busy}
+              onClick={() => setModal({ mode: 'check-in', visitId: row.id })}
+            />,
+          );
+        }
+
+        if (row.status === 'CHECKED_IN' && !row.checkOutAt) {
+          buttons.push(
+            <ActionButton
+              key="check-out"
+              icon={<LogOut className="h-3.5 w-3.5" />}
+              label="Check Out"
+              busy={busy}
+              onClick={() => setModal({ mode: 'check-out', visitId: row.id })}
+            />,
+          );
+        }
+
+        if (row.status === 'CHECKED_IN' && row.checkOutAt) {
+          buttons.push(
+            <ActionButton
+              key="complete"
+              icon={<CheckCircle2 className="h-3.5 w-3.5" />}
+              label="Complete"
+              variant="primary"
+              busy={busy}
+              onClick={() => void v.handleComplete(row.id)}
+            />,
+          );
+        }
+
+        if (buttons.length === 0) {
+          return <span className="text-2xs text-ink-400">—</span>;
+        }
+
+        return <div className="inline-flex gap-2 justify-end">{buttons}</div>;
+      },
     },
   ];
 
@@ -120,6 +194,138 @@ export function Visits(): JSX.Element {
         />
         {v.meta ? <Pagination meta={v.meta} onPageChange={v.setPage} /> : null}
       </Card>
+
+      {modal ? (
+        <ActionModal
+          mode={modal.mode}
+          busy={v.actionLoadingId === modal.visitId}
+          onClose={() => setModal(null)}
+          onSubmit={async (form) => {
+            const ok =
+              modal.mode === 'check-in'
+                ? await v.handleCheckIn(modal.visitId, { beforeConditionText: form.condition })
+                : await v.handleCheckOut(modal.visitId, {
+                    afterConditionText: form.condition,
+                    visitNotes: form.notes,
+                  });
+            if (ok) setModal(null);
+          }}
+        />
+      ) : null}
     </SidebarLayout>
+  );
+}
+
+// ── Internal: action button ──────────────────────────────────────────────────
+interface ActionButtonProps {
+  icon: JSX.Element;
+  label: string;
+  onClick: () => void;
+  busy?: boolean;
+  variant?: 'primary' | 'ghost';
+}
+
+function ActionButton({ icon, label, onClick, busy, variant = 'ghost' }: ActionButtonProps): JSX.Element {
+  const base =
+    'inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed';
+  const cls =
+    variant === 'primary'
+      ? `${base} bg-brand-600 text-white hover:bg-brand-700`
+      : `${base} bg-ink-100 text-ink-700 hover:bg-ink-200`;
+  return (
+    <button onClick={onClick} disabled={busy} className={cls}>
+      {busy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : icon}
+      {label}
+    </button>
+  );
+}
+
+// ── Internal: check-in / check-out modal ─────────────────────────────────────
+interface ActionModalProps {
+  mode: ModalMode;
+  busy: boolean;
+  onClose: () => void;
+  onSubmit: (form: { condition: string; notes: string }) => Promise<void>;
+}
+
+function ActionModal({ mode, busy, onClose, onSubmit }: ActionModalProps): JSX.Element {
+  const [condition, setCondition] = useState('');
+  const [notes, setNotes] = useState('');
+  const isCheckIn = mode === 'check-in';
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-ink-900/40 backdrop-blur-sm p-4">
+      <div className="bg-white rounded-2xl shadow-xl ring-1 ring-ink-200 w-full max-w-md p-6 animate-slide-up">
+        <div className="flex items-start justify-between mb-4">
+          <div>
+            <h2 className="text-lg font-bold text-ink-900">
+              {isCheckIn ? 'Check In' : 'Check Out'}
+            </h2>
+            <p className="text-xs text-ink-500 mt-0.5">
+              {isCheckIn
+                ? "We'll capture your current location to confirm arrival."
+                : "Capture location and finish up with notes for the customer."}
+            </p>
+          </div>
+          <button
+            onClick={onClose}
+            disabled={busy}
+            className="p-1.5 rounded-lg text-ink-500 hover:bg-ink-100 disabled:opacity-50"
+            aria-label="Close"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+
+        <div className="space-y-4">
+          <div>
+            <label className="text-2xs font-semibold uppercase tracking-wider text-ink-500 block mb-1.5">
+              {isCheckIn ? 'Patient condition on arrival' : 'Patient condition on departure'}
+              <span className="font-normal lowercase ml-1 text-ink-400">(optional)</span>
+            </label>
+            <textarea
+              value={condition}
+              onChange={(e) => setCondition(e.target.value)}
+              rows={3}
+              placeholder={isCheckIn ? 'e.g. Patient alert, BP slightly elevated' : 'e.g. Patient resting, vitals stable'}
+              className="w-full px-3 py-2 text-sm rounded-xl border border-ink-200 focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 outline-none resize-none"
+            />
+          </div>
+
+          {!isCheckIn ? (
+            <div>
+              <label className="text-2xs font-semibold uppercase tracking-wider text-ink-500 block mb-1.5">
+                Visit notes <span className="font-normal lowercase text-ink-400">(optional)</span>
+              </label>
+              <textarea
+                value={notes}
+                onChange={(e) => setNotes(e.target.value)}
+                rows={3}
+                placeholder="What was done during the visit?"
+                className="w-full px-3 py-2 text-sm rounded-xl border border-ink-200 focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 outline-none resize-none"
+              />
+            </div>
+          ) : null}
+        </div>
+
+        <div className="mt-6 flex items-center justify-end gap-2">
+          <button
+            onClick={onClose}
+            disabled={busy}
+            className="px-4 py-2 text-sm font-semibold text-ink-700 rounded-xl hover:bg-ink-100 disabled:opacity-50"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={() => void onSubmit({ condition: condition.trim(), notes: notes.trim() })}
+            disabled={busy}
+            className="inline-flex items-center gap-2 px-4 py-2 text-sm font-semibold text-white bg-brand-600 rounded-xl hover:bg-brand-700 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+            {isCheckIn ? 'Confirm Check In' : 'Confirm Check Out'}
+          </button>
+        </div>
+      </div>
+    </div>
   );
 }
