@@ -192,7 +192,7 @@ export function useCompleteProfile(): UseCompleteProfileReturn {
       };
       await api.patch(API.STAFF.MY_PROFILE, payload);
       toast.success('Profile saved — upload your documents next');
-      navigate('/staff/visits', { replace: true });
+      navigate('/staff/documents', { replace: true });
     } catch (err) {
       toast.error(extractApiError(err).message);
     } finally {

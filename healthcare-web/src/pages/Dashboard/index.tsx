@@ -18,6 +18,9 @@ const StaffDetail = lazy(() =>
 const Visits = lazy(() => import('./Visits/Visits').then((m) => ({ default: m.Visits })));
 const Reports = lazy(() => import('./Reports/Reports').then((m) => ({ default: m.Reports })));
 const Reviews = lazy(() => import('./Reviews/Reviews').then((m) => ({ default: m.Reviews })));
+const StaffDocuments = lazy(() =>
+  import('./StaffDocuments/StaffDocuments').then((m) => ({ default: m.StaffDocuments })),
+);
 
 const adminGate = (element: JSX.Element): JSX.Element => (
   <Suspense fallback={<PageSpinner />}>
@@ -45,6 +48,10 @@ export const dashboardRoutes: RouteObject[] = [
   // staff user never sees `/admin/...` in their address bar. Verification
   // gate sits in front so unverified staff get the onboarding screen.
   { path: '/staff/visits', element: staffGate(<StaffVerificationGate><Visits /></StaffVerificationGate>) },
+
+  // Documents page is deliberately OUTSIDE the verification gate — unverified
+  // staff need this page to upload the documents required for verification.
+  { path: '/staff/documents', element: staffGate(<StaffDocuments />) },
 
   // Legacy redirect for any old bookmark / link that pointed staff at the
   // admin URL. ADMIN keeps the route above; STAFF gets bounced here.

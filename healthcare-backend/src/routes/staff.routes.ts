@@ -23,6 +23,6 @@ router.delete('/:userId/services/:svcTypeId', authenticateToken, adminOnly, staf
 
 router.post('/:userId/documents/presign', authenticateToken, adminOrStaff, uploadLimiter, staffController.presignDocument);
 router.post('/:userId/documents/confirm', authenticateToken, adminOrStaff, staffController.confirmDocument);
-router.get('/:userId/documents', authenticateToken, adminOnly, staffController.getDocuments);
+router.get('/:userId/documents', authenticateToken, adminOrStaff, staffController.getDocuments);
 
 export default router;

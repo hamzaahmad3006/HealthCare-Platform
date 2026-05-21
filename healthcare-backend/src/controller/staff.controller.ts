@@ -370,7 +370,17 @@ export const staffController = {
 
   async getDocuments(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
+      if (!req.user) throw new UnauthorizedError('UNAUTHENTICATED');
+
       const userId = pickParam(req, 'userId')!;
+
+      // Route now permits adminOrStaff so a staff can review what they have
+      // already uploaded. Lock them to their own record — otherwise one staff
+      // could enumerate another's documents.
+      if (req.user.role === 'STAFF' && req.user.sub !== userId) {
+        throw new ForbiddenError('FORBIDDEN');
+      }
+
       const docs = await prisma.staffDocument.findMany({
         where: { staffUserId: userId },
         orderBy: { uploadedAt: 'desc' },
