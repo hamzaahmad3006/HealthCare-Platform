@@ -21,6 +21,9 @@ const Reviews = lazy(() => import('./Reviews/Reviews').then((m) => ({ default: m
 const StaffDocuments = lazy(() =>
   import('./StaffDocuments/StaffDocuments').then((m) => ({ default: m.StaffDocuments })),
 );
+const StaffProfile = lazy(() =>
+  import('./StaffProfile/StaffProfile').then((m) => ({ default: m.StaffProfile })),
+);
 
 const adminGate = (element: JSX.Element): JSX.Element => (
   <Suspense fallback={<PageSpinner />}>
@@ -52,6 +55,10 @@ export const dashboardRoutes: RouteObject[] = [
   // Documents page is deliberately OUTSIDE the verification gate — unverified
   // staff need this page to upload the documents required for verification.
   { path: '/staff/documents', element: staffGate(<StaffDocuments />) },
+
+  // Profile is also outside the verification gate — staff should be able to
+  // update their photo / see their info regardless of verification state.
+  { path: '/staff/profile', element: staffGate(<StaffProfile />) },
 
   // Legacy redirect for any old bookmark / link that pointed staff at the
   // admin URL. ADMIN keeps the route above; STAFF gets bounced here.

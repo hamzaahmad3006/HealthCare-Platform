@@ -390,6 +390,34 @@ export const staffController = {
     } catch (err) { next(err); }
   },
 
+  // Staff updates their own avatar. Frontend uploads the image to Cloudinary
+  // first using the existing document presign flow (documentType=AVATAR),
+  // then PATCHes here with the secure_url. We only store the final URL —
+  // re-uploading just overwrites the field.
+  async updateMyAvatar(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      if (!req.user) throw new UnauthorizedError('UNAUTHENTICATED');
+
+      const { avatarUrl } = z
+        .object({ avatarUrl: z.string().url().max(1000) })
+        .parse(req.body);
+
+      const updated = await prisma.user.update({
+        where: { id: req.user.sub },
+        data: { avatarUrl },
+        select: {
+          id: true,
+          fullName: true,
+          phone: true,
+          email: true,
+          avatarUrl: true,
+        },
+      });
+
+      success(res, updated);
+    } catch (err) { next(err); }
+  },
+
   // Admin reviews a single uploaded document and marks it Verified or
   // Rejected. Staff-level verification (StaffProfile.verificationStatus)
   // remains a separate decision — admin uses /staff/:userId/verify for that.
@@ -451,7 +479,7 @@ export const staffController = {
       const profile = await prisma.staffProfile.findUnique({
         where: { userId: req.user.sub },
         include: {
-          user: { select: { fullName: true, phone: true, email: true } },
+          user: { select: { fullName: true, phone: true, email: true, avatarUrl: true } },
           city: { select: { id: true, name: true } },
           zone: { select: { id: true, name: true } },
           serviceTypes: { include: { serviceType: { select: { id: true, code: true, name: true } } } },

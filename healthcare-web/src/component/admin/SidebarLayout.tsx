@@ -7,6 +7,7 @@ import {
   Activity,
   FileText,
   FolderUp,
+  UserCircle,
   Star,
   LogOut,
   Menu,
@@ -37,6 +38,7 @@ const ADMIN_NAV_ITEMS = [
 const STAFF_NAV_ITEMS = [
   { to: '/staff/visits', label: 'My Visits', icon: Activity },
   { to: '/staff/documents', label: 'My Documents', icon: FolderUp },
+  { to: '/staff/profile', label: 'My Profile', icon: UserCircle },
 ];
 
 export function SidebarLayout({ children, title, description, actions }: SidebarLayoutProps): JSX.Element {

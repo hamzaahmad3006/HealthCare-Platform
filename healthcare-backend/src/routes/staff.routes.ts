@@ -12,6 +12,7 @@ router.get('/', authenticateToken, adminOnly, staffController.list);
 // "/me" must come before "/:userId" so it isn't swallowed by the param.
 router.get('/me', authenticateToken, staffController.getMyProfile);
 router.patch('/me/profile', authenticateToken, staffController.completeMyProfile);
+router.patch('/me/avatar', authenticateToken, staffController.updateMyAvatar);
 
 router.get('/:userId', authenticateToken, adminOrStaff, staffController.getById);
 router.patch('/:userId', authenticateToken, adminOnly, staffController.update);

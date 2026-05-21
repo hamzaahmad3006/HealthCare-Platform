@@ -21,6 +21,7 @@ export const API = {
     LIST: '/staff',
     ME: '/staff/me',
     MY_PROFILE: '/staff/me/profile',
+    MY_AVATAR: '/staff/me/avatar',
     BY_ID: (id: string): string => `/staff/${id}`,
     VERIFY: (id: string): string => `/staff/${id}/verify`,
     AVAILABILITY: (id: string): string => `/staff/${id}/availability`,

@@ -156,6 +156,11 @@ model User {
   email         String?    @unique @db.VarChar(255)
   phone         String     @unique @db.VarChar(20)
   passwordHash  String     @db.VarChar(255)
+  // Secure URL of the user's profile picture, hosted on Cloudinary (or
+  // whichever storage the cloudinary.helper resolves to). Kept on User
+  // rather than role-specific profiles so customers/admins can also have
+  // avatars without schema churn.
+  avatarUrl     String?    @db.VarChar(1000)
   status        UserStatus @default(ACTIVE)
   phoneVerified Boolean    @default(false)
   emailVerified Boolean    @default(false)

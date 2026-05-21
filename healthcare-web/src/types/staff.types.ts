@@ -18,6 +18,7 @@ export interface StaffProfile {
     fullName: string;
     phone: string;
     email: string | null;
+    avatarUrl?: string | null;
   };
 }
 
