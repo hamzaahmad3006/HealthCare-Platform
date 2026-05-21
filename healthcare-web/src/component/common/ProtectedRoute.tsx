@@ -8,6 +8,16 @@ interface ProtectedRouteProps {
   children: ReactNode;
 }
 
+// Role-appropriate landing — used when an authenticated user hits a route their
+// role can't access (e.g. STAFF hitting a legacy /admin/visits bookmark after
+// the URL split). Going to "/" would dump them on the public landing page,
+// which feels broken; better to send them to the screen they DO own.
+function homeForRole(role: Role): string {
+  if (role === 'ADMIN') return '/admin';
+  if (role === 'STAFF') return '/staff/visits';
+  return '/my-bookings';
+}
+
 // AuthBootstrap (mounted in App.tsx) runs the silent refresh once before any
 // route renders and gates the first paint behind PageSpinner. By the time this
 // component sees the store, isInitialized is already true — so we just check
@@ -21,7 +31,7 @@ export function ProtectedRoute({ roles, children }: ProtectedRouteProps): JSX.El
   }
 
   if (roles && !roles.includes(user.role)) {
-    return <Navigate to="/" replace />;
+    return <Navigate to={homeForRole(user.role)} replace />;
   }
 
   return <>{children}</>;

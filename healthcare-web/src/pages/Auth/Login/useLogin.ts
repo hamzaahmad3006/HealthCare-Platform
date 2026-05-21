@@ -59,12 +59,12 @@ export function useLogin(): UseLoginReturn {
       const from = (location.state as { from?: string } | null)?.from;
       const role = data.data.user.role;
       // Default landing per role. STAFF goes to /complete-profile which
-      // short-circuits to /admin/visits if the profile is already completed.
+      // short-circuits to /staff/visits if the profile is already completed.
       const defaultDestination =
         role === 'ADMIN' ? '/admin' : role === 'STAFF' ? '/complete-profile' : '/my-bookings';
 
       // Only honor `from` if it points to a route this role can actually use.
-      // STAFF can only reach /complete-profile and /admin/visits — every other
+      // STAFF can only reach /complete-profile and /staff/visits — every
       // /admin/* path is admin-only and would bounce them to "/" via
       // ProtectedRoute's role-mismatch redirect, stranding them on landing.
       const canRoleUsePath = (path: string): boolean => {
@@ -73,7 +73,7 @@ export function useLogin(): UseLoginReturn {
           return path.startsWith('/my-bookings') || path.startsWith('/book');
         }
         if (role === 'STAFF') {
-          return path === '/complete-profile' || path === '/admin/visits';
+          return path === '/complete-profile' || path.startsWith('/staff');
         }
         // ADMIN
         return path.startsWith('/admin');

@@ -1,5 +1,5 @@
 import { lazy, Suspense } from 'react';
-import type { RouteObject } from 'react-router-dom';
+import { Navigate, type RouteObject } from 'react-router-dom';
 import { ProtectedRoute } from '../../component/common/ProtectedRoute';
 import { StaffVerificationGate } from '../../component/common/StaffVerificationGate';
 import { PageSpinner } from '../../component/common/LoadingSpinner';
@@ -25,9 +25,9 @@ const adminGate = (element: JSX.Element): JSX.Element => (
   </Suspense>
 );
 
-const staffOrAdminGate = (element: JSX.Element): JSX.Element => (
+const staffGate = (element: JSX.Element): JSX.Element => (
   <Suspense fallback={<PageSpinner />}>
-    <ProtectedRoute roles={['ADMIN', 'STAFF']}>{element}</ProtectedRoute>
+    <ProtectedRoute roles={['STAFF']}>{element}</ProtectedRoute>
   </Suspense>
 );
 
@@ -37,7 +37,16 @@ export const dashboardRoutes: RouteObject[] = [
   { path: '/admin/bookings/:id', element: adminGate(<AdminBookingDetail />) },
   { path: '/admin/staff', element: adminGate(<Staff />) },
   { path: '/admin/staff/:userId', element: adminGate(<StaffDetail />) },
-  { path: '/admin/visits', element: staffOrAdminGate(<StaffVerificationGate><Visits /></StaffVerificationGate>) },
+  { path: '/admin/visits', element: adminGate(<Visits />) },
   { path: '/admin/reports', element: adminGate(<Reports />) },
   { path: '/admin/reviews', element: adminGate(<Reviews />) },
+
+  // STAFF portal — same Visits component, but URL reflects the role so a
+  // staff user never sees `/admin/...` in their address bar. Verification
+  // gate sits in front so unverified staff get the onboarding screen.
+  { path: '/staff/visits', element: staffGate(<StaffVerificationGate><Visits /></StaffVerificationGate>) },
+
+  // Legacy redirect for any old bookmark / link that pointed staff at the
+  // admin URL. ADMIN keeps the route above; STAFF gets bounced here.
+  { path: '/staff', element: <Navigate to="/staff/visits" replace /> },
 ];

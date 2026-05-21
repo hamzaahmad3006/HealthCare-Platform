@@ -34,7 +34,7 @@ const ADMIN_NAV_ITEMS = [
 ];
 
 const STAFF_NAV_ITEMS = [
-  { to: '/admin/visits', label: 'My Visits', icon: Activity },
+  { to: '/staff/visits', label: 'My Visits', icon: Activity },
 ];
 
 export function SidebarLayout({ children, title, description, actions }: SidebarLayoutProps): JSX.Element {

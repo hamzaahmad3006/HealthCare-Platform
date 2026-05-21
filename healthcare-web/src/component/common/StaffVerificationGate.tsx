@@ -6,7 +6,7 @@ import { SidebarLayout } from '../admin/SidebarLayout';
 // Sits between ProtectedRoute and the staff dashboard. ADMIN passes through
 // untouched. STAFF with verificationStatus === 'VERIFIED' also passes through.
 // Otherwise we show a non-redirecting status screen so the user never gets
-// trapped in a /complete-profile <-> /admin/visits loop.
+// trapped in a /complete-profile <-> /staff/visits loop.
 export function StaffVerificationGate({ children }: { children: ReactNode }): JSX.Element {
   const user = useAppSelector((s) => s.auth.user);
 
