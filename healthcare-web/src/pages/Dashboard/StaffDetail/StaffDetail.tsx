@@ -1,5 +1,4 @@
-import { useRef, useState } from 'react';
-import { ArrowLeft, BadgeCheck, Phone, Mail, MapPin, FileText, Upload, ToggleLeft, ToggleRight, Check, X, Loader2 } from 'lucide-react';
+import { ArrowLeft, BadgeCheck, Phone, Mail, MapPin, FileText, ToggleLeft, ToggleRight, Check, X, Loader2 } from 'lucide-react';
 import { SidebarLayout } from '../../../component/admin/SidebarLayout';
 import { StatusBadge } from '../../../component/common/StatusBadge';
 import { LoadingSpinner } from '../../../component/common/LoadingSpinner';
@@ -10,12 +9,8 @@ import { Badge } from '../../../constant/Badge';
 import { formatDate } from '../../../helper/format';
 import { useStaffDetail } from './useStaffDetail';
 
-const DOC_TYPES = ['CNIC', 'DEGREE', 'LICENSE', 'EXPERIENCE_LETTER', 'OTHER'] as const;
-
 export function StaffDetail(): JSX.Element {
   const d = useStaffDetail();
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  const [selectedDocType, setSelectedDocType] = useState<string>(DOC_TYPES[0]);
 
   if (d.isLoading || !d.staff) {
     return (
@@ -26,16 +21,6 @@ export function StaffDetail(): JSX.Element {
   }
 
   const s = d.staff;
-
-  const handleFilePick = (): void => fileInputRef.current?.click();
-
-  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>): Promise<void> => {
-    const file = e.target.files?.[0];
-    if (file) {
-      await d.uploadDocument(file, selectedDocType);
-      e.target.value = '';
-    }
-  };
 
   return (
     <SidebarLayout
@@ -136,47 +121,21 @@ export function StaffDetail(): JSX.Element {
             </div>
           </Card>
 
-          {/* Documents */}
+          {/* Documents — read-only review surface. Upload lives in the staff
+              portal at /staff/documents so the audit trail records the staff
+              as the uploader. Admin only Verifies or Rejects what's here. */}
           <Card padding="md">
-            <div className="flex items-center justify-between mb-4 gap-3 flex-wrap">
-              <div>
-                <h3 className="text-sm font-semibold text-ink-800">Documents</h3>
-                <p className="text-xs text-ink-500 mt-0.5">CNIC, degree, license, experience letter</p>
-              </div>
-              <div className="flex items-center gap-2">
-                <select
-                  value={selectedDocType}
-                  onChange={(e) => setSelectedDocType(e.target.value)}
-                  className="px-3 py-2 text-sm rounded-lg ring-1 ring-ink-200 outline-none focus:ring-brand-500 bg-white"
-                >
-                  {DOC_TYPES.map((t) => (
-                    <option key={t} value={t}>
-                      {t.replace(/_/g, ' ')}
-                    </option>
-                  ))}
-                </select>
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  accept="application/pdf,image/jpeg,image/png"
-                  onChange={handleFileChange}
-                  className="hidden"
-                />
-                <Button
-                  size="sm"
-                  onClick={handleFilePick}
-                  isLoading={d.isUploading}
-                  leftIcon={<Upload className="h-3.5 w-3.5" />}
-                >
-                  Upload
-                </Button>
-              </div>
+            <div className="mb-4">
+              <h3 className="text-sm font-semibold text-ink-800">Documents</h3>
+              <p className="text-xs text-ink-500 mt-0.5">
+                Review each document submitted by the staff and mark it Verified or Rejected.
+              </p>
             </div>
             {d.documents.length === 0 ? (
               <EmptyState
                 icon={<FileText className="h-6 w-6" />}
-                title="No documents uploaded"
-                description="Upload CNIC, degree, and license to complete verification."
+                title="No documents uploaded yet"
+                description="The staff hasn't uploaded any documents. Ask them to do so from their portal."
               />
             ) : (
               <ul className="space-y-2">
