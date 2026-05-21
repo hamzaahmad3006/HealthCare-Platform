@@ -152,13 +152,16 @@ export function Visits(): JSX.Element {
               className="px-3 py-2 text-sm rounded-xl border border-ink-200 focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 outline-none bg-white"
             />
             <button
-              onClick={() => v.setDateFilter('')}
-              disabled={!v.dateFilter}
-              title="Show visits on every date"
+              onClick={() => {
+                v.setDateFilter('');
+                v.setStatusFilter('ALL');
+              }}
+              disabled={!v.dateFilter && v.statusFilter === 'ALL'}
+              title="Show every visit on every date"
               className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-semibold rounded-xl bg-white ring-1 ring-ink-200 text-ink-700 hover:bg-ink-50 disabled:opacity-40 disabled:cursor-not-allowed"
             >
               <CalendarX className="h-3.5 w-3.5" />
-              All dates
+              Show all
             </button>
           </div>
         </div>
