@@ -18,6 +18,16 @@ export default defineConfig({
   server: {
     port: 5173,
     host: true,
+    // Same-origin proxy so the browser sees /api/* as requests to localhost:5173,
+    // not cross-site requests to localhost:3000. Keeps auth cookies first-party
+    // across tabs/refreshes — Chrome's cookie partitioning otherwise drops the
+    // refresh_token cookie on cross-site contexts in new tabs.
+    proxy: {
+      '/api': {
+        target: 'http://localhost:3000',
+        changeOrigin: true,
+      },
+    },
   },
   build: {
     sourcemap: false,
