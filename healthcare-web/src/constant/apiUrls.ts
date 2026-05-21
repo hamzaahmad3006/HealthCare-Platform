@@ -27,6 +27,7 @@ export const API = {
     DOCS: (id: string): string => `/staff/${id}/documents`,
     DOC_PRESIGN: (id: string): string => `/staff/${id}/documents/presign`,
     DOC_CONFIRM: (id: string): string => `/staff/${id}/documents/confirm`,
+    DOC_REVIEW: (id: string, docId: string): string => `/staff/${id}/documents/${docId}`,
     SERVICES: (id: string): string => `/staff/${id}/services`,
     SERVICE_REMOVE: (id: string, svcId: string): string => `/staff/${id}/services/${svcId}`,
   },

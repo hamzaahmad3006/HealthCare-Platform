@@ -390,6 +390,34 @@ export const staffController = {
     } catch (err) { next(err); }
   },
 
+  // Admin reviews a single uploaded document and marks it Verified or
+  // Rejected. Staff-level verification (StaffProfile.verificationStatus)
+  // remains a separate decision — admin uses /staff/:userId/verify for that.
+  async reviewDocument(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      if (!req.user) throw new UnauthorizedError('UNAUTHENTICATED');
+
+      const { userId, docId } = req.params as { userId: string; docId: string };
+      const { decision } = z
+        .object({ decision: z.enum(['VERIFIED', 'REJECTED']) })
+        .parse(req.body);
+
+      const doc = await prisma.staffDocument.findUnique({ where: { id: docId } });
+      if (!doc || doc.staffUserId !== userId) throw new NotFoundError('DOCUMENT_NOT_FOUND');
+
+      const updated = await prisma.staffDocument.update({
+        where: { id: docId },
+        data: {
+          verificationStatus: decision,
+          verifiedAt: new Date(),
+          verifiedByUserId: req.user.sub,
+        },
+      });
+
+      success(res, { ...updated, fileSizeBytes: updated.fileSizeBytes.toString() });
+    } catch (err) { next(err); }
+  },
+
   async addServiceType(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const userId = pickParam(req, 'userId')!;

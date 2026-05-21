@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react';
-import { ArrowLeft, BadgeCheck, Phone, Mail, MapPin, FileText, Upload, ToggleLeft, ToggleRight } from 'lucide-react';
+import { ArrowLeft, BadgeCheck, Phone, Mail, MapPin, FileText, Upload, ToggleLeft, ToggleRight, Check, X, Loader2 } from 'lucide-react';
 import { SidebarLayout } from '../../../component/admin/SidebarLayout';
 import { StatusBadge } from '../../../component/common/StatusBadge';
 import { LoadingSpinner } from '../../../component/common/LoadingSpinner';
@@ -208,6 +208,28 @@ export function StaffDetail(): JSX.Element {
                       >
                         View
                       </a>
+                      {doc.verificationStatus !== 'VERIFIED' ? (
+                        <button
+                          onClick={() => void d.reviewDocument(doc.id, 'VERIFIED')}
+                          disabled={d.reviewingDocId === doc.id}
+                          title="Mark this document as verified"
+                          className="inline-flex items-center gap-1 px-2.5 py-1 text-2xs font-semibold rounded-lg bg-success-50 text-success-700 ring-1 ring-success-500/20 hover:bg-success-500/10 disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                          {d.reviewingDocId === doc.id ? <Loader2 className="h-3 w-3 animate-spin" /> : <Check className="h-3 w-3" />}
+                          Verify
+                        </button>
+                      ) : null}
+                      {doc.verificationStatus !== 'REJECTED' ? (
+                        <button
+                          onClick={() => void d.reviewDocument(doc.id, 'REJECTED')}
+                          disabled={d.reviewingDocId === doc.id}
+                          title="Mark this document as rejected"
+                          className="inline-flex items-center gap-1 px-2.5 py-1 text-2xs font-semibold rounded-lg bg-danger-50 text-danger-700 ring-1 ring-danger-500/20 hover:bg-danger-500/10 disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                          {d.reviewingDocId === doc.id ? <Loader2 className="h-3 w-3 animate-spin" /> : <X className="h-3 w-3" />}
+                          Reject
+                        </button>
+                      ) : null}
                     </div>
                   </li>
                 ))}

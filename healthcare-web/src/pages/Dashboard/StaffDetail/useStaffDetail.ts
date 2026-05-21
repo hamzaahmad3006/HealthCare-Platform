@@ -32,6 +32,9 @@ interface UseStaffDetailReturn {
   isUploading: boolean;
   uploadDocument: (file: File, documentType: string) => Promise<void>;
 
+  reviewingDocId: string | null;
+  reviewDocument: (docId: string, decision: 'VERIFIED' | 'REJECTED') => Promise<void>;
+
   goBack: () => void;
 }
 
@@ -46,6 +49,7 @@ export function useStaffDetail(): UseStaffDetailReturn {
   const [isVerifying, setIsVerifying] = useState(false);
   const [isTogglingAvailability, setIsTogglingAvailability] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
+  const [reviewingDocId, setReviewingDocId] = useState<string | null>(null);
 
   useEffect(() => {
     if (!userId) return;
@@ -170,6 +174,23 @@ export function useStaffDetail(): UseStaffDetailReturn {
     [userId],
   );
 
+  const reviewDocument = useCallback(
+    async (docId: string, decision: 'VERIFIED' | 'REJECTED'): Promise<void> => {
+      if (!userId) return;
+      setReviewingDocId(docId);
+      try {
+        await api.patch(API.STAFF.DOC_REVIEW(userId, docId), { decision });
+        toast.success(decision === 'VERIFIED' ? 'Document verified' : 'Document rejected');
+        setReloadFlag((f) => f + 1);
+      } catch (err) {
+        toast.error(extractApiError(err).message);
+      } finally {
+        setReviewingDocId(null);
+      }
+    },
+    [userId],
+  );
+
   return {
     staff,
     documents,
@@ -181,6 +202,8 @@ export function useStaffDetail(): UseStaffDetailReturn {
     handleToggleAvailability,
     isUploading,
     uploadDocument,
+    reviewingDocId,
+    reviewDocument,
     goBack: () => navigate('/admin/staff'),
   };
 }
