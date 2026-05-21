@@ -66,8 +66,14 @@ export function useVisits(): UseVisitsReturn {
         const params = new URLSearchParams({ page: String(page), limit: '50' });
         if (statusFilter !== 'ALL') params.set('status', statusFilter);
         if (dateFilter) {
-          params.set('fromDate', `${dateFilter}T00:00:00Z`);
-          params.set('toDate', `${dateFilter}T23:59:59Z`);
+          // Build the day's window in the user's LOCAL timezone, then send as
+          // UTC ISO. Hard-coding `${dateFilter}T00:00:00Z` would slice the day
+          // at UTC midnight (5 AM PKT) and miss early-morning visits while
+          // accidentally including the next day's late-night ones.
+          const start = new Date(`${dateFilter}T00:00:00`);
+          const end = new Date(`${dateFilter}T23:59:59.999`);
+          params.set('fromDate', start.toISOString());
+          params.set('toDate', end.toISOString());
         }
         const { data } = await api.get<{
           success: true;
