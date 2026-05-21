@@ -55,10 +55,12 @@ export function useStaffDocuments(): UseStaffDocumentsReturn {
     };
   }, [userId, reloadFlag]);
 
-  // Mirrors the admin upload flow in useStaffDetail.uploadDocument: presign on
-  // our API, PUT directly to the storage provider's signed URL (no auth header
-  // — the signature carries the permission), then POST /confirm so the server
-  // records the StaffDocument row.
+  // Flow: presign on our API → multipart POST to Cloudinary with the signed
+  // form fields → POST /confirm so the server records the StaffDocument row.
+  //
+  // Important: Cloudinary's API expects multipart/form-data (file + signed
+  // params), NOT a raw PUT like S3. Using PUT triggers a CORS preflight that
+  // fails, surfacing as a generic "Network Error" in the browser.
   const uploadDocument = useCallback(
     async (file: File, documentType: string): Promise<void> => {
       if (!userId) return;
@@ -66,17 +68,43 @@ export function useStaffDocuments(): UseStaffDocumentsReturn {
       try {
         const presignRes = await api.post<{
           success: true;
-          data: { uploadUrl: string; fileKey: string; expiresIn: number };
+          data: {
+            uploadUrl: string;
+            fileKey: string;
+            expiresIn: number;
+            uploadParams: {
+              api_key: string;
+              timestamp: number;
+              signature: string;
+              public_id: string;
+              folder: string;
+              resource_type: string;
+            };
+          };
         }>(API.STAFF.DOC_PRESIGN(userId), {
           documentType,
           mimeType: file.type,
           fileSizeBytes: file.size,
         });
-        const { uploadUrl, fileKey } = presignRes.data.data;
+        const { uploadUrl, fileKey, uploadParams } = presignRes.data.data;
 
-        await axios.put(uploadUrl, file, { headers: { 'Content-Type': file.type } });
+        const formData = new FormData();
+        formData.append('file', file);
+        formData.append('api_key', uploadParams.api_key);
+        formData.append('timestamp', String(uploadParams.timestamp));
+        formData.append('signature', uploadParams.signature);
+        formData.append('public_id', uploadParams.public_id);
+        formData.append('folder', uploadParams.folder);
+        // resource_type belongs in the URL path, NOT the form body —
+        // Cloudinary's signature was computed without it, adding it here
+        // would invalidate the check.
 
-        const fileUrl = uploadUrl.split('?')[0] ?? '';
+        const uploadRes = await axios.post<{ secure_url: string; public_id: string }>(
+          uploadUrl,
+          formData,
+        );
+        const fileUrl = uploadRes.data.secure_url;
+
         await api.post(API.STAFF.DOC_CONFIRM(userId), {
           documentType,
           fileKey,
