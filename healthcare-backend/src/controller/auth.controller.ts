@@ -284,12 +284,21 @@ export const authController = {
         session_id: sessionId,
       });
 
+      // Heal legacy cookies set at the old narrow path on prior deploys —
+      // otherwise they coexist with the new root-path cookie and the server
+      // picks the stale (revoked) one on the next request.
+      res.clearCookie('refresh_token', { path: '/api/v1/auth' });
+
+      // Must match login's cookie attributes EXACTLY (path + sameSite). If they
+      // diverge, the browser keeps the old cookie at the old path and stores
+      // the new one separately — next request sends both, server picks the
+      // revoked one, user gets logged out on refresh.
       res.cookie('refresh_token', newRawToken, {
         httpOnly: true,
         secure: env.NODE_ENV === 'production',
-        sameSite: 'strict',
+        sameSite: 'lax',
         maxAge: env.JWT_REFRESH_TTL * 1000,
-        path: '/api/v1/auth',
+        path: '/',
       });
 
       success(res, { accessToken, expiresIn: env.JWT_ACCESS_TTL });
