@@ -3,10 +3,20 @@ import toast from 'react-hot-toast';
 import { api, extractApiError } from '../../../helper/axios';
 import { API } from '../../../constant/apiUrls';
 import type { BookingVisit, VisitStatus } from '../../../types/booking.types';
+import type { ReportType } from '../../../types/report.types';
 import type { PaginationMeta } from '../../../types/api.types';
 
+export interface UploadReportPayload {
+  title: string;
+  reportType: ReportType;
+  file: File;
+  bookingId: string;
+  bookingVisitId: string;
+  patientId: string;
+}
+
 interface VisitRow extends BookingVisit {
-  booking?: { bookingNumber: string; customerUserId: string };
+  booking?: { bookingNumber: string; customerUserId: string; patientId: string };
 }
 
 export interface CheckInPayload {
@@ -34,6 +44,8 @@ interface UseVisitsReturn {
   handleCheckIn: (visitId: string, payload: CheckInPayload) => Promise<boolean>;
   handleCheckOut: (visitId: string, payload: CheckOutPayload) => Promise<boolean>;
   handleComplete: (visitId: string) => Promise<void>;
+  handleUploadReport: (payload: UploadReportPayload) => Promise<boolean>;
+  isUploadingReport: boolean;
 }
 
 async function getCoords(): Promise<{ lat: number; lng: number } | null> {
@@ -57,6 +69,7 @@ export function useVisits(): UseVisitsReturn {
   const [page, setPage] = useState(1);
   const [reloadFlag, setReloadFlag] = useState(0);
   const [actionLoadingId, setActionLoadingId] = useState<string | null>(null);
+  const [isUploadingReport, setIsUploadingReport] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -179,6 +192,77 @@ export function useVisits(): UseVisitsReturn {
     [reload],
   );
 
+  const handleUploadReport = useCallback(
+    async (payload: UploadReportPayload): Promise<boolean> => {
+      setIsUploadingReport(true);
+      try {
+        // 1 — create the report record
+        const createRes = await api.post<{ success: true; data: { id: string } }>(
+          API.REPORTS.LIST,
+          {
+            bookingId: payload.bookingId,
+            bookingVisitId: payload.bookingVisitId,
+            patientId: payload.patientId,
+            reportType: payload.reportType,
+            title: payload.title,
+            isVisibleToCustomer: true,
+          },
+        );
+        const reportId = createRes.data.data.id;
+
+        // 2 — get Cloudinary presigned URL
+        const presignRes = await api.post<{
+          success: true;
+          data: {
+            uploadUrl: string;
+            fileKey: string;
+            uploadParams: {
+              api_key: string;
+              timestamp: number;
+              signature: string;
+              public_id: string;
+              folder: string;
+              resource_type: string;
+            };
+          };
+        }>(API.REPORTS.PRESIGN(reportId), {
+          mimeType: payload.file.type,
+          fileSizeBytes: payload.file.size,
+        });
+        const { uploadUrl, fileKey, uploadParams } = presignRes.data.data;
+
+        // 3 — upload directly to Cloudinary (multipart, same as staff docs)
+        const formData = new FormData();
+        formData.append('file', payload.file);
+        formData.append('api_key', uploadParams.api_key);
+        formData.append('timestamp', String(uploadParams.timestamp));
+        formData.append('signature', uploadParams.signature);
+        formData.append('public_id', uploadParams.public_id);
+        formData.append('folder', uploadParams.folder);
+        const uploadResp = await fetch(uploadUrl, { method: 'POST', body: formData });
+        if (!uploadResp.ok) throw new Error('File upload to storage failed');
+        const uploaded = (await uploadResp.json()) as { secure_url: string };
+
+        // 4 — confirm the upload
+        await api.post(API.REPORTS.CONFIRM(reportId), {
+          fileKey,
+          fileUrl: uploaded.secure_url,
+          mimeType: payload.file.type,
+          fileSizeBytes: payload.file.size,
+        });
+
+        toast.success('Report uploaded — customer can now view it.');
+        return true;
+      } catch (err) {
+        toast.error(extractApiError(err).message);
+        return false;
+      } finally {
+        setIsUploadingReport(false);
+      }
+    },
+    [],
+  );
+
   return {
     visits,
     meta,
@@ -201,5 +285,7 @@ export function useVisits(): UseVisitsReturn {
     handleCheckIn,
     handleCheckOut,
     handleComplete,
+    handleUploadReport,
+    isUploadingReport,
   };
 }

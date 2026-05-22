@@ -54,7 +54,7 @@ export const visitController = {
       const [visits, total] = await prisma.$transaction([
         prisma.bookingVisit.findMany({
           where,
-          include: { booking: { select: { bookingNumber: true, customerUserId: true } } },
+          include: { booking: { select: { bookingNumber: true, customerUserId: true, patientId: true } } },
           orderBy: { scheduledStartAt: 'asc' },
           skip: (page - 1) * limit,
           take: limit,

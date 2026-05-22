@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { Calendar, Navigation, LogIn, LogOut, CheckCircle2, Loader2, X, CalendarX, FileText, ClipboardList } from 'lucide-react';
+import { useRef, useState } from 'react';
+import { Calendar, Navigation, LogIn, LogOut, CheckCircle2, Loader2, X, CalendarX, FileText, ClipboardList, Upload } from 'lucide-react';
 import { SidebarLayout } from '../../../component/admin/SidebarLayout';
 import { DataTable, type ColumnDef } from '../../../component/admin/DataTable';
 import { StatusBadge } from '../../../component/common/StatusBadge';
@@ -8,10 +8,12 @@ import { Pagination } from '../../../component/common/Pagination';
 import { Card } from '../../../constant/Card';
 import { formatDateTime, formatTime } from '../../../helper/format';
 import { useVisits } from './useVisits';
+import type { UploadReportPayload } from './useVisits';
 import type { BookingVisit, VisitStatus } from '../../../types/booking.types';
+import type { ReportType } from '../../../types/report.types';
 
 interface VisitRow extends BookingVisit {
-  booking?: { bookingNumber: string };
+  booking?: { bookingNumber: string; customerUserId: string; patientId: string };
 }
 
 const STATUS_OPTIONS: { id: VisitStatus | 'ALL'; label: string }[] = [
@@ -31,6 +33,12 @@ interface ActionModalState {
   visitId: string;
 }
 
+interface UploadModalState {
+  visitId: string;
+  bookingId: string;
+  patientId: string;
+}
+
 function hasAnyNotes(row: BookingVisit): boolean {
   return Boolean(
     row.beforeConditionText || row.afterConditionText || row.visitNotes || row.checkInAt,
@@ -41,6 +49,7 @@ export function Visits(): JSX.Element {
   const v = useVisits();
   const [modal, setModal] = useState<ActionModalState | null>(null);
   const [detailsVisit, setDetailsVisit] = useState<VisitRow | null>(null);
+  const [uploadModal, setUploadModal] = useState<UploadModalState | null>(null);
 
   const columns: ColumnDef<VisitRow>[] = [
     {
@@ -142,6 +151,25 @@ export function Visits(): JSX.Element {
               label="Details"
               busy={false}
               onClick={() => setDetailsVisit(row)}
+            />,
+          );
+        }
+
+        if (row.status === 'COMPLETED' && row.booking?.patientId) {
+          buttons.push(
+            <ActionButton
+              key="upload"
+              icon={<Upload className="h-3.5 w-3.5" />}
+              label="Upload Report"
+              variant="primary"
+              busy={false}
+              onClick={() =>
+                setUploadModal({
+                  visitId: row.id,
+                  bookingId: row.bookingId,
+                  patientId: row.booking!.patientId,
+                })
+              }
             />,
           );
         }
@@ -249,6 +277,22 @@ export function Visits(): JSX.Element {
       {detailsVisit ? (
         <DetailsModal visit={detailsVisit} onClose={() => setDetailsVisit(null)} />
       ) : null}
+
+      {uploadModal ? (
+        <UploadReportModal
+          busy={v.isUploadingReport}
+          onClose={() => setUploadModal(null)}
+          onSubmit={async (form) => {
+            const ok = await v.handleUploadReport({
+              ...form,
+              bookingId: uploadModal.bookingId,
+              bookingVisitId: uploadModal.visitId,
+              patientId: uploadModal.patientId,
+            });
+            if (ok) setUploadModal(null);
+          }}
+        />
+      ) : null}
     </SidebarLayout>
   );
 }
@@ -340,6 +384,151 @@ function NoteBlock({ label, value }: { label: string; value: string | null }): J
       ) : (
         <p className="text-sm text-ink-400 italic">Not recorded</p>
       )}
+    </div>
+  );
+}
+
+// ── Internal: upload report modal ───────────────────────────────────────────
+const REPORT_TYPES: { id: ReportType; label: string }[] = [
+  { id: 'VISIT_NOTE', label: 'Visit Note' },
+  { id: 'LAB_RESULT', label: 'Lab Result' },
+  { id: 'PRESCRIPTION', label: 'Prescription' },
+  { id: 'PROGRESS_IMAGE', label: 'Progress Image' },
+  { id: 'OTHER', label: 'Other' },
+];
+
+const MAX_FILE_BYTES = 10 * 1024 * 1024;
+const ALLOWED_MIME = ['application/pdf', 'image/jpeg', 'image/png'];
+
+interface UploadReportModalProps {
+  busy: boolean;
+  onClose: () => void;
+  onSubmit: (form: { title: string; reportType: ReportType; file: File }) => Promise<void>;
+}
+
+function UploadReportModal({ busy, onClose, onSubmit }: UploadReportModalProps): JSX.Element {
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [title, setTitle] = useState('');
+  const [reportType, setReportType] = useState<ReportType>('VISIT_NOTE');
+  const [file, setFile] = useState<File | null>(null);
+  const [fileError, setFileError] = useState('');
+
+  const handleFilePick = (): void => fileInputRef.current?.click();
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>): void => {
+    const f = e.target.files?.[0];
+    e.target.value = '';
+    if (!f) return;
+    if (!ALLOWED_MIME.includes(f.type)) {
+      setFileError('Only PDF, JPEG, or PNG accepted.');
+      return;
+    }
+    if (f.size > MAX_FILE_BYTES) {
+      setFileError('File is too large. Max 10 MB.');
+      return;
+    }
+    setFileError('');
+    setFile(f);
+  };
+
+  const canSubmit = title.trim().length > 0 && file !== null && !busy;
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-ink-900/40 backdrop-blur-sm p-4">
+      <div className="bg-white rounded-2xl shadow-xl ring-1 ring-ink-200 w-full max-w-md p-6 animate-slide-up">
+        <div className="flex items-start justify-between mb-5">
+          <div>
+            <h2 className="text-lg font-bold text-ink-900">Upload Report</h2>
+            <p className="text-xs text-ink-500 mt-0.5">PDF, JPEG, or PNG · up to 10 MB</p>
+          </div>
+          <button
+            onClick={onClose}
+            disabled={busy}
+            className="p-1.5 rounded-lg text-ink-500 hover:bg-ink-100 disabled:opacity-50"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+
+        <div className="space-y-4">
+          <div>
+            <label className="text-2xs font-semibold uppercase tracking-wider text-ink-500 block mb-1.5">
+              Report title <span className="text-danger-500">*</span>
+            </label>
+            <input
+              type="text"
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              placeholder="e.g. Blood Test Results — 22 May"
+              className="w-full px-3 py-2 text-sm rounded-xl border border-ink-200 focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 outline-none"
+            />
+          </div>
+
+          <div>
+            <label className="text-2xs font-semibold uppercase tracking-wider text-ink-500 block mb-1.5">
+              Report type
+            </label>
+            <select
+              value={reportType}
+              onChange={(e) => setReportType(e.target.value as ReportType)}
+              className="w-full px-3 py-2 text-sm rounded-xl border border-ink-200 focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 outline-none bg-white"
+            >
+              {REPORT_TYPES.map((t) => (
+                <option key={t.id} value={t.id}>{t.label}</option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <label className="text-2xs font-semibold uppercase tracking-wider text-ink-500 block mb-1.5">
+              File <span className="text-danger-500">*</span>
+            </label>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept=".pdf,.jpg,.jpeg,.png"
+              className="hidden"
+              onChange={handleFileChange}
+            />
+            <button
+              type="button"
+              onClick={handleFilePick}
+              className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-xl border-2 border-dashed border-ink-200 hover:border-brand-400 hover:bg-brand-50/40 transition-all text-sm font-medium text-ink-600 hover:text-brand-700"
+            >
+              <Upload className="h-4 w-4" />
+              {file ? file.name : 'Choose file'}
+            </button>
+            {fileError ? (
+              <p className="text-xs text-danger-600 mt-1">{fileError}</p>
+            ) : file ? (
+              <p className="text-xs text-success-600 mt-1">
+                {file.name} · {(file.size / 1024).toFixed(0)} KB
+              </p>
+            ) : null}
+          </div>
+        </div>
+
+        <div className="mt-6 flex items-center justify-end gap-2">
+          <button
+            onClick={onClose}
+            disabled={busy}
+            className="px-4 py-2 text-sm font-semibold text-ink-700 rounded-xl hover:bg-ink-100 disabled:opacity-50"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={() => {
+              if (!canSubmit || !file) return;
+              void onSubmit({ title: title.trim(), reportType, file });
+            }}
+            disabled={!canSubmit}
+            className="inline-flex items-center gap-2 px-4 py-2 text-sm font-semibold text-white bg-brand-600 rounded-xl hover:bg-brand-700 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
+            Upload
+          </button>
+        </div>
+      </div>
     </div>
   );
 }
