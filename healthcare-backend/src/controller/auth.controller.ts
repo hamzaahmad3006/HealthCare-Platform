@@ -439,7 +439,10 @@ export const authController = {
     try {
       const { phone, otp, newPassword } = ResetPasswordSchema.parse(req.body);
 
-      const user = await prisma.user.findUnique({ where: { phone } });
+      const user = await prisma.user.findUnique({
+        where: { phone },
+        include: { staffProfile: { select: { verificationStatus: true, profileCompletedAt: true } } },
+      });
       if (!user || user.deletedAt) {
         throw new AppError(400, 'INVALID_OTP', 'Invalid or expired reset code');
       }
@@ -497,8 +500,8 @@ export const authController = {
           phone: user.phone,
           email: user.email,
           avatarUrl: user.avatarUrl,
-          staffVerificationStatus: null,
-          staffProfileCompletedAt: null,
+          staffVerificationStatus: user.staffProfile?.verificationStatus ?? null,
+          staffProfileCompletedAt: user.staffProfile?.profileCompletedAt ?? null,
         },
       });
     } catch (err) {
