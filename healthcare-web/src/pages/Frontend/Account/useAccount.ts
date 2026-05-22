@@ -10,11 +10,6 @@ import { setAuth } from '../../../redux/slices/authSlice';
 
 const ProfileSchema = z.object({
   fullName: z.string().min(2, 'Name must be at least 2 characters').max(150),
-  email: z
-    .string()
-    .email('Enter a valid email')
-    .optional()
-    .or(z.literal('').transform(() => undefined)),
 });
 
 const ChangePasswordSchema = z
@@ -53,10 +48,7 @@ export function useAccount() {
 
   const profileForm = useForm<ProfileFormValues>({
     resolver: zodResolver(ProfileSchema),
-    defaultValues: {
-      fullName: user?.fullName ?? '',
-      email: user?.email ?? '',
-    },
+    defaultValues: { fullName: user?.fullName ?? '' },
     mode: 'onBlur',
   });
 
@@ -72,7 +64,7 @@ export function useAccount() {
     try {
       const { data } = await api.patch<{ success: true; data: UpdateMeResponse }>(
         API.USERS.ME,
-        { fullName: values.fullName, email: values.email ?? null },
+        { fullName: values.fullName },
       );
       if (user && accessToken) {
         dispatch(setAuth({

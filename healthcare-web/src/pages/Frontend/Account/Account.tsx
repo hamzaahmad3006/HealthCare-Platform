@@ -43,14 +43,15 @@ export function Account(): JSX.Element {
               {...regProfile('fullName')}
             />
 
-            <Input
-              label="Email address"
-              type="email"
-              placeholder="optional"
-              leftIcon={<Mail className="h-4 w-4" />}
-              error={pfState.errors.email?.message}
-              {...regProfile('email')}
-            />
+            {/* Email — read-only, changing it needs email verification */}
+            <div className="flex flex-col gap-1.5">
+              <label className="text-sm font-medium text-ink-700">Email address</label>
+              <div className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-ink-200 bg-ink-50 text-sm text-ink-500">
+                <Mail className="h-4 w-4 text-ink-400 flex-shrink-0" />
+                <span>{a.user?.email ?? '—'}</span>
+                <span className="ml-auto text-xs text-ink-400">Cannot be changed</span>
+              </div>
+            </div>
 
             {/* Phone — read-only, changing it needs OTP verification */}
             <div className="flex flex-col gap-1.5">
