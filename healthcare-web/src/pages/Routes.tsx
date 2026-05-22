@@ -24,6 +24,9 @@ const CompleteProfile = lazy(() =>
 const Account = lazy(() =>
   import('./Frontend/Account/Account').then((m) => ({ default: m.Account })),
 );
+const MyReports = lazy(() =>
+  import('./Frontend/MyReports/MyReports').then((m) => ({ default: m.MyReports })),
+);
 
 export function AppRoutes(): JSX.Element {
   const { accessToken, user } = useAppSelector((s) => s.auth);
@@ -74,6 +77,10 @@ export function AppRoutes(): JSX.Element {
         <Route
           path="my-account"
           element={isAuthenticated ? <Account /> : <Navigate to="/auth/login" replace />}
+        />
+        <Route
+          path="my-reports"
+          element={isAuthenticated ? <MyReports /> : <Navigate to="/auth/login" replace />}
         />
 
         {/* Admin dashboard */}

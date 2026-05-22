@@ -27,4 +27,6 @@ export interface Report {
   isVisibleToCustomer: boolean;
   createdAt: string;
   files?: ReportFile[];
+  patient?: { fullName: string } | null;
+  booking?: { bookingNumber: string } | null;
 }

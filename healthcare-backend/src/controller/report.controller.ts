@@ -85,7 +85,11 @@ export const reportController = {
       const [reports, total] = await prisma.$transaction([
         prisma.report.findMany({
           where,
-          include: { files: true },
+          include: {
+            files: true,
+            patient: { select: { fullName: true } },
+            booking: { select: { bookingNumber: true } },
+          },
           orderBy: { createdAt: 'desc' },
           skip: (page - 1) * limit,
           take: limit,

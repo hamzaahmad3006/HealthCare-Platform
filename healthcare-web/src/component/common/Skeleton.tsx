@@ -46,6 +46,26 @@ export function BookingCardSkeleton(): JSX.Element {
   );
 }
 
+export function ReportCardSkeleton(): JSX.Element {
+  return (
+    <div className="bg-white rounded-2xl ring-1 ring-ink-100 shadow-card overflow-hidden">
+      <Skeleton className="h-36 w-full rounded-none" />
+      <div className="p-4 space-y-3">
+        <div className="flex items-start justify-between gap-2">
+          <Skeleton className="h-4 w-3/4" />
+          <Skeleton className="h-5 w-20 rounded-full" />
+        </div>
+        <Skeleton className="h-3 w-full" />
+        <Skeleton className="h-3 w-1/2" />
+        <div className="pt-2 border-t border-ink-100 flex gap-2">
+          <Skeleton className="h-8 flex-1 rounded-lg" />
+          <Skeleton className="h-8 flex-1 rounded-lg" />
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export function KpiCardSkeleton(): JSX.Element {
   return (
     <div className="bg-white rounded-2xl p-5 ring-1 ring-ink-100 shadow-card">

@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useSelector, useDispatch } from 'react-redux';
-import { Menu, X, LogOut, User as UserIcon, Calendar, Settings, ChevronDown } from 'lucide-react';
+import { Menu, X, LogOut, User as UserIcon, Calendar, Settings, ChevronDown, FileText } from 'lucide-react';
 import clsx from 'clsx';
 import { Button } from '../../constant/Button';
 import type { RootState } from '../../redux/store';
@@ -23,6 +23,7 @@ const PUBLIC_LINKS: NavLinkSpec[] = [
 
 const AUTH_LINKS: NavLinkSpec[] = [
   { to: '/my-bookings', label: 'My bookings' },
+  { to: '/my-reports', label: 'My reports' },
 ];
 
 interface TopNavProps {
@@ -155,6 +156,14 @@ export function TopNav({ variant = 'solid' }: TopNavProps): JSX.Element {
               {isLoggedIn ? (
                 <>
                   <Link
+                    to="/my-reports"
+                    onClick={() => setMobileOpen(false)}
+                    className="flex items-center gap-3 py-2 text-sm font-medium text-ink-700 hover:text-ink-900"
+                  >
+                    <FileText className="h-4 w-4 text-ink-400" />
+                    My reports
+                  </Link>
+                  <Link
                     to="/my-account"
                     onClick={() => setMobileOpen(false)}
                     className="flex items-center gap-3 py-2 text-sm font-medium text-ink-700 hover:text-ink-900"
@@ -220,6 +229,14 @@ function ProfileMenu({
 
       {open ? (
         <div className="absolute right-0 mt-1.5 w-48 bg-white rounded-2xl shadow-lg ring-1 ring-ink-100 py-1.5 z-50 animate-fade-in">
+          <Link
+            to="/my-reports"
+            onClick={() => setOpen(false)}
+            className="flex items-center gap-2.5 px-4 py-2.5 text-sm text-ink-700 hover:bg-ink-50 hover:text-ink-900 transition-colors"
+          >
+            <FileText className="h-4 w-4 text-ink-400" />
+            My reports
+          </Link>
           <Link
             to="/my-account"
             onClick={() => setOpen(false)}
