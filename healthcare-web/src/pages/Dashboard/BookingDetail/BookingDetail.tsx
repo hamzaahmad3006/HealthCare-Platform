@@ -184,9 +184,26 @@ export function AdminBookingDetail(): JSX.Element {
                       ) : null}
                     </div>
                   </div>
-                  {v.visitNotes ? (
-                    <div className="mt-3 p-3 rounded-lg bg-ink-50 text-sm text-ink-700">
-                      <span className="font-medium text-ink-800">Notes:</span> {v.visitNotes}
+                  {(v.beforeConditionText || v.afterConditionText || v.visitNotes) ? (
+                    <div className="mt-3 space-y-2">
+                      {v.beforeConditionText ? (
+                        <div className="p-3 rounded-lg bg-ink-50 text-sm text-ink-700">
+                          <span className="font-medium text-ink-800">Condition on arrival: </span>
+                          {v.beforeConditionText}
+                        </div>
+                      ) : null}
+                      {v.afterConditionText ? (
+                        <div className="p-3 rounded-lg bg-ink-50 text-sm text-ink-700">
+                          <span className="font-medium text-ink-800">Condition on departure: </span>
+                          {v.afterConditionText}
+                        </div>
+                      ) : null}
+                      {v.visitNotes ? (
+                        <div className="p-3 rounded-lg bg-ink-50 text-sm text-ink-700">
+                          <span className="font-medium text-ink-800">Visit notes: </span>
+                          {v.visitNotes}
+                        </div>
+                      ) : null}
                     </div>
                   ) : null}
                 </li>
