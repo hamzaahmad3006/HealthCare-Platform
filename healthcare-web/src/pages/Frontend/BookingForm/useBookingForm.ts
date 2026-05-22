@@ -41,6 +41,10 @@ interface UseBookingFormReturn {
   selectAddress: (id: string) => void;
   addPatient: (p: Patient) => void;
   addAddress: (a: Address) => void;
+  updatePatient: (p: Patient) => void;
+  removePatient: (id: string) => void;
+  updateAddress: (a: Address) => void;
+  removeAddress: (id: string) => void;
 
   // Step 3
   requestedDate: string;
@@ -228,6 +232,24 @@ export function useBookingForm(): UseBookingFormReturn {
     setSelectedAddressId(a.id);
   }, []);
 
+  const updatePatient = useCallback((p: Patient) => {
+    setPatients((prev) => prev.map((x) => (x.id === p.id ? p : x)));
+  }, []);
+
+  const removePatient = useCallback((id: string) => {
+    setPatients((prev) => prev.filter((x) => x.id !== id));
+    setSelectedPatientId((prev) => (prev === id ? null : prev));
+  }, []);
+
+  const updateAddress = useCallback((a: Address) => {
+    setAddresses((prev) => prev.map((x) => (x.id === a.id ? a : x)));
+  }, []);
+
+  const removeAddress = useCallback((id: string) => {
+    setAddresses((prev) => prev.filter((x) => x.id !== id));
+    setSelectedAddressId((prev) => (prev === id ? null : prev));
+  }, []);
+
   // ── Submission ─────────────────────────────────────────────────────────────
   const submit = useCallback(async (): Promise<void> => {
     if (!selectedService || !selectedPackage || !selectedPatient || !selectedAddress) {
@@ -295,6 +317,10 @@ export function useBookingForm(): UseBookingFormReturn {
     selectAddress: setSelectedAddressId,
     addPatient,
     addAddress,
+    updatePatient,
+    removePatient,
+    updateAddress,
+    removeAddress,
     requestedDate,
     requestedTime,
     urgencyLevel,

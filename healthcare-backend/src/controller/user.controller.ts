@@ -138,8 +138,14 @@ export const userController = {
         throw new ForbiddenError('FORBIDDEN');
       }
 
-      const data = CreatePatientSchema.partial().parse(req.body);
-      const patient = await prisma.patient.update({ where: { id: pickParam(req, 'id') }, data });
+      const { dateOfBirth, ...rest } = CreatePatientSchema.partial().parse(req.body);
+      const patient = await prisma.patient.update({
+        where: { id: pickParam(req, 'id') },
+        data: {
+          ...rest,
+          ...(dateOfBirth !== undefined ? { dateOfBirth: new Date(dateOfBirth) } : {}),
+        },
+      });
       success(res, patient);
     } catch (err) { next(err); }
   },
@@ -186,6 +192,30 @@ export const userController = {
       const data = CreateAddressSchema.partial().parse(req.body);
       const address = await prisma.address.update({ where: { id: pickParam(req, 'id') }, data });
       success(res, address);
+    } catch (err) { next(err); }
+  },
+
+  async deletePatient(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      if (!req.user) throw new UnauthorizedError('UNAUTHENTICATED');
+
+      const existing = await prisma.patient.findUnique({ where: { id: pickParam(req, 'id') } });
+      if (!existing) throw new NotFoundError('PATIENT_NOT_FOUND');
+
+      if (req.user.role !== 'ADMIN' && existing.customerUserId !== req.user.sub) {
+        throw new ForbiddenError('FORBIDDEN');
+      }
+
+      const activeBooking = await prisma.booking.findFirst({
+        where: { patientId: pickParam(req, 'id'), status: { in: ['PENDING', 'CONFIRMED', 'ASSIGNED', 'IN_PROGRESS'] } },
+      });
+
+      if (activeBooking) {
+        throw new Error('PATIENT_HAS_ACTIVE_BOOKINGS');
+      }
+
+      await prisma.patient.delete({ where: { id: pickParam(req, 'id') } });
+      success(res, { message: 'Patient removed' });
     } catch (err) { next(err); }
   },
 

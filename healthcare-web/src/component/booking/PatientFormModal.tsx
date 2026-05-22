@@ -1,9 +1,9 @@
 import { Dialog, Transition } from '@headlessui/react';
-import { Fragment, useState } from 'react';
+import { Fragment, useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { X, UserPlus, Loader2 } from 'lucide-react';
+import { X, UserPlus, Pencil, Loader2 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { Button } from '../../constant/Button';
 import { Input } from '../../constant/Input';
@@ -27,14 +27,35 @@ interface PatientFormModalProps {
   open: boolean;
   onClose: () => void;
   onCreated: (patient: Patient) => void;
+  onUpdated?: (patient: Patient) => void;
+  initialData?: Patient;
 }
 
-export function PatientFormModal({ open, onClose, onCreated }: PatientFormModalProps): JSX.Element {
+export function PatientFormModal({ open, onClose, onCreated, onUpdated, initialData }: PatientFormModalProps): JSX.Element {
+  const isEdit = Boolean(initialData);
   const { register, handleSubmit, formState, reset } = useForm<PatientFormValues>({
     resolver: zodResolver(PatientFormSchema),
     defaultValues: { fullName: '', gender: '', dateOfBirth: '', relationshipToCustomer: '' },
   });
   const [submitting, setSubmitting] = useState(false);
+
+  useEffect(() => {
+    if (open && initialData) {
+      reset({
+        fullName: initialData.fullName ?? '',
+        gender: (initialData.gender as PatientFormValues['gender']) ?? '',
+        dateOfBirth: initialData.dateOfBirth
+          ? new Date(initialData.dateOfBirth).toISOString().slice(0, 10)
+          : '',
+        relationshipToCustomer: initialData.relationshipToCustomer ?? '',
+        primaryCondition: initialData.primaryCondition ?? '',
+        allergies: initialData.allergies ?? '',
+        notes: initialData.notes ?? '',
+      });
+    } else if (open && !initialData) {
+      reset({ fullName: '', gender: '', dateOfBirth: '', relationshipToCustomer: '' });
+    }
+  }, [open, initialData, reset]);
 
   const close = (): void => {
     reset();
@@ -54,9 +75,18 @@ export function PatientFormModal({ open, onClose, onCreated }: PatientFormModalP
       if (values.allergies?.trim()) payload['allergies'] = values.allergies.trim();
       if (values.notes?.trim()) payload['notes'] = values.notes.trim();
 
-      const { data } = await api.post<{ success: true; data: Patient }>(API.USERS.PATIENTS, payload);
-      toast.success(`${data.data.fullName} added`);
-      onCreated(data.data);
+      if (isEdit && initialData) {
+        const { data } = await api.patch<{ success: true; data: Patient }>(
+          API.USERS.PATIENT_BY_ID(initialData.id),
+          payload,
+        );
+        toast.success(`${data.data.fullName} updated`);
+        onUpdated?.(data.data);
+      } else {
+        const { data } = await api.post<{ success: true; data: Patient }>(API.USERS.PATIENTS, payload);
+        toast.success(`${data.data.fullName} added`);
+        onCreated(data.data);
+      }
       reset();
     } catch (err) {
       toast.error(extractApiError(err).message);
@@ -95,10 +125,12 @@ export function PatientFormModal({ open, onClose, onCreated }: PatientFormModalP
                 <div className="flex items-center justify-between px-6 py-4 border-b border-ink-100 bg-gradient-brand-soft">
                   <div className="flex items-center gap-3">
                     <div className="h-9 w-9 rounded-xl bg-gradient-brand text-white flex items-center justify-center">
-                      <UserPlus className="h-4 w-4" />
+                      {isEdit ? <Pencil className="h-4 w-4" /> : <UserPlus className="h-4 w-4" />}
                     </div>
                     <div>
-                      <Dialog.Title className="font-bold text-ink-900">Add a patient</Dialog.Title>
+                      <Dialog.Title className="font-bold text-ink-900">
+                        {isEdit ? 'Edit patient' : 'Add a patient'}
+                      </Dialog.Title>
                       <p className="text-xs text-ink-600">
                         The person who&apos;ll receive care (yourself or a family member)
                       </p>
@@ -194,9 +226,9 @@ export function PatientFormModal({ open, onClose, onCreated }: PatientFormModalP
                   <Button
                     onClick={() => void handleSubmit(onSubmit)()}
                     isLoading={submitting}
-                    leftIcon={submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <UserPlus className="h-4 w-4" />}
+                    leftIcon={submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : isEdit ? <Pencil className="h-4 w-4" /> : <UserPlus className="h-4 w-4" />}
                   >
-                    Save patient
+                    {isEdit ? 'Save changes' : 'Save patient'}
                   </Button>
                 </div>
               </Dialog.Panel>

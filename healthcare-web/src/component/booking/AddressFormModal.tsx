@@ -3,7 +3,7 @@ import { Fragment, useEffect, useMemo, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { X, MapPinned, Loader2 } from 'lucide-react';
+import { X, MapPinned, Pencil, Loader2 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { Button } from '../../constant/Button';
 import { Input } from '../../constant/Input';
@@ -30,17 +30,22 @@ interface AddressFormModalProps {
   open: boolean;
   onClose: () => void;
   onCreated: (address: Address) => void;
+  onUpdated?: (address: Address) => void;
   defaultContactPhone?: string;
   defaultContactName?: string;
+  initialData?: Address;
 }
 
 export function AddressFormModal({
   open,
   onClose,
   onCreated,
+  onUpdated,
   defaultContactPhone,
   defaultContactName,
+  initialData,
 }: AddressFormModalProps): JSX.Element {
+  const isEdit = Boolean(initialData);
   const { register, handleSubmit, formState, watch, setValue, reset } = useForm<AddressFormValues>({
     resolver: zodResolver(AddressFormSchema),
     defaultValues: {
@@ -88,10 +93,27 @@ export function AddressFormModal({
     };
   }, [open]);
 
+  // Pre-fill form in edit mode once cities are loaded
+  useEffect(() => {
+    if (open && initialData && !citiesLoading) {
+      reset({
+        label: initialData.label ?? '',
+        cityId: initialData.cityId ?? '',
+        zoneId: initialData.zoneId ?? '',
+        contactName: initialData.contactName ?? '',
+        contactPhone: initialData.contactPhone ?? '',
+        line1: initialData.line1 ?? '',
+        line2: initialData.line2 ?? '',
+        area: initialData.area ?? '',
+        postalCode: initialData.postalCode ?? '',
+      });
+    }
+  }, [open, initialData, citiesLoading, reset]);
+
   // Reset zone when city changes (zones are city-specific)
   useEffect(() => {
-    setValue('zoneId', '');
-  }, [selectedCityId, setValue]);
+    if (!initialData) setValue('zoneId', '');
+  }, [selectedCityId, setValue, initialData]);
 
   const close = (): void => {
     reset();
@@ -118,9 +140,21 @@ export function AddressFormModal({
         payload['longitude'] = location.lng;
       }
 
-      const { data } = await api.post<{ success: true; data: Address }>(API.USERS.ADDRESSES, payload);
-      toast.success('Address saved');
-      onCreated(data.data);
+      let result: Address;
+      if (isEdit && initialData) {
+        const { data } = await api.patch<{ success: true; data: Address }>(
+          API.USERS.ADDRESS_BY_ID(initialData.id),
+          payload,
+        );
+        result = data.data;
+        toast.success('Address updated');
+        onUpdated?.(result);
+      } else {
+        const { data } = await api.post<{ success: true; data: Address }>(API.USERS.ADDRESSES, payload);
+        result = data.data;
+        toast.success('Address saved');
+        onCreated(result);
+      }
       reset();
       setLocation(null);
     } catch (err) {
@@ -160,10 +194,12 @@ export function AddressFormModal({
                 <div className="flex items-center justify-between px-6 py-4 border-b border-ink-100 bg-gradient-brand-soft">
                   <div className="flex items-center gap-3">
                     <div className="h-9 w-9 rounded-xl bg-gradient-brand text-white flex items-center justify-center">
-                      <MapPinned className="h-4 w-4" />
+                      {isEdit ? <Pencil className="h-4 w-4" /> : <MapPinned className="h-4 w-4" />}
                     </div>
                     <div>
-                      <Dialog.Title className="font-bold text-ink-900">Add a service address</Dialog.Title>
+                      <Dialog.Title className="font-bold text-ink-900">
+                        {isEdit ? 'Edit address' : 'Add a service address'}
+                      </Dialog.Title>
                       <p className="text-xs text-ink-600">
                         Where should our staff arrive for visits?
                       </p>
@@ -293,9 +329,9 @@ export function AddressFormModal({
                   <Button
                     onClick={() => void handleSubmit(onSubmit)()}
                     isLoading={submitting}
-                    leftIcon={submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <MapPinned className="h-4 w-4" />}
+                    leftIcon={submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : isEdit ? <Pencil className="h-4 w-4" /> : <MapPinned className="h-4 w-4" />}
                   >
-                    Save address
+                    {isEdit ? 'Save changes' : 'Save address'}
                   </Button>
                 </div>
               </Dialog.Panel>

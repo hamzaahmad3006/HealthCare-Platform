@@ -16,10 +16,13 @@ import {
   User,
   MapPin,
   Plus,
+  Pencil,
+  Trash2,
   ChevronDown,
   CheckCircle2,
   Loader2,
 } from 'lucide-react';
+import toast from 'react-hot-toast';
 import { Button } from '../../../constant/Button';
 import { Card } from '../../../constant/Card';
 import { Badge } from '../../../constant/Badge';
@@ -28,7 +31,10 @@ import { TopNav } from '../../../component/common/TopNav';
 import { PatientFormModal } from '../../../component/booking/PatientFormModal';
 import { AddressFormModal } from '../../../component/booking/AddressFormModal';
 import { formatCurrency, formatDate } from '../../../helper/format';
+import { api } from '../../../helper/axios';
+import { API } from '../../../constant/apiUrls';
 import { useBookingForm, type StepNumber } from './useBookingForm';
+import type { Patient, Address } from '../../../types/booking.types';
 
 const SERVICE_ICON: Record<string, JSX.Element> = {
   NURSING: <Stethoscope className="h-6 w-6" />,
@@ -277,7 +283,34 @@ function Step1({ form }: { form: ReturnType<typeof useBookingForm> }): JSX.Eleme
 // ──────────────────────────────────────────────────────────────────────────────
 function Step2({ form }: { form: ReturnType<typeof useBookingForm> }): JSX.Element {
   const [patientModalOpen, setPatientModalOpen] = useState(false);
+  const [editingPatient, setEditingPatient] = useState<Patient | null>(null);
   const [addressModalOpen, setAddressModalOpen] = useState(false);
+  const [editingAddress, setEditingAddress] = useState<Address | null>(null);
+  const [removingId, setRemovingId] = useState<string | null>(null);
+
+  const handleRemovePatient = async (id: string): Promise<void> => {
+    setRemovingId(id);
+    try {
+      await api.delete(API.USERS.PATIENT_BY_ID(id));
+      form.removePatient(id);
+    } catch {
+      toast.error('Cannot remove — patient may have active bookings.');
+    } finally {
+      setRemovingId(null);
+    }
+  };
+
+  const handleRemoveAddress = async (id: string): Promise<void> => {
+    setRemovingId(id);
+    try {
+      await api.delete(API.USERS.ADDRESS_BY_ID(id));
+      form.removeAddress(id);
+    } catch {
+      toast.error('Cannot remove — address may have active bookings.');
+    } finally {
+      setRemovingId(null);
+    }
+  };
 
   return (
     <div className="space-y-8">
@@ -316,23 +349,46 @@ function Step2({ form }: { form: ReturnType<typeof useBookingForm> }): JSX.Eleme
             {form.patients.map((p) => {
               const active = p.id === form.selectedPatientId;
               return (
-                <button
+                <div
                   key={p.id}
-                  type="button"
-                  onClick={() => form.selectPatient(p.id)}
                   className={clsx(
-                    'text-left p-4 rounded-xl ring-1 transition-all',
-                    active
-                      ? 'bg-gradient-brand-soft ring-brand-500'
-                      : 'bg-white ring-ink-200 hover:ring-brand-300',
+                    'relative rounded-xl ring-1 transition-all',
+                    active ? 'bg-gradient-brand-soft ring-brand-500' : 'bg-white ring-ink-200',
                   )}
                 >
-                  <p className="font-semibold text-ink-900">{p.fullName}</p>
-                  <p className="text-xs text-ink-500 mt-1">
-                    {p.relationshipToCustomer ?? 'Family member'}
-                    {p.primaryCondition ? ` · ${p.primaryCondition}` : ''}
-                  </p>
-                </button>
+                  <button
+                    type="button"
+                    onClick={() => form.selectPatient(p.id)}
+                    className="w-full text-left p-4"
+                  >
+                    <p className="font-semibold text-ink-900">{p.fullName}</p>
+                    <p className="text-xs text-ink-500 mt-1">
+                      {p.relationshipToCustomer ?? 'Family member'}
+                      {p.primaryCondition ? ` · ${p.primaryCondition}` : ''}
+                    </p>
+                  </button>
+                  <div className="absolute top-2 right-2 flex gap-1">
+                    <button
+                      type="button"
+                      onClick={(e) => { e.stopPropagation(); setEditingPatient(p); }}
+                      className="p-1.5 rounded-lg text-ink-400 hover:text-brand-600 hover:bg-brand-50 transition-colors"
+                      title="Edit"
+                    >
+                      <Pencil className="h-3.5 w-3.5" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={(e) => { e.stopPropagation(); void handleRemovePatient(p.id); }}
+                      disabled={removingId === p.id}
+                      className="p-1.5 rounded-lg text-ink-400 hover:text-danger-600 hover:bg-danger-50 transition-colors disabled:opacity-50"
+                      title="Remove"
+                    >
+                      {removingId === p.id
+                        ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                        : <Trash2 className="h-3.5 w-3.5" />}
+                    </button>
+                  </div>
+                </div>
               );
             })}
           </div>
@@ -372,23 +428,46 @@ function Step2({ form }: { form: ReturnType<typeof useBookingForm> }): JSX.Eleme
             {form.addresses.map((a) => {
               const active = a.id === form.selectedAddressId;
               return (
-                <button
+                <div
                   key={a.id}
-                  type="button"
-                  onClick={() => form.selectAddress(a.id)}
                   className={clsx(
-                    'text-left p-4 rounded-xl ring-1 transition-all',
-                    active
-                      ? 'bg-gradient-brand-soft ring-brand-500'
-                      : 'bg-white ring-ink-200 hover:ring-brand-300',
+                    'relative rounded-xl ring-1 transition-all',
+                    active ? 'bg-gradient-brand-soft ring-brand-500' : 'bg-white ring-ink-200',
                   )}
                 >
-                  <p className="font-semibold text-ink-900">{a.label ?? a.area}</p>
-                  <p className="text-xs text-ink-500 mt-1">
-                    {a.line1}, {a.area}
-                  </p>
-                  <p className="text-2xs text-ink-400 mt-1">{a.contactPhone}</p>
-                </button>
+                  <button
+                    type="button"
+                    onClick={() => form.selectAddress(a.id)}
+                    className="w-full text-left p-4"
+                  >
+                    <p className="font-semibold text-ink-900">{a.label ?? a.area}</p>
+                    <p className="text-xs text-ink-500 mt-1">
+                      {a.line1}, {a.area}
+                    </p>
+                    <p className="text-2xs text-ink-400 mt-1">{a.contactPhone}</p>
+                  </button>
+                  <div className="absolute top-2 right-2 flex gap-1">
+                    <button
+                      type="button"
+                      onClick={(e) => { e.stopPropagation(); setEditingAddress(a); }}
+                      className="p-1.5 rounded-lg text-ink-400 hover:text-brand-600 hover:bg-brand-50 transition-colors"
+                      title="Edit"
+                    >
+                      <Pencil className="h-3.5 w-3.5" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={(e) => { e.stopPropagation(); void handleRemoveAddress(a.id); }}
+                      disabled={removingId === a.id}
+                      className="p-1.5 rounded-lg text-ink-400 hover:text-danger-600 hover:bg-danger-50 transition-colors disabled:opacity-50"
+                      title="Remove"
+                    >
+                      {removingId === a.id
+                        ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                        : <Trash2 className="h-3.5 w-3.5" />}
+                    </button>
+                  </div>
+                </div>
               );
             })}
           </div>
@@ -396,20 +475,18 @@ function Step2({ form }: { form: ReturnType<typeof useBookingForm> }): JSX.Eleme
       </div>
 
       <PatientFormModal
-        open={patientModalOpen}
-        onClose={() => setPatientModalOpen(false)}
-        onCreated={(p) => {
-          form.addPatient(p);
-          setPatientModalOpen(false);
-        }}
+        open={patientModalOpen || editingPatient !== null}
+        initialData={editingPatient ?? undefined}
+        onClose={() => { setPatientModalOpen(false); setEditingPatient(null); }}
+        onCreated={(p) => { form.addPatient(p); setPatientModalOpen(false); }}
+        onUpdated={(p) => { form.updatePatient(p); setEditingPatient(null); }}
       />
       <AddressFormModal
-        open={addressModalOpen}
-        onClose={() => setAddressModalOpen(false)}
-        onCreated={(a) => {
-          form.addAddress(a);
-          setAddressModalOpen(false);
-        }}
+        open={addressModalOpen || editingAddress !== null}
+        initialData={editingAddress ?? undefined}
+        onClose={() => { setAddressModalOpen(false); setEditingAddress(null); }}
+        onCreated={(a) => { form.addAddress(a); setAddressModalOpen(false); }}
+        onUpdated={(a) => { form.updateAddress(a); setEditingAddress(null); }}
       />
     </div>
   );

@@ -12,6 +12,7 @@ router.post('/patients', authenticateToken, customerOnly, userController.createP
 router.get('/patients', authenticateToken, userController.getPatients);
 router.get('/patients/:id', authenticateToken, userController.getPatientById);
 router.patch('/patients/:id', authenticateToken, userController.updatePatient);
+router.delete('/patients/:id', authenticateToken, adminOrCustomer, userController.deletePatient);
 
 router.post('/addresses', authenticateToken, customerOnly, userController.createAddress);
 router.get('/addresses', authenticateToken, userController.getAddresses);
