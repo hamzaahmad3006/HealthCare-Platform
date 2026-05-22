@@ -13,7 +13,7 @@ import type { BookingVisit, VisitStatus } from '../../../types/booking.types';
 import type { ReportType } from '../../../types/report.types';
 
 interface VisitRow extends BookingVisit {
-  booking?: { bookingNumber: string; customerUserId: string; patientId: string };
+  booking?: { bookingNumber: string; customerUserId: string; patientId: string; serviceType?: { code: string } | null };
 }
 
 const STATUS_OPTIONS: { id: VisitStatus | 'ALL'; label: string }[] = [
@@ -37,6 +37,7 @@ interface UploadModalState {
   visitId: string;
   bookingId: string;
   patientId: string;
+  serviceTypeCode: string;
 }
 
 function hasAnyNotes(row: BookingVisit): boolean {
@@ -168,6 +169,7 @@ export function Visits(): JSX.Element {
                   visitId: row.id,
                   bookingId: row.bookingId,
                   patientId: row.booking!.patientId,
+                  serviceTypeCode: row.booking?.serviceType?.code ?? 'OTHER',
                 })
               }
             />,
@@ -281,6 +283,7 @@ export function Visits(): JSX.Element {
       {uploadModal ? (
         <UploadReportModal
           busy={v.isUploadingReport}
+          serviceTypeCode={uploadModal.serviceTypeCode}
           onClose={() => setUploadModal(null)}
           onSubmit={async (form) => {
             const ok = await v.handleUploadReport({
@@ -389,7 +392,7 @@ function NoteBlock({ label, value }: { label: string; value: string | null }): J
 }
 
 // ── Internal: upload report modal ───────────────────────────────────────────
-const REPORT_TYPES: { id: ReportType; label: string }[] = [
+const ALL_REPORT_TYPES: { id: ReportType; label: string }[] = [
   { id: 'VISIT_NOTE', label: 'Visit Note' },
   { id: 'LAB_RESULT', label: 'Lab Result' },
   { id: 'PRESCRIPTION', label: 'Prescription' },
@@ -397,19 +400,37 @@ const REPORT_TYPES: { id: ReportType; label: string }[] = [
   { id: 'OTHER', label: 'Other' },
 ];
 
+// Which report types are relevant per service type
+const SERVICE_REPORT_TYPES: Record<string, ReportType[]> = {
+  AMBULANCE:      ['VISIT_NOTE', 'OTHER'],
+  NURSING:        ['VISIT_NOTE', 'PRESCRIPTION', 'PROGRESS_IMAGE', 'OTHER'],
+  CAREGIVER:      ['VISIT_NOTE', 'PROGRESS_IMAGE', 'OTHER'],
+  LAB_SAMPLING:   ['LAB_RESULT', 'OTHER'],
+  VISITING_DOCTOR:['VISIT_NOTE', 'PRESCRIPTION', 'LAB_RESULT', 'OTHER'],
+  PHYSIOTHERAPY:  ['VISIT_NOTE', 'PROGRESS_IMAGE', 'OTHER'],
+};
+
+function getAllowedReportTypes(serviceTypeCode: string): { id: ReportType; label: string }[] {
+  const allowed = SERVICE_REPORT_TYPES[serviceTypeCode];
+  if (!allowed) return ALL_REPORT_TYPES;
+  return ALL_REPORT_TYPES.filter((t) => allowed.includes(t.id));
+}
+
 const MAX_FILE_BYTES = 10 * 1024 * 1024;
 const ALLOWED_MIME = ['application/pdf', 'image/jpeg', 'image/png'];
 
 interface UploadReportModalProps {
   busy: boolean;
+  serviceTypeCode: string;
   onClose: () => void;
   onSubmit: (form: { title: string; reportType: ReportType; file: File }) => Promise<void>;
 }
 
-function UploadReportModal({ busy, onClose, onSubmit }: UploadReportModalProps): JSX.Element {
+function UploadReportModal({ busy, serviceTypeCode, onClose, onSubmit }: UploadReportModalProps): JSX.Element {
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const allowedTypes = getAllowedReportTypes(serviceTypeCode);
   const [title, setTitle] = useState('');
-  const [reportType, setReportType] = useState<ReportType>('VISIT_NOTE');
+  const [reportType, setReportType] = useState<ReportType>(allowedTypes[0]?.id ?? 'VISIT_NOTE');
   const [file, setFile] = useState<File | null>(null);
   const [fileError, setFileError] = useState('');
 
@@ -473,7 +494,7 @@ function UploadReportModal({ busy, onClose, onSubmit }: UploadReportModalProps):
               onChange={(e) => setReportType(e.target.value as ReportType)}
               className="w-full px-3 py-2 text-sm rounded-xl border border-ink-200 focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 outline-none bg-white"
             >
-              {REPORT_TYPES.map((t) => (
+              {allowedTypes.map((t) => (
                 <option key={t.id} value={t.id}>{t.label}</option>
               ))}
             </select>
