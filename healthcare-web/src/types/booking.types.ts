@@ -116,6 +116,9 @@ export interface BookingVisit {
   scheduledStartAt: string;
   scheduledEndAt: string | null;
   assignedStaffUserId: string | null;
+  assignedStaff?: {
+    user: { fullName: string; phone: string };
+  } | null;
   status: VisitStatus;
   checkInAt: string | null;
   checkOutAt: string | null;

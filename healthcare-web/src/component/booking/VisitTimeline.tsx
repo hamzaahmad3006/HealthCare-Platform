@@ -1,4 +1,4 @@
-import { Check, Clock, Truck, MapPin, AlertCircle } from 'lucide-react';
+import { Check, Clock, Truck, MapPin, AlertCircle, User, Phone } from 'lucide-react';
 import clsx from 'clsx';
 import { StatusBadge } from '../common/StatusBadge';
 import { formatDateTime, formatTime } from '../../helper/format';
@@ -68,6 +68,25 @@ export function VisitTimeline({ visits }: VisitTimelineProps): JSX.Element {
                 {v.checkOutAt ? ` · Checked out at ${formatTime(v.checkOutAt)}` : null}
               </p>
             ) : null}
+
+            {v.assignedStaff ? (
+              <div className="mt-3 p-3 rounded-xl bg-ink-50 ring-1 ring-ink-100 space-y-1.5">
+                <div className="flex items-center gap-2 text-sm text-ink-800">
+                  <User className="h-3.5 w-3.5 text-brand-600 flex-shrink-0" />
+                  <span className="font-semibold">{v.assignedStaff.user.fullName}</span>
+                </div>
+                <div className="flex items-center gap-2 text-sm text-ink-600">
+                  <Phone className="h-3.5 w-3.5 text-brand-600 flex-shrink-0" />
+                  <a
+                    href={`tel:${v.assignedStaff.user.phone}`}
+                    className="hover:text-brand-700 transition-colors"
+                  >
+                    {v.assignedStaff.user.phone}
+                  </a>
+                </div>
+              </div>
+            ) : null}
+
             {v.visitNotes ? (
               <div className="mt-2 p-3 rounded-lg bg-ink-50 ring-1 ring-ink-100 text-sm text-ink-700">
                 <span className="font-medium text-ink-800">Notes:</span> {v.visitNotes}

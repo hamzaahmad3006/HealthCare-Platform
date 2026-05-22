@@ -179,7 +179,14 @@ export const bookingController = {
           package: true,
           address: true,
           city: true,
-          visits: { orderBy: { sequenceNo: 'asc' } },
+          visits: {
+            orderBy: { sequenceNo: 'asc' },
+            include: {
+              assignedStaff: {
+                include: { user: { select: { fullName: true, phone: true } } },
+              },
+            },
+          },
         },
       });
 
