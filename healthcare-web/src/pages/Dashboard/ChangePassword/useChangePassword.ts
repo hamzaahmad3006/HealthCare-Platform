@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -7,7 +6,7 @@ import toast from 'react-hot-toast';
 import { api, extractApiError } from '../../../helper/axios';
 import { API } from '../../../constant/apiUrls';
 import { useAppDispatch } from '../../../redux/store';
-import { clearAuth } from '../../../redux/slices/authSlice';
+import { setAccessToken } from '../../../redux/slices/authSlice';
 
 const ChangePasswordSchema = z
   .object({
@@ -37,7 +36,6 @@ interface UseChangePasswordReturn {
 
 export function useChangePassword(): UseChangePasswordReturn {
   const dispatch = useAppDispatch();
-  const navigate = useNavigate();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [serverError, setServerError] = useState<string | null>(null);
   const [showOld, setShowOld] = useState(false);
@@ -54,15 +52,15 @@ export function useChangePassword(): UseChangePasswordReturn {
     setIsSubmitting(true);
     setServerError(null);
     try {
-      await api.patch(API.AUTH.CHANGE_PASSWORD, {
-        oldPassword: values.oldPassword,
-        newPassword: values.newPassword,
-      });
-      toast.success('Password changed. Please sign in again.');
-      // Backend revokes all refresh tokens + clears the cookie.
-      // Clear Redux state and send user to login.
-      dispatch(clearAuth());
-      navigate('/auth/login', { replace: true });
+      const { data } = await api.patch<{ success: true; data: { accessToken: string } }>(
+        API.AUTH.CHANGE_PASSWORD,
+        { oldPassword: values.oldPassword, newPassword: values.newPassword },
+      );
+      // Backend revoked other sessions but issued a fresh token pair for
+      // this session — update Redux so the user stays logged in here.
+      dispatch(setAccessToken(data.data.accessToken));
+      toast.success('Password changed successfully');
+      form.reset();
     } catch (err) {
       const apiErr = extractApiError(err);
       setServerError(apiErr.message);

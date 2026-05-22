@@ -11,7 +11,8 @@ export function ChangePassword(): JSX.Element {
 
   return (
     <SidebarLayout title="Change Password" description="Update your account password">
-      <div className="max-w-md">
+      <div className="flex justify-center">
+      <div className="w-full max-w-md">
         <Card padding="md">
           <div className="flex items-center gap-3 mb-6">
             <div className="h-10 w-10 rounded-xl bg-brand-50 text-brand-600 flex items-center justify-center">
@@ -19,7 +20,7 @@ export function ChangePassword(): JSX.Element {
             </div>
             <div>
               <p className="text-sm font-semibold text-ink-900">Update your password</p>
-              <p className="text-xs text-ink-500 mt-0.5">You will be signed out after saving</p>
+              <p className="text-xs text-ink-500 mt-0.5">Other devices will be signed out</p>
             </div>
           </div>
 
@@ -102,6 +103,7 @@ export function ChangePassword(): JSX.Element {
             </div>
           </form>
         </Card>
+      </div>
       </div>
     </SidebarLayout>
   );

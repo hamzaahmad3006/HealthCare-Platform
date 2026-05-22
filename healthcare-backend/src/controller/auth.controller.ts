@@ -382,20 +382,46 @@ export const authController = {
       if (!valid) throw new AppError(400, 'WRONG_PASSWORD', 'Old password is incorrect');
 
       const newHash = await hashPassword(newPassword);
+      const rawRefreshToken = generateRefreshToken();
+      const newTokenHash = hashRefreshToken(rawRefreshToken);
+      const sessionId = crypto.randomUUID();
+      const expiresAt = new Date(Date.now() + env.JWT_REFRESH_TTL * 1000);
 
+      // Revoke all existing sessions (other devices get logged out) then
+      // issue a fresh token pair so the current session stays alive.
       await prisma.$transaction([
-        prisma.user.update({
-          where: { id: user.id },
-          data: { passwordHash: newHash },
-        }),
+        prisma.user.update({ where: { id: user.id }, data: { passwordHash: newHash } }),
         prisma.refreshToken.updateMany({
           where: { userId: user.id, revokedAt: null },
           data: { revokedAt: new Date() },
         }),
+        prisma.refreshToken.create({
+          data: {
+            userId: user.id,
+            tokenHash: newTokenHash,
+            expiresAt,
+            ipAddress: req.ip,
+            userAgent: req.headers['user-agent'],
+          },
+        }),
       ]);
 
-      res.clearCookie('refresh_token', { path: '/' });
-      success(res, { message: 'Password changed successfully. Please log in again.' });
+      const accessToken = generateAccessToken({
+        sub: user.id,
+        role: user.role,
+        phone: user.phone,
+        session_id: sessionId,
+      });
+
+      res.cookie('refresh_token', rawRefreshToken, {
+        httpOnly: true,
+        secure: env.NODE_ENV === 'production',
+        sameSite: 'lax',
+        maxAge: env.JWT_REFRESH_TTL * 1000,
+        path: '/',
+      });
+
+      success(res, { accessToken, expiresIn: env.JWT_ACCESS_TTL });
     } catch (err) {
       next(err);
     }
