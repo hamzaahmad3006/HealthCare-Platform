@@ -156,7 +156,7 @@ export function Visits(): JSX.Element {
           );
         }
 
-        if (row.status === 'COMPLETED' && row.booking?.patientId) {
+        if (row.status === 'COMPLETED' && row.booking?.patientId && row.booking?.serviceType?.code !== 'AMBULANCE') {
           buttons.push(
             <ActionButton
               key="upload"
@@ -402,7 +402,6 @@ const ALL_REPORT_TYPES: { id: ReportType; label: string }[] = [
 
 // Which report types are relevant per service type
 const SERVICE_REPORT_TYPES: Record<string, ReportType[]> = {
-  AMBULANCE:      ['VISIT_NOTE', 'OTHER'],
   NURSING:        ['VISIT_NOTE', 'PRESCRIPTION', 'PROGRESS_IMAGE', 'OTHER'],
   CAREGIVER:      ['VISIT_NOTE', 'PROGRESS_IMAGE', 'OTHER'],
   LAB_SAMPLING:   ['LAB_RESULT', 'OTHER'],
