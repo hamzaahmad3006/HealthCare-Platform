@@ -156,7 +156,7 @@ export function Visits(): JSX.Element {
           );
         }
 
-        if (row.status === 'COMPLETED' && row.booking?.patientId && row.booking?.serviceType?.code !== 'AMBULANCE') {
+        if (row.status === 'COMPLETED' && row.booking?.patientId && row.booking?.serviceType?.code === 'LAB_SAMPLING') {
           buttons.push(
             <ActionButton
               key="upload"
@@ -402,11 +402,7 @@ const ALL_REPORT_TYPES: { id: ReportType; label: string }[] = [
 
 // Which report types are relevant per service type
 const SERVICE_REPORT_TYPES: Record<string, ReportType[]> = {
-  NURSING:        ['VISIT_NOTE', 'PRESCRIPTION', 'PROGRESS_IMAGE', 'OTHER'],
-  CAREGIVER:      ['VISIT_NOTE', 'PROGRESS_IMAGE', 'OTHER'],
-  LAB_SAMPLING:   ['LAB_RESULT', 'OTHER'],
-  VISITING_DOCTOR:['VISIT_NOTE', 'PRESCRIPTION', 'LAB_RESULT', 'OTHER'],
-  PHYSIOTHERAPY:  ['VISIT_NOTE', 'PROGRESS_IMAGE', 'OTHER'],
+  LAB_SAMPLING: ['LAB_RESULT', 'OTHER'],
 };
 
 function getAllowedReportTypes(serviceTypeCode: string): { id: ReportType; label: string }[] {
