@@ -2,6 +2,7 @@ import { lazy, Suspense } from 'react';
 import { Navigate, Route, Routes } from 'react-router-dom';
 import { PageSpinner } from '../../component/common/LoadingSpinner';
 import { StaffVerificationGate } from '../../component/common/StaffVerificationGate';
+import { ChangePassword } from './ChangePassword/ChangePassword';
 
 const AdminDashboard = lazy(() =>
   import('./AdminDashboard/AdminDashboard').then((m) => ({ default: m.AdminDashboard })),
@@ -39,6 +40,7 @@ export function AdminRoutes(): JSX.Element {
         <Route path="visits" element={<Visits />} />
         <Route path="reports" element={<Reports />} />
         <Route path="reviews" element={<Reviews />} />
+        <Route path="change-password" element={<ChangePassword />} />
       </Routes>
     </Suspense>
   );
@@ -59,6 +61,7 @@ export function StaffRoutes(): JSX.Element {
         />
         <Route path="documents" element={<StaffDocuments />} />
         <Route path="profile" element={<StaffProfile />} />
+        <Route path="change-password" element={<ChangePassword />} />
         {/* /staff with no suffix → send to visits */}
         <Route index element={<Navigate to="visits" replace />} />
       </Routes>

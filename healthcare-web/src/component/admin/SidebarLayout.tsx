@@ -10,6 +10,7 @@ import {
   UserCircle,
   Star,
   LogOut,
+  KeyRound,
   Menu,
   X,
 } from 'lucide-react';
@@ -169,6 +170,21 @@ function SidebarContent({
           <p className="text-2xs font-semibold uppercase tracking-wider text-ink-400">Signed in as</p>
           <p className="text-sm font-semibold text-ink-800 truncate">{userName}</p>
         </div>
+        <NavLink
+          to={isStaff ? '/staff/change-password' : '/admin/change-password'}
+          onClick={onNavigate}
+          className={({ isActive }) =>
+            clsx(
+              'w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all',
+              isActive
+                ? 'bg-gradient-brand-soft text-brand-800 ring-1 ring-brand-500/20'
+                : 'text-ink-600 hover:bg-ink-50 hover:text-ink-900',
+            )
+          }
+        >
+          <KeyRound className="h-4 w-4 flex-shrink-0" />
+          Change password
+        </NavLink>
         <button
           onClick={onLogout}
           className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-ink-600 hover:bg-danger-50 hover:text-danger-700 transition-colors"
