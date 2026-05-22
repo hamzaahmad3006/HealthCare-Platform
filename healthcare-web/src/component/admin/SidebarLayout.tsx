@@ -50,7 +50,7 @@ export function SidebarLayout({ children, title, description, actions }: Sidebar
   const handleLogout = async (): Promise<void> => {
     await api.post(API.AUTH.LOGOUT).catch(() => null);
     dispatch(clearAuth());
-    navigate('/login', { replace: true });
+    navigate('/auth/login', { replace: true });
   };
 
   const isStaff = user?.role === 'STAFF';

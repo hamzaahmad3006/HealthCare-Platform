@@ -1,8 +1,8 @@
 import { Provider } from 'react-redux';
-import { RouterProvider } from 'react-router-dom';
+import { BrowserRouter } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
 import { store } from './redux/store';
-import { router } from './pages/Routes';
+import { AppRoutes } from './pages/Routes';
 import { COLOR } from './constant/colors';
 import { ErrorBoundary } from './component/common/ErrorBoundary';
 import { AuthBootstrap } from './component/common/AuthBootstrap';
@@ -13,9 +13,11 @@ export function App(): JSX.Element {
   return (
     <ErrorBoundary>
       <Provider store={store}>
-        <AuthBootstrap>
-          <RouterProvider router={router} />
-        </AuthBootstrap>
+        <BrowserRouter>
+          <AuthBootstrap>
+            <AppRoutes />
+          </AuthBootstrap>
+        </BrowserRouter>
         <Toaster
           position="bottom-right"
           toastOptions={{

@@ -120,7 +120,7 @@ export function TopNav({ variant = 'solid' }: TopNavProps): JSX.Element {
             </>
           ) : (
             <>
-              <Link to="/login">
+              <Link to="/auth/login">
                 <Button variant="ghost" size="sm">
                   Sign in
                 </Button>
@@ -174,7 +174,7 @@ export function TopNav({ variant = 'solid' }: TopNavProps): JSX.Element {
                 </Button>
               ) : (
                 <>
-                  <Link to="/login" onClick={() => setMobileOpen(false)}>
+                  <Link to="/auth/login" onClick={() => setMobileOpen(false)}>
                     <Button variant="ghost" fullWidth>
                       Sign in
                     </Button>

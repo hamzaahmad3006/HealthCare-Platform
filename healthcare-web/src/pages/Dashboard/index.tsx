@@ -1,8 +1,7 @@
 import { lazy, Suspense } from 'react';
-import { Navigate, type RouteObject } from 'react-router-dom';
-import { ProtectedRoute } from '../../component/common/ProtectedRoute';
-import { StaffVerificationGate } from '../../component/common/StaffVerificationGate';
+import { Navigate, Route, Routes } from 'react-router-dom';
 import { PageSpinner } from '../../component/common/LoadingSpinner';
+import { StaffVerificationGate } from '../../component/common/StaffVerificationGate';
 
 const AdminDashboard = lazy(() =>
   import('./AdminDashboard/AdminDashboard').then((m) => ({ default: m.AdminDashboard })),
@@ -25,42 +24,44 @@ const StaffProfile = lazy(() =>
   import('./StaffProfile/StaffProfile').then((m) => ({ default: m.StaffProfile })),
 );
 
-const adminGate = (element: JSX.Element): JSX.Element => (
-  <Suspense fallback={<PageSpinner />}>
-    <ProtectedRoute roles={['ADMIN']}>{element}</ProtectedRoute>
-  </Suspense>
-);
+// Paths here are RELATIVE to the parent route match (/admin/*).
+// React Router v6 nested <Routes> strips the parent's matched prefix and
+// matches only the remaining segment, so "bookings" here == /admin/bookings.
+export function AdminRoutes(): JSX.Element {
+  return (
+    <Suspense fallback={<PageSpinner />}>
+      <Routes>
+        <Route index element={<AdminDashboard />} />
+        <Route path="bookings" element={<Bookings />} />
+        <Route path="bookings/:id" element={<AdminBookingDetail />} />
+        <Route path="staff" element={<Staff />} />
+        <Route path="staff/:userId" element={<StaffDetail />} />
+        <Route path="visits" element={<Visits />} />
+        <Route path="reports" element={<Reports />} />
+        <Route path="reviews" element={<Reviews />} />
+      </Routes>
+    </Suspense>
+  );
+}
 
-const staffGate = (element: JSX.Element): JSX.Element => (
-  <Suspense fallback={<PageSpinner />}>
-    <ProtectedRoute roles={['STAFF']}>{element}</ProtectedRoute>
-  </Suspense>
-);
-
-export const dashboardRoutes: RouteObject[] = [
-  { path: '/admin', element: adminGate(<AdminDashboard />) },
-  { path: '/admin/bookings', element: adminGate(<Bookings />) },
-  { path: '/admin/bookings/:id', element: adminGate(<AdminBookingDetail />) },
-  { path: '/admin/staff', element: adminGate(<Staff />) },
-  { path: '/admin/staff/:userId', element: adminGate(<StaffDetail />) },
-  { path: '/admin/visits', element: adminGate(<Visits />) },
-  { path: '/admin/reports', element: adminGate(<Reports />) },
-  { path: '/admin/reviews', element: adminGate(<Reviews />) },
-
-  // STAFF portal — same Visits component, but URL reflects the role so a
-  // staff user never sees `/admin/...` in their address bar. Verification
-  // gate sits in front so unverified staff get the onboarding screen.
-  { path: '/staff/visits', element: staffGate(<StaffVerificationGate><Visits /></StaffVerificationGate>) },
-
-  // Documents page is deliberately OUTSIDE the verification gate — unverified
-  // staff need this page to upload the documents required for verification.
-  { path: '/staff/documents', element: staffGate(<StaffDocuments />) },
-
-  // Profile is also outside the verification gate — staff should be able to
-  // update their photo / see their info regardless of verification state.
-  { path: '/staff/profile', element: staffGate(<StaffProfile />) },
-
-  // Legacy redirect for any old bookmark / link that pointed staff at the
-  // admin URL. ADMIN keeps the route above; STAFF gets bounced here.
-  { path: '/staff', element: <Navigate to="/staff/visits" replace /> },
-];
+// Paths here are RELATIVE to the parent route match (/staff/*).
+export function StaffRoutes(): JSX.Element {
+  return (
+    <Suspense fallback={<PageSpinner />}>
+      <Routes>
+        <Route
+          path="visits"
+          element={
+            <StaffVerificationGate>
+              <Visits />
+            </StaffVerificationGate>
+          }
+        />
+        <Route path="documents" element={<StaffDocuments />} />
+        <Route path="profile" element={<StaffProfile />} />
+        {/* /staff with no suffix → send to visits */}
+        <Route index element={<Navigate to="visits" replace />} />
+      </Routes>
+    </Suspense>
+  );
+}

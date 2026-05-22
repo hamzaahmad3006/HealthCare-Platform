@@ -94,7 +94,7 @@ export function Register(): JSX.Element {
 
           <p className="text-sm text-ink-500 mt-6 text-center">
             Already have an account?{' '}
-            <Link to="/login" className="font-semibold text-brand-700 hover:text-brand-800">
+            <Link to="/auth/login" className="font-semibold text-brand-700 hover:text-brand-800">
               Sign in
             </Link>
           </p>

@@ -83,7 +83,7 @@ export function Login(): JSX.Element {
 
           <p className="text-sm text-ink-500 mt-8 text-center">
             New to HomeHealth?{' '}
-            <Link to="/register" className="font-semibold text-brand-700 hover:text-brand-800">
+            <Link to="/auth/register" className="font-semibold text-brand-700 hover:text-brand-800">
               Create an account
             </Link>
           </p>

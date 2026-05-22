@@ -27,7 +27,7 @@ export function ProtectedRoute({ roles, children }: ProtectedRouteProps): JSX.El
   const { accessToken, user } = useAppSelector((s) => s.auth);
 
   if (!accessToken || !user) {
-    return <Navigate to="/login" state={{ from: location.pathname }} replace />;
+    return <Navigate to="/auth/login" state={{ from: location.pathname }} replace />;
   }
 
   if (roles && !roles.includes(user.role)) {

@@ -68,7 +68,7 @@ export function useLogin(): UseLoginReturn {
       // /admin/* path is admin-only and would bounce them to "/" via
       // ProtectedRoute's role-mismatch redirect, stranding them on landing.
       const canRoleUsePath = (path: string): boolean => {
-        if (path === '/login') return false;
+        if (path === '/auth/login') return false;
         if (role === 'CUSTOMER') {
           return path.startsWith('/my-bookings') || path.startsWith('/book');
         }

@@ -345,7 +345,7 @@ export function Landing(): JSX.Element {
             <ul className="space-y-2 text-sm">
               <li><a href="#trust" className="hover:text-white transition-colors">Why us</a></li>
               <li><a href="#how" className="hover:text-white transition-colors">How it works</a></li>
-              <li><Link to="/login" className="hover:text-white transition-colors">Sign in</Link></li>
+              <li><Link to="/auth/login" className="hover:text-white transition-colors">Sign in</Link></li>
             </ul>
           </div>
           <div>
