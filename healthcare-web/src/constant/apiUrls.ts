@@ -6,6 +6,8 @@ export const API = {
     LOGOUT: '/auth/logout',
     ME: '/auth/me',
     CHANGE_PASSWORD: '/auth/change-password',
+    FORGOT_PASSWORD: '/auth/forgot-password',
+    RESET_PASSWORD: '/auth/reset-password',
   },
   USERS: {
     ME: '/users/me',

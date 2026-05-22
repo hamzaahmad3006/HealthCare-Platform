@@ -169,7 +169,8 @@ model User {
   createdAt     DateTime   @default(now())
   updatedAt     DateTime   @updatedAt
 
-  refreshTokens   RefreshToken[]
+  refreshTokens       RefreshToken[]
+  passwordResetTokens PasswordResetToken[]
   customerProfile CustomerProfile?
   staffProfile    StaffProfile?
   patients        Patient[]
@@ -196,6 +197,19 @@ model RefreshToken {
   @@index([userId])
   @@index([expiresAt])
   @@map("refresh_tokens")
+}
+
+model PasswordResetToken {
+  id        String    @id @default(uuid())
+  userId    String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tokenHash String    @unique @db.VarChar(255)
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  @@index([userId])
+  @@map("password_reset_tokens")
 }
 
 // ── Customer & Patient ────────────────────────────────────────────────────────

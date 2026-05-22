@@ -9,7 +9,8 @@ export type TemplateCode =
   | 'PACKAGE_RENEWAL'
   | 'BOOKING_CANCELLED'
   | 'BOOKING_RESCHEDULED'
-  | 'STAFF_INVITE';
+  | 'STAFF_INVITE'
+  | 'PASSWORD_RESET';
 
 type TemplateData = Record<string, string | number | undefined>;
 
@@ -46,6 +47,9 @@ const TEMPLATES: Record<TemplateCode, (data: TemplateData) => string> = {
 
   STAFF_INVITE: (d) =>
     `👋 Welcome to HomeHealth, ${d['fullName']}!\n\nYour staff account has been created.\n\n📱 Login: ${d['loginUrl']}\n👤 Phone: ${d['phone']}\n🔑 Temp password: ${d['tempPassword']}\n\nPlease change your password after first login and upload your verification documents (CNIC, certifications). Your assignments will start after admin verification.\n\n— HomeHealth Team`,
+
+  PASSWORD_RESET: (d) =>
+    `🔐 *HomeHealth — Password Reset*\n\nYour one-time reset code is:\n\n*${d['otp']}*\n\nThis code expires in 15 minutes. If you did not request a password reset, please ignore this message.\n\n— HomeHealth Team`,
 };
 
 export function renderTemplate(code: TemplateCode, data: TemplateData): string {

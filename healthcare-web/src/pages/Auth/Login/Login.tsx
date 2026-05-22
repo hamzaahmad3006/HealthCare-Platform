@@ -79,6 +79,15 @@ export function Login(): JSX.Element {
             <Button type="submit" size="lg" isLoading={isSubmitting} fullWidth>
               Sign in
             </Button>
+
+            <div className="text-center">
+              <Link
+                to="/auth/forgot-password"
+                className="text-sm text-ink-500 hover:text-brand-700 transition-colors"
+              >
+                Forgot password?
+              </Link>
+            </div>
           </form>
 
           <p className="text-sm text-ink-500 mt-8 text-center">

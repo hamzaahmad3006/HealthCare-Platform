@@ -18,6 +18,9 @@ import {
   ConflictError,
 } from '../utils/stateMachine';
 import { FAILED_LOGIN_LOCKOUT } from '../utils/constants';
+import { sendWhatsAppMessage } from '../helper/axios';
+import { sendEmail } from '../helper/email.helper';
+import { renderTemplate } from '../helper/template.helper';
 import { Role } from '@prisma/client';
 
 const lockoutKey = (phone: string): string => `login_attempts:${phone}`;
@@ -43,6 +46,16 @@ const RegisterSchema = z.object({
 
 const ChangePasswordSchema = z.object({
   oldPassword: z.string().min(1),
+  newPassword: z.string().min(8),
+});
+
+const ForgotPasswordSchema = z.object({
+  phone: z.string().min(1),
+});
+
+const ResetPasswordSchema = z.object({
+  phone: z.string().min(1),
+  otp: z.string().length(6, 'OTP must be 6 digits'),
   newPassword: z.string().min(8),
 });
 
@@ -363,6 +376,130 @@ export const authController = {
         ...rest,
         staffVerificationStatus: staffProfile?.verificationStatus ?? null,
         staffProfileCompletedAt: staffProfile?.profileCompletedAt ?? null,
+      });
+    } catch (err) {
+      next(err);
+    }
+  },
+
+  async forgotPassword(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const { phone } = ForgotPasswordSchema.parse(req.body);
+
+      // Always respond with the same message — never reveal if the phone exists.
+      const genericOk = { message: 'If an account with this phone exists, a reset code has been sent.' };
+
+      const user = await prisma.user.findUnique({ where: { phone } });
+      if (!user || user.deletedAt) {
+        success(res, genericOk);
+        return;
+      }
+
+      // 6-digit numeric OTP
+      const otp = crypto.randomInt(100000, 999999).toString();
+      const tokenHash = crypto.createHash('sha256').update(otp).digest('hex');
+      const expiresAt = new Date(Date.now() + 15 * 60 * 1000); // 15 minutes
+
+      // Invalidate any previous unused tokens for this user, then create a new one.
+      await prisma.$transaction([
+        prisma.passwordResetToken.updateMany({
+          where: { userId: user.id, usedAt: null },
+          data: { usedAt: new Date() },
+        }),
+        prisma.passwordResetToken.create({
+          data: { userId: user.id, tokenHash, expiresAt },
+        }),
+      ]);
+
+      const message = renderTemplate('PASSWORD_RESET', { otp });
+
+      const emailHtml = `
+        <div style="font-family:sans-serif;max-width:480px;margin:0 auto;padding:32px 24px">
+          <h2 style="margin:0 0 8px;color:#0f172a">Password Reset</h2>
+          <p style="color:#475569;margin:0 0 24px">Use the code below to reset your HomeHealth account password. It expires in <b>15 minutes</b>.</p>
+          <div style="background:#f1f5f9;border-radius:12px;padding:20px 24px;text-align:center;letter-spacing:8px;font-size:32px;font-weight:700;color:#0f172a">${otp}</div>
+          <p style="color:#94a3b8;font-size:13px;margin:24px 0 0">If you did not request this, you can safely ignore this email.</p>
+        </div>`;
+
+      // Send on both channels in parallel — failures are non-fatal.
+      await Promise.allSettled([
+        sendWhatsAppMessage(user.phone, message),
+        user.email
+          ? sendEmail({ to: user.email, subject: 'HomeHealth — Password Reset Code', text: message, html: emailHtml })
+          : Promise.resolve(),
+      ]);
+
+      success(res, genericOk);
+    } catch (err) {
+      next(err);
+    }
+  },
+
+  async resetPassword(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const { phone, otp, newPassword } = ResetPasswordSchema.parse(req.body);
+
+      const user = await prisma.user.findUnique({ where: { phone } });
+      if (!user || user.deletedAt) {
+        throw new AppError(400, 'INVALID_OTP', 'Invalid or expired reset code');
+      }
+
+      const tokenHash = crypto.createHash('sha256').update(otp).digest('hex');
+      const token = await prisma.passwordResetToken.findFirst({
+        where: {
+          userId: user.id,
+          tokenHash,
+          usedAt: null,
+          expiresAt: { gt: new Date() },
+        },
+      });
+
+      if (!token) {
+        throw new AppError(400, 'INVALID_OTP', 'Invalid or expired reset code');
+      }
+
+      const newHash = await hashPassword(newPassword);
+      const rawRefreshToken = generateRefreshToken();
+      const newTokenHash = hashRefreshToken(rawRefreshToken);
+      const sessionId = crypto.randomUUID();
+      const expiresAt = new Date(Date.now() + env.JWT_REFRESH_TTL * 1000);
+
+      // Reset password + mark OTP used + revoke old sessions + issue new session.
+      await prisma.$transaction([
+        prisma.user.update({ where: { id: user.id }, data: { passwordHash: newHash } }),
+        prisma.passwordResetToken.update({ where: { id: token.id }, data: { usedAt: new Date() } }),
+        prisma.refreshToken.updateMany({
+          where: { userId: user.id, revokedAt: null },
+          data: { revokedAt: new Date() },
+        }),
+        prisma.refreshToken.create({
+          data: { userId: user.id, tokenHash: newTokenHash, expiresAt, ipAddress: req.ip, userAgent: req.headers['user-agent'] },
+        }),
+      ]);
+
+      const accessToken = generateAccessToken({ sub: user.id, role: user.role, phone: user.phone, session_id: sessionId });
+
+      res.cookie('refresh_token', rawRefreshToken, {
+        httpOnly: true,
+        secure: env.NODE_ENV === 'production',
+        sameSite: 'lax',
+        maxAge: env.JWT_REFRESH_TTL * 1000,
+        path: '/',
+      });
+
+      success(res, {
+        accessToken,
+        expiresIn: env.JWT_ACCESS_TTL,
+        user: {
+          id: user.id,
+          role: user.role,
+          fullName: user.fullName,
+          phone: user.phone,
+          email: user.email,
+          avatarUrl: user.avatarUrl,
+          staffVerificationStatus: null,
+          staffProfileCompletedAt: null,
+        },
       });
     } catch (err) {
       next(err);
