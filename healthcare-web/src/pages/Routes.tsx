@@ -21,6 +21,9 @@ const BookingDetail = lazy(() =>
 const CompleteProfile = lazy(() =>
   import('./Auth/CompleteProfile/CompleteProfile').then((m) => ({ default: m.CompleteProfile })),
 );
+const Account = lazy(() =>
+  import('./Frontend/Account/Account').then((m) => ({ default: m.Account })),
+);
 
 export function AppRoutes(): JSX.Element {
   const { accessToken, user } = useAppSelector((s) => s.auth);
@@ -67,6 +70,10 @@ export function AppRoutes(): JSX.Element {
         <Route
           path="my-bookings/:id"
           element={isAuthenticated ? <BookingDetail /> : <Navigate to="/auth/login" replace />}
+        />
+        <Route
+          path="my-account"
+          element={isAuthenticated ? <Account /> : <Navigate to="/auth/login" replace />}
         />
 
         {/* Admin dashboard */}
