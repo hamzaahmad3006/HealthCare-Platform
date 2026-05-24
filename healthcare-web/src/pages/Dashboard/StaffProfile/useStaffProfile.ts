@@ -34,6 +34,8 @@ interface UseStaffProfileReturn {
   error: string | null;
   isUploadingAvatar: boolean;
   uploadAvatar: (file: File) => Promise<void>;
+  isTogglingAvailability: boolean;
+  toggleAvailability: () => Promise<void>;
 }
 
 const MAX_AVATAR_BYTES = 5 * 1024 * 1024;
@@ -47,6 +49,7 @@ export function useStaffProfile(): UseStaffProfileReturn {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
+  const [isTogglingAvailability, setIsTogglingAvailability] = useState(false);
   const [reloadFlag, setReloadFlag] = useState(0);
 
   useEffect(() => {
@@ -141,5 +144,19 @@ export function useStaffProfile(): UseStaffProfileReturn {
     [reduxUser, dispatch],
   );
 
-  return { profile, isLoading, error, isUploadingAvatar, uploadAvatar };
+  const toggleAvailability = useCallback(async (): Promise<void> => {
+    if (!profile) return;
+    setIsTogglingAvailability(true);
+    try {
+      await api.patch(API.STAFF.AVAILABILITY(profile.userId), { isAvailable: !profile.isAvailable });
+      toast.success(profile.isAvailable ? 'You are now unavailable' : 'You are now available');
+      setReloadFlag((f) => f + 1);
+    } catch (err) {
+      toast.error(extractApiError(err).message);
+    } finally {
+      setIsTogglingAvailability(false);
+    }
+  }, [profile]);
+
+  return { profile, isLoading, error, isUploadingAvatar, uploadAvatar, isTogglingAvailability, toggleAvailability };
 }

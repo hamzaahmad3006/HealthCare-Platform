@@ -7,5 +7,6 @@ const router = Router();
 
 router.post('/', authenticateToken, customerOnly, reviewController.create);
 router.get('/', authenticateToken, adminOnly, reviewController.list);
+router.get('/:id', authenticateToken, reviewController.getById);
 
 export default router;

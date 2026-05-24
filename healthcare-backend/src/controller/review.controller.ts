@@ -85,4 +85,13 @@ export const reviewController = {
       paginated(res, reviews, { total, page, limit, hasNext: page * limit < total });
     } catch (err) { next(err); }
   },
+
+  async getById(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      if (!req.user) throw new UnauthorizedError('UNAUTHENTICATED');
+      const review = await prisma.review.findUnique({ where: { id: req.params['id'] as string } });
+      if (!review) { res.status(404).json({ success: false, message: 'Review not found' }); return; }
+      success(res, review);
+    } catch (err) { next(err); }
+  },
 };

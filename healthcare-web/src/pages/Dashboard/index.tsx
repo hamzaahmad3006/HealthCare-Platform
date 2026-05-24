@@ -39,6 +39,9 @@ const StaffPatients = lazy(() =>
 const DoctorRequests = lazy(() =>
   import('./DoctorRequests/DoctorRequests').then((m) => ({ default: m.DoctorRequests })),
 );
+const Notifications = lazy(() =>
+  import('./Notifications/Notifications').then((m) => ({ default: m.Notifications })),
+);
 
 // Paths here are RELATIVE to the parent route match (/admin/*).
 // React Router v6 nested <Routes> strips the parent's matched prefix and
@@ -61,6 +64,7 @@ export function AdminRoutes(): JSX.Element {
         <Route path="audit-logs" element={<AuditLogs />} />
         <Route path="customers/:id" element={<CustomerDetail />} />
         <Route path="payments" element={<PaymentHistory />} />
+        <Route path="notifications" element={<Notifications />} />
         <Route path="change-password" element={<ChangePassword />} />
       </Routes>
     </Suspense>

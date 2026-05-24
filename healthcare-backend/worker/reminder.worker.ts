@@ -82,11 +82,80 @@ async function sendVisitReminders(): Promise<void> {
   logger.info(`⏰ Reminder check complete. Processed ${upcomingVisits.length} visits.`);
 }
 
+async function sendPackageRenewalAlerts(): Promise<void> {
+  logger.info('📅 Running package renewal check...');
+
+  const now = new Date();
+  const threeDaysLater = new Date(now.getTime() + 3 * 24 * 60 * 60 * 1000);
+  const fourDaysLater = new Date(now.getTime() + 4 * 24 * 60 * 60 * 1000);
+
+  // Find bookings whose last scheduled visit falls within the next 3-4 days
+  const bookingsNearingEnd = await prisma.booking.findMany({
+    where: {
+      status: { in: ['CONFIRMED', 'ASSIGNED', 'IN_PROGRESS'] },
+      visits: {
+        some: {
+          scheduledStartAt: { gte: threeDaysLater, lte: fourDaysLater },
+          status: { notIn: ['CANCELLED', 'MISSED'] },
+        },
+        every: {
+          scheduledStartAt: { lte: fourDaysLater },
+        },
+      },
+    },
+    include: {
+      customer: { include: { customerProfile: true } },
+      package: { select: { name: true } },
+    },
+    take: 100,
+  });
+
+  for (const booking of bookingsNearingEnd) {
+    const existingAlert = await prisma.notificationLog.findFirst({
+      where: {
+        bookingId: booking.id,
+        templateCode: 'PACKAGE_RENEWAL',
+        createdAt: { gte: new Date(now.getTime() - 5 * 24 * 60 * 60 * 1000) },
+      },
+    });
+
+    if (existingAlert) continue;
+
+    const whatsappNumber = booking.customer.customerProfile?.whatsappNumber ?? null;
+    if (!whatsappNumber) continue;
+
+    const notifLog = await prisma.notificationLog.create({
+      data: {
+        bookingId: booking.id,
+        templateCode: 'PACKAGE_RENEWAL',
+        recipient: whatsappNumber,
+        renderedContent: renderTemplate('PACKAGE_RENEWAL', {
+          packageName: booking.package.name,
+          bookingNumber: booking.bookingNumber,
+        }),
+        status: 'PENDING',
+      },
+    });
+
+    await notificationQueue
+      .add('send', { notificationLogId: notifLog.id })
+      .catch((err: Error) => logger.error('Failed to enqueue renewal alert', { err: err.message }));
+
+    logger.info('Package renewal alert queued', { bookingId: booking.id });
+  }
+}
+
 // Run immediately on start, then every 15 minutes
 sendVisitReminders().catch((err: Error) => logger.error('Reminder run failed', { err: err.message }));
+sendPackageRenewalAlerts().catch((err: Error) => logger.error('Renewal check failed', { err: err.message }));
 
 setInterval(() => {
   sendVisitReminders().catch((err: Error) => logger.error('Reminder run failed', { err: err.message }));
 }, CRON_INTERVAL_MS);
+
+// Run renewal check once per day (every 6 hours is fine too)
+setInterval(() => {
+  sendPackageRenewalAlerts().catch((err: Error) => logger.error('Renewal check failed', { err: err.message }));
+}, 6 * 60 * 60 * 1000);
 
 logger.info('⏰ Reminder worker started — running every 15 minutes');

@@ -19,6 +19,7 @@ import {
   ClipboardList,
   Banknote,
   UserSquare2,
+  Bell,
 } from 'lucide-react';
 import clsx from 'clsx';
 import { useAppDispatch, useAppSelector } from '../../redux/store';
@@ -44,6 +45,7 @@ const ADMIN_NAV_ITEMS = [
   { to: '/admin/reviews', label: 'Reviews', icon: Star },
   { to: '/admin/analytics', label: 'Analytics', icon: BarChart2 },
   { to: '/admin/payments', label: 'Payments', icon: Banknote },
+  { to: '/admin/notifications', label: 'Notifications', icon: Bell },
   { to: '/admin/audit-logs', label: 'Audit Logs', icon: ClipboardList },
   { to: '/admin/settings', label: 'Settings', icon: Settings },
 ];

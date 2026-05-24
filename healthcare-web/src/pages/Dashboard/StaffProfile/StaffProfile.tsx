@@ -1,5 +1,5 @@
 import { useRef } from 'react';
-import { Phone, Mail, MapPin, BadgeCheck, Briefcase, Camera, User as UserIcon, Loader2 } from 'lucide-react';
+import { Phone, Mail, MapPin, BadgeCheck, Briefcase, Camera, User as UserIcon, Loader2, Power } from 'lucide-react';
 import { SidebarLayout } from '../../../component/admin/SidebarLayout';
 import { LoadingSpinner } from '../../../component/common/LoadingSpinner';
 import { StatusBadge } from '../../../component/common/StatusBadge';
@@ -84,12 +84,22 @@ export function StaffProfile(): JSX.Element {
 
             <div className="mt-3 flex items-center gap-2 flex-wrap justify-center">
               <StatusBadge status={profile.verificationStatus} kind="verif" size="sm" />
-              {profile.isAvailable ? (
-                <Badge tone="brand">Available</Badge>
-              ) : (
-                <Badge tone="neutral">Unavailable</Badge>
-              )}
             </div>
+
+            <button
+              onClick={() => void p.toggleAvailability()}
+              disabled={p.isTogglingAvailability}
+              className={`mt-4 w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold ring-1 transition-all disabled:opacity-50 ${
+                profile.isAvailable
+                  ? 'bg-success-50 text-success-700 ring-success-500/30 hover:bg-success-100'
+                  : 'bg-ink-100 text-ink-600 ring-ink-200 hover:bg-ink-200'
+              }`}
+            >
+              {p.isTogglingAvailability
+                ? <Loader2 className="h-4 w-4 animate-spin" />
+                : <Power className="h-4 w-4" />}
+              {p.isTogglingAvailability ? 'Saving…' : profile.isAvailable ? 'Available — tap to go offline' : 'Unavailable — tap to go online'}
+            </button>
 
             <p className="text-2xs text-ink-400 mt-3">
               JPEG or PNG · up to 5 MB

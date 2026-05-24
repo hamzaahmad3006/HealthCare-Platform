@@ -14,6 +14,7 @@ router.get('/customers/:id', authenticateToken, adminOnly, adminController.getCu
 router.get('/payments', authenticateToken, adminOnly, adminController.listPayments);
 router.get('/dashboard/staff-util', authenticateToken, adminOnly, adminController.staffUtilization);
 router.get('/audit-logs', authenticateToken, adminOnly, adminController.auditLogs);
+router.get('/notifications', authenticateToken, adminOnly, adminController.listNotifications);
 router.post('/notifications/:id/retry', authenticateToken, adminOnly, notificationController.retry);
 
 // ── Settings: Service Types ───────────────────────────────────────────────────

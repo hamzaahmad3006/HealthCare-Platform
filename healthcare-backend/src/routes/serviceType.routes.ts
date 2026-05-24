@@ -20,4 +20,14 @@ router.get('/', async (_req: Request, res: Response, next: NextFunction) => {
   }
 });
 
+router.get('/:id', async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const service = await prisma.serviceType.findUnique({ where: { id: req.params['id'] as string } });
+    if (!service) { res.status(404).json({ success: false, message: 'Service type not found' }); return; }
+    success(res, service);
+  } catch (err) {
+    next(err);
+  }
+});
+
 export default router;

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { ArrowLeft, Calendar, MapPin, User, Phone, CheckCircle2, XCircle, UserPlus, Star, Banknote } from 'lucide-react';
+import { ArrowLeft, Calendar, MapPin, User, Phone, CheckCircle2, XCircle, UserPlus, Star, Banknote, CalendarClock } from 'lucide-react';
 import { SidebarLayout } from '../../../component/admin/SidebarLayout';
 import { StaffAssignPanel } from '../../../component/booking/StaffAssignPanel';
 import { StatusBadge } from '../../../component/common/StatusBadge';
@@ -13,6 +13,8 @@ export function AdminBookingDetail(): JSX.Element {
   const d = useAdminBookingDetail();
   const [showCancelModal, setShowCancelModal] = useState(false);
   const [cancelReason, setCancelReason] = useState('');
+  const [showRescheduleModal, setShowRescheduleModal] = useState(false);
+  const [rescheduleDate, setRescheduleDate] = useState('');
 
   if (d.isLoading || !d.booking) {
     return (
@@ -25,6 +27,7 @@ export function AdminBookingDetail(): JSX.Element {
   const b = d.booking;
   const canConfirm = b.status === 'PENDING';
   const canCancel = ['PENDING', 'CONFIRMED', 'ASSIGNED', 'IN_PROGRESS'].includes(b.status);
+  const canReschedule = ['CONFIRMED', 'ASSIGNED'].includes(b.status);
 
   return (
     <SidebarLayout
@@ -48,6 +51,16 @@ export function AdminBookingDetail(): JSX.Element {
               leftIcon={<CheckCircle2 className="h-4 w-4" />}
             >
               Confirm
+            </Button>
+          ) : null}
+          {canReschedule ? (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setShowRescheduleModal(true)}
+              leftIcon={<CalendarClock className="h-4 w-4" />}
+            >
+              Reschedule
             </Button>
           ) : null}
           {canCancel ? (
@@ -301,6 +314,43 @@ export function AdminBookingDetail(): JSX.Element {
                 disabled={cancelReason.trim().length === 0}
               >
                 Confirm cancel
+              </Button>
+            </div>
+          </Card>
+        </div>
+      ) : null}
+
+      {showRescheduleModal ? (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-6 bg-ink-950/40 backdrop-blur-sm animate-fade-in">
+          <Card variant="elevated" padding="lg" className="max-w-md w-full animate-scale-in">
+            <h3 className="text-lg font-bold text-ink-900">Reschedule booking</h3>
+            <p className="text-sm text-ink-500 mt-1">Pick the new start date and time.</p>
+            <input
+              type="datetime-local"
+              value={rescheduleDate}
+              onChange={(e) => setRescheduleDate(e.target.value)}
+              min={new Date().toISOString().slice(0, 16)}
+              className="mt-4 w-full px-4 py-3 text-sm rounded-xl border border-ink-200 focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 outline-none"
+            />
+            <div className="mt-5 flex justify-end gap-2">
+              <Button
+                variant="ghost"
+                onClick={() => { setShowRescheduleModal(false); setRescheduleDate(''); }}
+                disabled={d.isRescheduling}
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={async () => {
+                  await d.handleReschedule(new Date(rescheduleDate).toISOString());
+                  setShowRescheduleModal(false);
+                  setRescheduleDate('');
+                }}
+                isLoading={d.isRescheduling}
+                disabled={!rescheduleDate}
+                leftIcon={<CalendarClock className="h-4 w-4" />}
+              >
+                Confirm reschedule
               </Button>
             </div>
           </Card>

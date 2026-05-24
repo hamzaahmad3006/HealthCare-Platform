@@ -320,7 +320,11 @@ export const bookingController = {
 
       const booking = await prisma.booking.findUnique({
         where: { id: pickParam(req, 'id') },
-        include: { package: true },
+        include: {
+          package: true,
+          address: { select: { contactPhone: true } },
+          customer: { select: { phone: true } },
+        },
       });
       if (!booking) throw new NotFoundError('BOOKING_NOT_FOUND');
 
@@ -329,16 +333,31 @@ export const bookingController = {
       const newStartDate = new Date(requestedStartAt);
       const visits = generateVisitSchedule(booking.id, booking.package, newStartDate);
 
-      await prisma.$transaction([
-        prisma.booking.update({
+      const { notifLogId } = await prisma.$transaction(async (tx) => {
+        await tx.booking.update({
           where: { id: booking.id },
           data: { status: 'RESCHEDULED', requestedStartAt: newStartDate },
-        }),
-        prisma.bookingVisit.deleteMany({
-          where: { bookingId: booking.id, status: 'SCHEDULED' },
-        }),
-        prisma.bookingVisit.createMany({ data: visits }),
-      ]);
+        });
+        await tx.bookingVisit.deleteMany({ where: { bookingId: booking.id, status: 'SCHEDULED' } });
+        await tx.bookingVisit.createMany({ data: visits });
+
+        const recipient = booking.address.contactPhone ?? booking.customer.phone;
+        const notifLog = await tx.notificationLog.create({
+          data: {
+            bookingId: booking.id,
+            templateCode: 'BOOKING_RESCHEDULED',
+            recipient,
+            renderedContent: renderTemplate('BOOKING_RESCHEDULED', {
+              bookingNumber: booking.bookingNumber,
+              newDate: newStartDate.toISOString(),
+            }),
+            status: 'PENDING',
+          },
+        });
+        return { notifLogId: notifLog.id };
+      });
+
+      await notificationQueue.add('send', { notificationLogId: notifLogId }).catch(() => null);
 
       const updated = await prisma.booking.findUnique({ where: { id: booking.id } });
       success(res, updated);

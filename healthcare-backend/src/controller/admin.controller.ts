@@ -23,6 +23,14 @@ const AuditLogQuerySchema = z.object({
   limit: z.coerce.number().min(1).max(100).default(20),
 });
 
+const NotificationQuerySchema = z.object({
+  status: z.enum(['PENDING', 'SENT', 'FAILED']).optional(),
+  templateCode: z.string().optional(),
+  bookingId: z.string().uuid().optional(),
+  page: z.coerce.number().min(1).default(1),
+  limit: z.coerce.number().min(1).max(100).default(30),
+});
+
 export const adminController = {
   async dashboardSummary(_req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
@@ -297,6 +305,30 @@ export const adminController = {
           take: limit,
         }),
         prisma.auditLog.count({ where }),
+      ]);
+
+      paginated(res, logs, { total, page, limit, hasNext: page * limit < total });
+    } catch (err) { next(err); }
+  },
+
+  async listNotifications(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const { status, templateCode, bookingId, page, limit } = NotificationQuerySchema.parse(req.query);
+      const where = {
+        ...(status && { status }),
+        ...(templateCode && { templateCode }),
+        ...(bookingId && { bookingId }),
+      };
+
+      const [logs, total] = await prisma.$transaction([
+        prisma.notificationLog.findMany({
+          where,
+          include: { booking: { select: { bookingNumber: true } } },
+          orderBy: { createdAt: 'desc' },
+          skip: (page - 1) * limit,
+          take: limit,
+        }),
+        prisma.notificationLog.count({ where }),
       ]);
 
       paginated(res, logs, { total, page, limit, hasNext: page * limit < total });

@@ -31,4 +31,14 @@ router.get('/', async (req: Request, res: Response, next: NextFunction) => {
   }
 });
 
+router.get('/:id', async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const pkg = await prisma.package.findUnique({ where: { id: req.params['id'] as string } });
+    if (!pkg) { res.status(404).json({ success: false, message: 'Package not found' }); return; }
+    success(res, pkg);
+  } catch (err) {
+    next(err);
+  }
+});
+
 export default router;

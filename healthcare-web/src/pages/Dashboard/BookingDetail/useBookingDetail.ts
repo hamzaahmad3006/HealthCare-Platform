@@ -18,6 +18,9 @@ interface UseAdminBookingDetailReturn {
   isCancelling: boolean;
   handleCancel: (reason: string) => Promise<void>;
 
+  isRescheduling: boolean;
+  handleReschedule: (newStartAt: string) => Promise<void>;
+
   isMarkingPaid: boolean;
   handleMarkPaid: () => Promise<void>;
 
@@ -43,6 +46,7 @@ export function useAdminBookingDetail(): UseAdminBookingDetailReturn {
 
   const [isConfirming, setIsConfirming] = useState(false);
   const [isCancelling, setIsCancelling] = useState(false);
+  const [isRescheduling, setIsRescheduling] = useState(false);
   const [isMarkingPaid, setIsMarkingPaid] = useState(false);
 
   const [assignPanelOpen, setAssignPanelOpen] = useState(false);
@@ -101,6 +105,23 @@ export function useAdminBookingDetail(): UseAdminBookingDetailReturn {
         toast.error(extractApiError(err).message);
       } finally {
         setIsCancelling(false);
+      }
+    },
+    [id],
+  );
+
+  const handleReschedule = useCallback(
+    async (newStartAt: string): Promise<void> => {
+      if (!id) return;
+      setIsRescheduling(true);
+      try {
+        await api.patch(API.BOOKINGS.RESCHEDULE(id), { requestedStartAt: newStartAt });
+        toast.success('Booking rescheduled');
+        setReloadFlag((f) => f + 1);
+      } catch (err) {
+        toast.error(extractApiError(err).message);
+      } finally {
+        setIsRescheduling(false);
       }
     },
     [id],
@@ -174,6 +195,8 @@ export function useAdminBookingDetail(): UseAdminBookingDetailReturn {
     handleConfirm,
     isCancelling,
     handleCancel,
+    isRescheduling,
+    handleReschedule,
     isMarkingPaid,
     handleMarkPaid,
     assignPanelOpen,

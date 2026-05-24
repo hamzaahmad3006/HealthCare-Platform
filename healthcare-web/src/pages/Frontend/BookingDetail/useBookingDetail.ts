@@ -18,6 +18,9 @@ interface UseBookingDetailReturn {
   isCancelling: boolean;
   canCancel: boolean;
   handleCancel: (reason: string) => Promise<void>;
+  isRescheduling: boolean;
+  canReschedule: boolean;
+  handleReschedule: (newStartAt: string) => Promise<void>;
   isActingOnTime: boolean;
   handleAcceptTime: () => Promise<void>;
   handleDeclineTime: () => Promise<void>;
@@ -33,6 +36,7 @@ export function useBookingDetail(): UseBookingDetailReturn {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isCancelling, setIsCancelling] = useState(false);
+  const [isRescheduling, setIsRescheduling] = useState(false);
   const [isActingOnTime, setIsActingOnTime] = useState(false);
   const [isSubmittingReview, setIsSubmittingReview] = useState(false);
   const [reloadFlag, setReloadFlag] = useState(0);
@@ -62,6 +66,7 @@ export function useBookingDetail(): UseBookingDetailReturn {
   const canCancel = Boolean(
     booking && ['PENDING', 'CONFIRMED', 'PENDING_DOCTOR', 'TIME_PROPOSED'].includes(booking.status),
   );
+  const canReschedule = Boolean(booking && ['CONFIRMED'].includes(booking.status));
 
   const handleCancel = useCallback(
     async (reason: string): Promise<void> => {
@@ -75,6 +80,23 @@ export function useBookingDetail(): UseBookingDetailReturn {
         toast.error(extractApiError(err).message);
       } finally {
         setIsCancelling(false);
+      }
+    },
+    [id],
+  );
+
+  const handleReschedule = useCallback(
+    async (newStartAt: string): Promise<void> => {
+      if (!id) return;
+      setIsRescheduling(true);
+      try {
+        await api.patch(API.BOOKINGS.RESCHEDULE(id), { requestedStartAt: newStartAt });
+        toast.success('Booking rescheduled.');
+        setReloadFlag((f) => f + 1);
+      } catch (err) {
+        toast.error(extractApiError(err).message);
+      } finally {
+        setIsRescheduling(false);
       }
     },
     [id],
@@ -133,6 +155,9 @@ export function useBookingDetail(): UseBookingDetailReturn {
     isCancelling,
     canCancel,
     handleCancel,
+    isRescheduling,
+    canReschedule,
+    handleReschedule,
     isActingOnTime,
     handleAcceptTime,
     handleDeclineTime,
