@@ -27,6 +27,9 @@ const Account = lazy(() =>
 const MyReports = lazy(() =>
   import('./Frontend/MyReports/MyReports').then((m) => ({ default: m.MyReports })),
 );
+const MyPatients = lazy(() =>
+  import('./Frontend/MyPatients/MyPatients').then((m) => ({ default: m.MyPatients })),
+);
 
 export function AppRoutes(): JSX.Element {
   const { accessToken, user } = useAppSelector((s) => s.auth);
@@ -81,6 +84,10 @@ export function AppRoutes(): JSX.Element {
         <Route
           path="my-reports"
           element={isAuthenticated ? <MyReports /> : <Navigate to="/auth/login" replace />}
+        />
+        <Route
+          path="my-patients"
+          element={isAuthenticated ? <MyPatients /> : <Navigate to="/auth/login" replace />}
         />
 
         {/* Admin dashboard */}

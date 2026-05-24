@@ -15,6 +15,7 @@ export const API = {
     PATIENT_BY_ID: (id: string): string => `/users/patients/${id}`,
     ADDRESSES: '/users/addresses',
     ADDRESS_BY_ID: (id: string): string => `/users/addresses/${id}`,
+    UPDATE_ME: '/users/me',
   },
   SERVICE_TYPES: '/service-types',
   PACKAGES: '/packages',
