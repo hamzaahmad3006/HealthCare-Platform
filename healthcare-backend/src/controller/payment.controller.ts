@@ -4,15 +4,51 @@ import { prisma } from '../config/database';
 import { env } from '../config/env';
 import { redis } from '../config/redis';
 import { success } from '../helper/response.helper';
-import { BusinessError, NotFoundError, UnauthorizedError } from '../utils/stateMachine';
+import { BusinessError, ForbiddenError, NotFoundError, UnauthorizedError } from '../utils/stateMachine';
 import { logger } from '../utils/logger';
 import { STRIPE_EVENT_DEDUP_TTL } from '../utils/constants';
 import { notificationQueue } from '../../worker/notification.worker';
 import { renderTemplate } from '../helper/template.helper';
+import { pickParam } from '../helper/request.helper';
 
 const stripe = new Stripe(env.STRIPE_SECRET_KEY, { apiVersion: '2024-06-20' });
 
 export const paymentController = {
+  // ── Cash on Visit ──────────────────────────────────────────────────────────
+
+  async getByBooking(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      if (!req.user) throw new UnauthorizedError('UNAUTHENTICATED');
+      const bookingId = pickParam(req, 'bookingId');
+      const booking = await prisma.booking.findUnique({ where: { id: bookingId } });
+      if (!booking) throw new NotFoundError('BOOKING_NOT_FOUND');
+      if (req.user.role === 'CUSTOMER' && booking.customerUserId !== req.user.sub) {
+        throw new ForbiddenError('FORBIDDEN');
+      }
+      const payment = await prisma.payment.findFirst({ where: { bookingId } });
+      success(res, payment);
+    } catch (err) { next(err); }
+  },
+
+  async markCashPaid(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      if (!req.user) throw new UnauthorizedError('UNAUTHENTICATED');
+      const bookingId = pickParam(req, 'bookingId');
+      const payment = await prisma.payment.findFirst({ where: { bookingId } });
+      if (!payment) throw new NotFoundError('PAYMENT_NOT_FOUND');
+      if (payment.paymentMethod !== 'CASH') {
+        throw new BusinessError('NOT_CASH_PAYMENT', 'Only cash payments can be manually marked paid');
+      }
+      const updated = await prisma.payment.update({
+        where: { id: payment.id },
+        data: { status: 'PAID', paidAt: new Date(), collectedByUserId: req.user.sub },
+      });
+      success(res, updated);
+    } catch (err) { next(err); }
+  },
+
+  // ── Stripe ─────────────────────────────────────────────────────────────────
+
   async createIntent(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       if (!req.user) throw new UnauthorizedError('UNAUTHENTICATED');

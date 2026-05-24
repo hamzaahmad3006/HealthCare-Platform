@@ -304,7 +304,7 @@ function PatientModal({
           </Button>
           <Button
             fullWidth
-            loading={saving}
+            isLoading={saving}
             onClick={handleSubmit((data) => void onSave(data))}
           >
             {patient ? 'Save changes' : 'Add patient'}

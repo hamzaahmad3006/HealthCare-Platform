@@ -301,7 +301,7 @@ function AddressModal({
 
         <div className="flex gap-3 px-6 py-4 border-t border-ink-100 bg-ink-50/50">
           <Button variant="ghost" fullWidth onClick={onClose} disabled={saving}>Cancel</Button>
-          <Button fullWidth loading={saving} onClick={handleSubmit((data) => void onSave(data))}>
+          <Button fullWidth isLoading={saving} onClick={handleSubmit((data) => void onSave(data))}>
             {address ? 'Save changes' : 'Add address'}
           </Button>
         </div>

@@ -188,6 +188,7 @@ export const bookingController = {
             },
           },
           reviews: { select: { id: true, rating: true, reviewText: true, createdAt: true } },
+          payments: { select: { id: true, paymentMethod: true, amount: true, currency: true, status: true, paidAt: true }, take: 1 },
         },
       });
 
@@ -237,6 +238,20 @@ export const bookingController = {
             status: 'PENDING',
           },
         });
+
+        // Create cash payment record (no existing payment = first time confirming)
+        const existingPayment = await tx.payment.findFirst({ where: { bookingId: booking.id } });
+        if (!existingPayment) {
+          await tx.payment.create({
+            data: {
+              bookingId: booking.id,
+              paymentMethod: 'CASH',
+              amount: booking.totalPrice,
+              currency: booking.currency,
+              status: 'PENDING',
+            },
+          });
+        }
 
         return { updated, notifLogId: notifLog.id };
       });

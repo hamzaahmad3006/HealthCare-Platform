@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { ArrowLeft, Calendar, MapPin, User, Phone, CheckCircle2, XCircle, UserPlus, Star } from 'lucide-react';
+import { ArrowLeft, Calendar, MapPin, User, Phone, CheckCircle2, XCircle, UserPlus, Star, Banknote } from 'lucide-react';
 import { SidebarLayout } from '../../../component/admin/SidebarLayout';
 import { StaffAssignPanel } from '../../../component/booking/StaffAssignPanel';
 import { StatusBadge } from '../../../component/common/StatusBadge';
@@ -141,6 +141,40 @@ export function AdminBookingDetail(): JSX.Element {
             <Card padding="md">
               <h3 className="text-sm font-semibold text-ink-800 mb-2">Instructions</h3>
               <p className="text-sm text-ink-700 leading-relaxed">{b.specialInstructions}</p>
+            </Card>
+          ) : null}
+
+          {b.payments?.[0] ? (
+            <Card padding="md">
+              <h3 className="text-sm font-semibold text-ink-800 mb-3">Payment</h3>
+              <div className="flex items-center gap-3 mb-3">
+                <div className="h-10 w-10 rounded-xl bg-gradient-brand-soft text-brand-700 flex items-center justify-center flex-shrink-0">
+                  <Banknote className="h-5 w-5" />
+                </div>
+                <div>
+                  <p className="font-semibold text-ink-900 text-sm">
+                    {b.payments[0].paymentMethod === 'CASH' ? 'Cash on Visit' : b.payments[0].paymentMethod}
+                  </p>
+                  <span className={`inline-block mt-1 px-2 py-0.5 rounded-full text-xs font-semibold ${
+                    b.payments[0].status === 'PAID'
+                      ? 'bg-success-50 text-success-700'
+                      : 'bg-warning-50 text-warning-700'
+                  }`}>
+                    {b.payments[0].status === 'PAID' ? 'Collected' : 'Pending Collection'}
+                  </span>
+                </div>
+              </div>
+              {b.payments[0].status === 'PENDING' && b.payments[0].paymentMethod === 'CASH' ? (
+                <Button
+                  size="sm"
+                  fullWidth
+                  onClick={() => void d.handleMarkPaid()}
+                  isLoading={d.isMarkingPaid}
+                  leftIcon={<CheckCircle2 className="h-3.5 w-3.5" />}
+                >
+                  Mark as Collected
+                </Button>
+              ) : null}
             </Card>
           ) : null}
         </div>

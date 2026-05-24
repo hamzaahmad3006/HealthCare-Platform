@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
-import { ArrowLeft, Calendar, MapPin, User, Phone, AlertCircle, Star } from 'lucide-react';
+import { ArrowLeft, Calendar, MapPin, User, Phone, AlertCircle, Star, Banknote } from 'lucide-react';
 import { Button } from '../../../constant/Button';
 import { Card } from '../../../constant/Card';
 import { StatusBadge } from '../../../component/common/StatusBadge';
@@ -127,6 +127,29 @@ export function BookingDetail(): JSX.Element {
                 </div>
               </div>
             </Card>
+
+            {b.payments?.[0] ? (
+              <Card padding="md">
+                <h3 className="text-sm font-semibold text-ink-800 mb-3">Payment</h3>
+                <div className="flex items-center gap-3">
+                  <div className="h-11 w-11 rounded-xl bg-gradient-brand-soft text-brand-700 flex items-center justify-center flex-shrink-0">
+                    <Banknote className="h-5 w-5" />
+                  </div>
+                  <div>
+                    <p className="font-semibold text-ink-900">
+                      {b.payments[0].paymentMethod === 'CASH' ? 'Cash on Visit' : b.payments[0].paymentMethod}
+                    </p>
+                    <span className={`inline-block mt-1 px-2 py-0.5 rounded-full text-xs font-semibold ${
+                      b.payments[0].status === 'PAID'
+                        ? 'bg-success-50 text-success-700'
+                        : 'bg-warning-50 text-warning-700'
+                    }`}>
+                      {b.payments[0].status === 'PAID' ? 'Paid' : 'Pending'}
+                    </span>
+                  </div>
+                </div>
+              </Card>
+            ) : null}
 
             {d.canCancel ? (
               <Button variant="outline" fullWidth onClick={() => setShowCancelModal(true)}>
@@ -271,7 +294,7 @@ function ReviewSection({
         />
         <Button
           type="submit"
-          loading={isSubmitting}
+          isLoading={isSubmitting}
           disabled={rating === 0}
           leftIcon={<Star className="h-4 w-4" />}
         >

@@ -71,5 +71,7 @@ export const API = {
   },
   PAYMENTS: {
     CREATE_INTENT: '/payments/create-intent',
+    BY_BOOKING: (bookingId: string) => `/payments/booking/${bookingId}`,
+    MARK_PAID: (bookingId: string) => `/payments/booking/${bookingId}/mark-paid`,
   },
 } as const;

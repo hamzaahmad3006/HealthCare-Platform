@@ -135,6 +135,18 @@ export interface BookingReview {
   createdAt: string;
 }
 
+export type PaymentMethod = 'CASH' | 'JAZZCASH' | 'STRIPE';
+export type PaymentStatus = 'PENDING' | 'PAID' | 'REFUNDED' | 'FAILED';
+
+export interface BookingPayment {
+  id: string;
+  paymentMethod: PaymentMethod;
+  amount: string;
+  currency: string;
+  status: PaymentStatus;
+  paidAt: string | null;
+}
+
 export interface BookingWithRelations extends Booking {
   patient: Patient;
   serviceType: ServiceType;
@@ -143,6 +155,7 @@ export interface BookingWithRelations extends Booking {
   city: City;
   visits: BookingVisit[];
   reviews: BookingReview[];
+  payments: BookingPayment[];
 }
 
 export interface CreateBookingRequest {

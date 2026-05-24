@@ -18,6 +18,9 @@ interface UseAdminBookingDetailReturn {
   isCancelling: boolean;
   handleCancel: (reason: string) => Promise<void>;
 
+  isMarkingPaid: boolean;
+  handleMarkPaid: () => Promise<void>;
+
   // Assign
   assignPanelOpen: boolean;
   loadingStaff: boolean;
@@ -40,6 +43,7 @@ export function useAdminBookingDetail(): UseAdminBookingDetailReturn {
 
   const [isConfirming, setIsConfirming] = useState(false);
   const [isCancelling, setIsCancelling] = useState(false);
+  const [isMarkingPaid, setIsMarkingPaid] = useState(false);
 
   const [assignPanelOpen, setAssignPanelOpen] = useState(false);
   const [loadingStaff, setLoadingStaff] = useState(false);
@@ -102,6 +106,20 @@ export function useAdminBookingDetail(): UseAdminBookingDetailReturn {
     [id],
   );
 
+  const handleMarkPaid = useCallback(async (): Promise<void> => {
+    if (!id) return;
+    setIsMarkingPaid(true);
+    try {
+      await api.patch(API.PAYMENTS.MARK_PAID(id));
+      toast.success('Payment marked as collected');
+      setReloadFlag((f) => f + 1);
+    } catch (err) {
+      toast.error(extractApiError(err).message);
+    } finally {
+      setIsMarkingPaid(false);
+    }
+  }, [id]);
+
   // ── Assign flow ────────────────────────────────────────────────────────────
   const openAssignPanel = useCallback(
     async (visitId: string): Promise<void> => {
@@ -156,6 +174,8 @@ export function useAdminBookingDetail(): UseAdminBookingDetailReturn {
     handleConfirm,
     isCancelling,
     handleCancel,
+    isMarkingPaid,
+    handleMarkPaid,
     assignPanelOpen,
     loadingStaff,
     eligibleStaff,
