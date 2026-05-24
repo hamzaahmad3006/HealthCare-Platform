@@ -315,9 +315,9 @@ function PackagesTab(): JSX.Element {
 
   return (
     <div>
-      <div className="flex items-center gap-3 mb-4 flex-wrap">
+      <div className="flex flex-col sm:flex-row sm:items-center gap-3 mb-4 flex-wrap">
         <select
-          className={inputCls + ' flex-1 max-w-xs'}
+          className={inputCls + ' w-full sm:flex-1 sm:max-w-xs'}
           value={filterSvcType}
           onChange={(e) => { setFilterSvcType(e.target.value); }}
         >
@@ -640,7 +640,7 @@ export function Settings(): JSX.Element {
     <SidebarLayout title="Settings" description="Manage service types, packages, and locations">
       <Card padding="none" className="overflow-hidden animate-slide-up">
         {/* Tabs */}
-        <div className="flex border-b border-ink-100 px-2 pt-2 gap-1">
+        <div className="flex border-b border-ink-100 px-2 pt-2 gap-1 overflow-x-auto">
           {TABS.map((tab) => (
             <button
               key={tab.id}

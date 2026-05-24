@@ -125,7 +125,7 @@ export function CustomerDetail(): JSX.Element {
                 <span className="flex items-center gap-1.5"><CalendarDays className="h-4 w-4 text-ink-400" /> Joined {formatDateTime(customer.createdAt)}</span>
               </div>
             </div>
-            <div className="flex gap-4 text-center">
+            <div className="flex gap-4 text-center flex-shrink-0">
               <div>
                 <p className="text-2xl font-bold text-ink-900">{customer._count.bookings}</p>
                 <p className="text-xs text-ink-500">Bookings</p>

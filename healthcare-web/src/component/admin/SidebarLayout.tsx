@@ -83,7 +83,7 @@ export function SidebarLayout({ children, title, description, actions }: Sidebar
             className="lg:hidden fixed inset-0 bg-ink-950/40 backdrop-blur-sm z-40 animate-fade-in"
             onClick={() => setMobileOpen(false)}
           />
-          <aside className="lg:hidden fixed inset-y-0 left-0 w-72 bg-white shadow-2xl z-50 animate-slide-up">
+          <aside className="lg:hidden fixed inset-y-0 left-0 w-[280px] max-w-[85vw] bg-white shadow-2xl z-50 animate-slide-up">
             <SidebarContent
               onNavigate={() => setMobileOpen(false)}
               onLogout={handleLogout}

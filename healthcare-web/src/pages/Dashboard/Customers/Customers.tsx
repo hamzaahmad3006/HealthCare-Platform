@@ -135,8 +135,8 @@ export function Customers(): JSX.Element {
       description={meta ? `${meta.total} registered customers` : 'Registered customers'}
     >
       {/* Search */}
-      <form onSubmit={handleSearch} className="flex gap-2 mb-6">
-        <div className="relative flex-1 max-w-sm">
+      <form onSubmit={handleSearch} className="flex flex-wrap gap-2 mb-6">
+        <div className="relative flex-1 min-w-[200px] max-w-sm">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-ink-400" />
           <input
             type="text"

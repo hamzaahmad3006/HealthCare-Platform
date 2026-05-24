@@ -93,14 +93,14 @@ export function Staff(): JSX.Element {
 
   return (
     <SidebarLayout title="Staff" description="Verify, manage, and onboard healthcare professionals">
-      <div className="flex flex-wrap items-end justify-between gap-3 mb-4">
+      <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
         <div />
         <Button onClick={() => setShowAddModal(true)} leftIcon={<UserPlus className="h-4 w-4" />}>
           Add staff
         </Button>
       </div>
-      <div className="flex flex-wrap items-end gap-3">
-        <div className="flex-1 min-w-[16rem]">
+      <div className="flex flex-col sm:flex-row sm:flex-wrap sm:items-end gap-3">
+        <div className="w-full sm:flex-1 sm:min-w-[16rem]">
           <Input
             placeholder="Search by name, phone, or staff code…"
             leftIcon={<Search className="h-4 w-4" />}
@@ -113,7 +113,7 @@ export function Staff(): JSX.Element {
             <Filter className="h-3 w-3 inline mr-1" />
             Verification
           </label>
-          <div className="bg-white rounded-xl ring-1 ring-ink-200 p-1 inline-flex gap-1">
+          <div className="bg-white rounded-xl ring-1 ring-ink-200 p-1 flex gap-1 overflow-x-auto">
             {STATUS_OPTIONS.map((o) => (
               <button
                 key={o.id}
@@ -133,7 +133,7 @@ export function Staff(): JSX.Element {
           <label className="text-2xs font-semibold uppercase tracking-wider text-ink-500 block mb-1">
             Availability
           </label>
-          <div className="bg-white rounded-xl ring-1 ring-ink-200 p-1 inline-flex gap-1">
+          <div className="bg-white rounded-xl ring-1 ring-ink-200 p-1 flex gap-1 overflow-x-auto">
             {AVAIL_OPTIONS.map((o) => (
               <button
                 key={o.id}

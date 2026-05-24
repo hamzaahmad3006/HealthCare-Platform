@@ -187,7 +187,7 @@ export function Visits(): JSX.Element {
 
   return (
     <SidebarLayout title="Visits" description="Track check-ins and visit progress in real time">
-      <div className="flex flex-wrap items-end gap-3">
+      <div className="flex flex-col sm:flex-row sm:flex-wrap sm:items-end gap-3">
         <div>
           <label className="text-2xs font-semibold uppercase tracking-wider text-ink-500 block mb-1">
             <Calendar className="h-3 w-3 inline mr-1" />
@@ -218,7 +218,7 @@ export function Visits(): JSX.Element {
           <label className="text-2xs font-semibold uppercase tracking-wider text-ink-500 block mb-1">
             Status
           </label>
-          <div className="bg-white rounded-xl ring-1 ring-ink-200 p-1 inline-flex gap-1 flex-wrap">
+          <div className="bg-white rounded-xl ring-1 ring-ink-200 p-1 flex gap-1 flex-wrap overflow-x-auto">
             {STATUS_OPTIONS.map((o) => (
               <button
                 key={o.id}

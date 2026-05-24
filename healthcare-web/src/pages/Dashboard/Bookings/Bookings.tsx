@@ -111,7 +111,7 @@ export function Bookings(): JSX.Element {
 
   return (
     <SidebarLayout title="Bookings" description="Confirm, assign, and track all bookings">
-      <div className="bg-white rounded-2xl ring-1 ring-ink-100 p-1.5 inline-flex gap-1 shadow-card overflow-x-auto scrollbar-thin">
+      <div className="bg-white rounded-2xl ring-1 ring-ink-100 p-1.5 flex gap-1 shadow-card overflow-x-auto">
         {TABS.map((t) => (
           <button
             key={t.id}

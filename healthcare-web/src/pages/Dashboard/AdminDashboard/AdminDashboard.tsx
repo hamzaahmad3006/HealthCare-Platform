@@ -80,10 +80,10 @@ export function AdminDashboard(): JSX.Element {
 
       {d.isLoading || !d.summary ? (
         <div className="animate-fade-in">
-          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             {Array.from({ length: 4 }).map((_, i) => <KpiCardSkeleton key={i} />)}
           </div>
-          <div className="mt-6 grid lg:grid-cols-3 gap-6">
+          <div className="mt-6 grid grid-cols-1 lg:grid-cols-3 gap-6">
             <div className="lg:col-span-2 h-64 rounded-2xl bg-ink-100 animate-pulse" />
             <div className="h-64 rounded-2xl bg-ink-100 animate-pulse" />
           </div>
@@ -100,7 +100,7 @@ export function AdminDashboard(): JSX.Element {
       ) : (
         <>
           {/* KPI row */}
-          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4 animate-slide-up">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 animate-slide-up">
             <KpiCard
               label="Total bookings"
               value={d.summary.totalBookings}
@@ -157,7 +157,7 @@ export function AdminDashboard(): JSX.Element {
           ) : null}
 
           {/* Charts row */}
-          <div className="mt-6 grid lg:grid-cols-3 gap-6 animate-slide-up">
+          <div className="mt-6 grid grid-cols-1 lg:grid-cols-3 gap-6 animate-slide-up">
             {/* Bookings trend — bar chart */}
             <Card padding="lg" className="lg:col-span-2">
               <div className="flex items-center gap-2 mb-5">

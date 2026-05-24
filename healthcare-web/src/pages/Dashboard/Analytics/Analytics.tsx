@@ -57,11 +57,11 @@ export function Analytics(): JSX.Element {
 
       {isLoading || !data ? (
         <div className="space-y-6 animate-fade-in">
-          <div className="grid sm:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             {[1, 2, 3].map((i) => <div key={i} className="h-28 rounded-2xl bg-ink-100 animate-pulse" />)}
           </div>
           <div className="h-72 rounded-2xl bg-ink-100 animate-pulse" />
-          <div className="grid lg:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <div className="h-64 rounded-2xl bg-ink-100 animate-pulse" />
             <div className="h-64 rounded-2xl bg-ink-100 animate-pulse" />
           </div>

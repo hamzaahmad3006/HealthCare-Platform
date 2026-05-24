@@ -133,7 +133,7 @@ export function AuditLogs(): JSX.Element {
   return (
     <SidebarLayout title="Audit Logs" description={meta ? `${meta.total} log entries` : 'System activity log'}>
       {/* Filter */}
-      <div className="flex items-center gap-3 mb-6 flex-wrap">
+      <div className="flex flex-col sm:flex-row sm:items-center gap-3 mb-6 flex-wrap">
         <div className="flex items-center gap-2">
           <Search className="h-4 w-4 text-ink-400" />
           <select

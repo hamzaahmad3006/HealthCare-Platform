@@ -161,7 +161,7 @@ export function PaymentHistory(): JSX.Element {
   return (
     <SidebarLayout title="Payment History" description={meta ? `${meta.total} payments` : 'All payments'}>
       {/* Filters + quick stats */}
-      <div className="flex items-center gap-3 mb-6 flex-wrap">
+      <div className="flex flex-col sm:flex-row sm:items-center gap-3 mb-6 flex-wrap">
         <select
           className="text-sm rounded-xl border border-ink-200 px-3 py-2 focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 outline-none bg-white"
           value={statusFilter}
@@ -181,8 +181,8 @@ export function PaymentHistory(): JSX.Element {
             Clear
           </button>
         ) : null}
-        <div className="flex-1" />
-        <div className="flex items-center gap-4 text-sm">
+        <div className="hidden sm:block flex-1" />
+        <div className="flex items-center gap-4 text-sm flex-wrap">
           <span className="text-ink-500">This page: <span className="font-bold text-success-700">PKR {totalPaid.toLocaleString()} collected</span></span>
           {pendingCount > 0 ? <span className="text-warning-600 font-semibold">{pendingCount} pending</span> : null}
         </div>
