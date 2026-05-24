@@ -5,7 +5,9 @@ export type BookingStatus =
   | 'IN_PROGRESS'
   | 'COMPLETED'
   | 'CANCELLED'
-  | 'RESCHEDULED';
+  | 'RESCHEDULED'
+  | 'PENDING_DOCTOR'
+  | 'TIME_PROPOSED';
 
 export type VisitStatus =
   | 'SCHEDULED'
@@ -85,6 +87,15 @@ export interface CityWithZones extends City {
   zones: Zone[];
 }
 
+export interface Doctor {
+  userId: string;
+  staffCode: string;
+  gender: Gender | null;
+  experienceYears: number;
+  city: { id: string; name: string } | null;
+  user: { fullName: string; avatarUrl: string | null };
+}
+
 export interface Booking {
   id: string;
   bookingNumber: string;
@@ -95,6 +106,8 @@ export interface Booking {
   addressId: string;
   cityId: string;
   preferredStaffGender: Gender | null;
+  preferredDoctorUserId: string | null;
+  proposedStartAt: string | null;
   urgencyLevel: UrgencyLevel;
   requestedStartAt: string;
   specialInstructions: string | null;
@@ -166,6 +179,7 @@ export interface CreateBookingRequest {
   cityId: string;
   requestedStartAt: string;
   preferredStaffGender?: Gender;
+  preferredDoctorUserId?: string;
   urgencyLevel?: UrgencyLevel;
   specialInstructions?: string;
   whatsappNumber?: string;

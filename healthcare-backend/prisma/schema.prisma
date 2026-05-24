@@ -37,6 +37,8 @@ enum BookingStatus {
   COMPLETED
   CANCELLED
   RESCHEDULED
+  PENDING_DOCTOR
+  TIME_PROPOSED
 }
 
 enum VisitStatus {
@@ -418,8 +420,10 @@ model Booking {
   address              Address       @relation(fields: [addressId], references: [id])
   cityId               String
   city                 City          @relation(fields: [cityId], references: [id])
-  preferredStaffGender Gender?
-  urgencyLevel         UrgencyLevel  @default(NORMAL)
+  preferredStaffGender    Gender?
+  preferredDoctorUserId   String?
+  proposedStartAt         DateTime?
+  urgencyLevel            UrgencyLevel  @default(NORMAL)
   requestedStartAt     DateTime
   specialInstructions  String?
   status               BookingStatus @default(PENDING)

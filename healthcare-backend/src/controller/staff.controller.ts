@@ -555,4 +555,35 @@ export const staffController = {
       success(res, updated);
     } catch (err) { next(err); }
   },
+
+  // List available verified doctors for the VISITING_DOCTOR service
+  async listDoctors(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const { cityId } = z.object({ cityId: z.string().uuid().optional() }).parse(req.query);
+
+      const doctors = await prisma.staffProfile.findMany({
+        where: {
+          verificationStatus: 'VERIFIED',
+          isAvailable: true,
+          ...(cityId ? { cityId } : {}),
+          serviceTypes: {
+            some: {
+              serviceType: { code: 'VISITING_DOCTOR' },
+            },
+          },
+        },
+        select: {
+          userId: true,
+          staffCode: true,
+          gender: true,
+          experienceYears: true,
+          city: { select: { id: true, name: true } },
+          user: { select: { fullName: true, avatarUrl: true } },
+        },
+        orderBy: { experienceYears: 'desc' },
+      });
+
+      success(res, doctors);
+    } catch (err) { next(err); }
+  },
 };

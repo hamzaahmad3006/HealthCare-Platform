@@ -22,6 +22,7 @@ export const API = {
   CITIES: '/cities',
   STAFF: {
     LIST: '/staff',
+    DOCTORS: '/staff/doctors',
     ME: '/staff/me',
     MY_PROFILE: '/staff/me/profile',
     MY_AVATAR: '/staff/me/avatar',
@@ -37,12 +38,17 @@ export const API = {
   },
   BOOKINGS: {
     LIST: '/bookings',
+    DOCTOR_REQUESTS: '/bookings?doctorRequestsOnly=true',
     BY_ID: (id: string): string => `/bookings/${id}`,
     CONFIRM: (id: string): string => `/bookings/${id}/confirm`,
     CANCEL: (id: string): string => `/bookings/${id}/cancel`,
     RESCHEDULE: (id: string): string => `/bookings/${id}/reschedule`,
     ASSIGN: (id: string): string => `/bookings/${id}/assignments`,
     VISITS: (id: string): string => `/bookings/${id}/visits`,
+    DOCTOR_ACCEPT: (id: string): string => `/bookings/${id}/doctor-accept`,
+    DOCTOR_PROPOSE_TIME: (id: string): string => `/bookings/${id}/doctor-propose-time`,
+    CUSTOMER_ACCEPT_TIME: (id: string): string => `/bookings/${id}/customer-accept-time`,
+    CUSTOMER_DECLINE_TIME: (id: string): string => `/bookings/${id}/customer-decline-time`,
   },
   VISITS: {
     LIST: '/visits',

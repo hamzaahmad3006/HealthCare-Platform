@@ -15,4 +15,10 @@ router.patch('/:id/reschedule', authenticateToken, adminOnly, bookingController.
 router.post('/:id/assignments', authenticateToken, adminOnly, bookingController.assignStaff);
 router.get('/:id/visits', authenticateToken, bookingController.getVisits);
 
+// Doctor booking flow
+router.patch('/:id/doctor-accept', authenticateToken, bookingController.doctorAccept);
+router.patch('/:id/doctor-propose-time', authenticateToken, bookingController.doctorProposeTime);
+router.patch('/:id/customer-accept-time', authenticateToken, bookingController.customerAcceptTime);
+router.patch('/:id/customer-decline-time', authenticateToken, bookingController.customerDeclineTime);
+
 export default router;

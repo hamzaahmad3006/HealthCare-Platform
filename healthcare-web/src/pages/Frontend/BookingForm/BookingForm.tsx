@@ -21,6 +21,7 @@ import {
   ChevronDown,
   CheckCircle2,
   Loader2,
+  X,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { Button } from '../../../constant/Button';
@@ -193,7 +194,7 @@ function Stepper({
 }
 
 // ──────────────────────────────────────────────────────────────────────────────
-// Step 1 — Service + Package
+// Step 1 — Service + Package (+ Doctor for VISITING_DOCTOR)
 // ──────────────────────────────────────────────────────────────────────────────
 function Step1({ form }: { form: ReturnType<typeof useBookingForm> }): JSX.Element {
   return (
@@ -230,6 +231,70 @@ function Step1({ form }: { form: ReturnType<typeof useBookingForm> }): JSX.Eleme
           })}
         </div>
       </div>
+
+      {/* Doctor picker — only shown for VISITING_DOCTOR */}
+      {form.isVisitingDoctorService ? (
+        <div>
+          <div className="flex items-center justify-between mb-1">
+            <label className="text-sm font-semibold text-ink-800">
+              Select a doctor <span className="text-ink-400 font-normal">(optional)</span>
+            </label>
+            {form.selectedDoctorId ? (
+              <button
+                type="button"
+                onClick={() => form.selectDoctor(null)}
+                className="text-xs text-ink-500 hover:text-danger-600 flex items-center gap-1 transition-colors"
+              >
+                <X className="h-3 w-3" /> Clear
+              </button>
+            ) : null}
+          </div>
+          <p className="text-xs text-ink-500 mb-3">
+            Pick a specific doctor and they&apos;ll confirm the visit from their side. Or skip to let admin assign one.
+          </p>
+          {form.isLoadingDoctors ? (
+            <LoadingSpinner size="md" className="py-6" />
+          ) : form.doctors.length === 0 ? (
+            <p className="text-sm text-ink-500 py-4 text-center bg-ink-50 rounded-xl">
+              No verified doctors available right now — admin will assign one.
+            </p>
+          ) : (
+            <div className="grid sm:grid-cols-2 gap-3">
+              {form.doctors.map((doc) => {
+                const active = doc.userId === form.selectedDoctorId;
+                return (
+                  <button
+                    key={doc.userId}
+                    type="button"
+                    onClick={() => form.selectDoctor(active ? null : doc.userId)}
+                    className={clsx(
+                      'text-left p-4 rounded-xl ring-1 transition-all flex items-center gap-3',
+                      active
+                        ? 'bg-gradient-brand-soft ring-brand-500 shadow-brand'
+                        : 'bg-white ring-ink-200 hover:ring-brand-300 hover:shadow-card',
+                    )}
+                  >
+                    <div className={clsx(
+                      'h-11 w-11 rounded-xl flex items-center justify-center flex-shrink-0 font-bold text-sm',
+                      active ? 'bg-brand-600 text-white' : 'bg-brand-50 text-brand-700',
+                    )}>
+                      {doc.user.fullName.charAt(0).toUpperCase()}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="font-semibold text-ink-900 truncate">{doc.user.fullName}</p>
+                      <p className="text-xs text-ink-500 mt-0.5">
+                        {doc.experienceYears > 0 ? `${doc.experienceYears}y exp` : 'Verified doctor'}
+                        {doc.city ? ` · ${doc.city.name}` : ''}
+                      </p>
+                    </div>
+                    {active ? <CheckCircle2 className="h-5 w-5 text-brand-700 flex-shrink-0" /> : null}
+                  </button>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      ) : null}
 
       {form.selectedServiceId ? (
         <div>
@@ -614,6 +679,13 @@ function Step4({ form }: { form: ReturnType<typeof useBookingForm> }): JSX.Eleme
             : undefined
         }
       />
+      {form.selectedDoctorId ? (
+        <SummaryRow
+          label="Doctor"
+          value={form.doctors.find((d) => d.userId === form.selectedDoctorId)?.user.fullName ?? '—'}
+          subValue="Booking pending doctor confirmation"
+        />
+      ) : null}
       <SummaryRow label="Patient" value={form.selectedPatient?.fullName ?? '—'} />
       <SummaryRow
         label="Address"

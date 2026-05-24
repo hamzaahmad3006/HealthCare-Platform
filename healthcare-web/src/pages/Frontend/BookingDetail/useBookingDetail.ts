@@ -18,6 +18,9 @@ interface UseBookingDetailReturn {
   isCancelling: boolean;
   canCancel: boolean;
   handleCancel: (reason: string) => Promise<void>;
+  isActingOnTime: boolean;
+  handleAcceptTime: () => Promise<void>;
+  handleDeclineTime: () => Promise<void>;
   isSubmittingReview: boolean;
   handleReview: (data: ReviewFormData) => Promise<void>;
   goBack: () => void;
@@ -30,6 +33,7 @@ export function useBookingDetail(): UseBookingDetailReturn {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isCancelling, setIsCancelling] = useState(false);
+  const [isActingOnTime, setIsActingOnTime] = useState(false);
   const [isSubmittingReview, setIsSubmittingReview] = useState(false);
   const [reloadFlag, setReloadFlag] = useState(0);
 
@@ -56,7 +60,7 @@ export function useBookingDetail(): UseBookingDetailReturn {
   }, [id, reloadFlag]);
 
   const canCancel = Boolean(
-    booking && ['PENDING', 'CONFIRMED'].includes(booking.status),
+    booking && ['PENDING', 'CONFIRMED', 'PENDING_DOCTOR', 'TIME_PROPOSED'].includes(booking.status),
   );
 
   const handleCancel = useCallback(
@@ -75,6 +79,34 @@ export function useBookingDetail(): UseBookingDetailReturn {
     },
     [id],
   );
+
+  const handleAcceptTime = useCallback(async (): Promise<void> => {
+    if (!id) return;
+    setIsActingOnTime(true);
+    try {
+      await api.patch(API.BOOKINGS.CUSTOMER_ACCEPT_TIME(id));
+      toast.success('Time accepted — booking confirmed with doctor!');
+      setReloadFlag((f) => f + 1);
+    } catch (err) {
+      toast.error(extractApiError(err).message);
+    } finally {
+      setIsActingOnTime(false);
+    }
+  }, [id]);
+
+  const handleDeclineTime = useCallback(async (): Promise<void> => {
+    if (!id) return;
+    setIsActingOnTime(true);
+    try {
+      await api.patch(API.BOOKINGS.CUSTOMER_DECLINE_TIME(id));
+      toast.success('Booking cancelled.');
+      setReloadFlag((f) => f + 1);
+    } catch (err) {
+      toast.error(extractApiError(err).message);
+    } finally {
+      setIsActingOnTime(false);
+    }
+  }, [id]);
 
   const handleReview = useCallback(
     async (data: ReviewFormData): Promise<void> => {
@@ -101,6 +133,9 @@ export function useBookingDetail(): UseBookingDetailReturn {
     isCancelling,
     canCancel,
     handleCancel,
+    isActingOnTime,
+    handleAcceptTime,
+    handleDeclineTime,
     isSubmittingReview,
     handleReview,
     goBack: () => navigate('/my-bookings'),

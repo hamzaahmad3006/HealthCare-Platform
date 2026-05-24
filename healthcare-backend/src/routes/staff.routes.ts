@@ -9,7 +9,8 @@ const router = Router();
 router.post('/', authenticateToken, adminOnly, staffController.create);
 router.get('/', authenticateToken, adminOnly, staffController.list);
 
-// "/me" must come before "/:userId" so it isn't swallowed by the param.
+// Static paths must come before "/:userId" param route.
+router.get('/doctors', authenticateToken, staffController.listDoctors);
 router.get('/me', authenticateToken, staffController.getMyProfile);
 router.patch('/me/profile', authenticateToken, staffController.completeMyProfile);
 router.patch('/me/avatar', authenticateToken, staffController.updateMyAvatar);

@@ -19,6 +19,7 @@ interface BookingRow extends Booking {
 }
 
 const TABS: { id: BookingStatus | 'ALL'; label: string }[] = [
+  { id: 'PENDING_DOCTOR', label: 'Doctor' },
   { id: 'PENDING', label: 'Pending' },
   { id: 'CONFIRMED', label: 'Confirmed' },
   { id: 'ASSIGNED', label: 'Assigned' },

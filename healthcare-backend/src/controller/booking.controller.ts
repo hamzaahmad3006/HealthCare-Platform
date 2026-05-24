@@ -24,6 +24,7 @@ const CreateBookingSchema = z.object({
   cityId: z.string().uuid(),
   requestedStartAt: z.string().datetime(),
   preferredStaffGender: z.enum(['MALE', 'FEMALE', 'OTHER']).optional(),
+  preferredDoctorUserId: z.string().uuid().optional(),
   urgencyLevel: z.enum(['NORMAL', 'URGENT', 'EMERGENCY']).default('NORMAL'),
   specialInstructions: z.string().optional(),
   whatsappNumber: z.string().optional(),
@@ -31,11 +32,12 @@ const CreateBookingSchema = z.object({
 });
 
 const BookingListQuerySchema = z.object({
-  status: z.enum(['PENDING', 'CONFIRMED', 'ASSIGNED', 'IN_PROGRESS', 'COMPLETED', 'CANCELLED', 'RESCHEDULED']).optional(),
+  status: z.enum(['PENDING', 'CONFIRMED', 'ASSIGNED', 'IN_PROGRESS', 'COMPLETED', 'CANCELLED', 'RESCHEDULED', 'PENDING_DOCTOR', 'TIME_PROPOSED']).optional(),
   cityId: z.string().uuid().optional(),
   serviceTypeId: z.string().uuid().optional(),
   fromDate: z.string().optional(),
   toDate: z.string().optional(),
+  doctorRequestsOnly: z.enum(['true', 'false']).transform((v) => v === 'true').optional(),
   page: z.coerce.number().min(1).default(1),
   limit: z.coerce.number().min(1).max(100).default(20),
 });
@@ -81,6 +83,10 @@ export const bookingController = {
         const seq = Number(sequenceResult[0]?.count ?? 0) + 1;
         const bookingNumber = generateBookingNumber(city.slug, seq);
 
+        // Determine status: if a specific doctor is requested, await their acceptance
+        const serviceType = await tx.serviceType.findUnique({ where: { id: data.serviceTypeId }, select: { code: true } });
+        const isDoctorService = serviceType?.code === 'VISITING_DOCTOR' && Boolean(data.preferredDoctorUserId);
+
         const newBooking = await tx.booking.create({
           data: {
             bookingNumber,
@@ -91,13 +97,14 @@ export const bookingController = {
             addressId: data.addressId,
             cityId: data.cityId,
             preferredStaffGender: data.preferredStaffGender,
+            preferredDoctorUserId: isDoctorService ? data.preferredDoctorUserId : undefined,
             urgencyLevel: data.urgencyLevel,
             requestedStartAt: new Date(data.requestedStartAt),
             specialInstructions: data.specialInstructions,
             totalPrice: pkg.priceAmount,
             currency: pkg.currency,
             source: data.source,
-            status: 'PENDING',
+            status: isDoctorService ? 'PENDING_DOCTOR' : 'PENDING',
             createdByUserId: customerId,
           },
         });
@@ -136,12 +143,17 @@ export const bookingController = {
     try {
       if (!req.user) throw new UnauthorizedError('UNAUTHENTICATED');
 
-      const { status, cityId, serviceTypeId, fromDate, toDate, page, limit } =
+      const { status, cityId, serviceTypeId, fromDate, toDate, doctorRequestsOnly, page, limit } =
         BookingListQuerySchema.parse(req.query);
 
       const where: Prisma.BookingWhereInput = {
         ...(req.user.role === 'CUSTOMER' && { customerUserId: req.user.sub }),
-        ...(status && { status }),
+        // Doctor mode: staff sees only bookings where they are the preferred doctor
+        ...(doctorRequestsOnly && req.user.role === 'STAFF' && {
+          preferredDoctorUserId: req.user.sub,
+          status: { in: ['PENDING_DOCTOR', 'TIME_PROPOSED'] as const },
+        }),
+        ...(status && !doctorRequestsOnly && { status }),
         ...(cityId && { cityId }),
         ...(serviceTypeId && { serviceTypeId }),
         ...(fromDate && { requestedStartAt: { gte: new Date(fromDate) } }),
@@ -152,9 +164,10 @@ export const bookingController = {
         prisma.booking.findMany({
           where,
           include: {
-            patient: { select: { fullName: true } },
+            patient: { select: { fullName: true, primaryCondition: true } },
             serviceType: { select: { code: true, name: true } },
             package: { select: { name: true, packageType: true } },
+            city: { select: { name: true } },
           },
           orderBy: { createdAt: 'desc' },
           skip: (page - 1) * limit,
@@ -272,8 +285,8 @@ export const bookingController = {
 
       const allowedStatuses: BookingStatus[] =
         req.user.role === 'CUSTOMER'
-          ? [BookingStatus.PENDING, BookingStatus.CONFIRMED]
-          : [BookingStatus.PENDING, BookingStatus.CONFIRMED, BookingStatus.ASSIGNED, BookingStatus.IN_PROGRESS];
+          ? [BookingStatus.PENDING, BookingStatus.CONFIRMED, 'PENDING_DOCTOR' as BookingStatus, 'TIME_PROPOSED' as BookingStatus]
+          : [BookingStatus.PENDING, BookingStatus.CONFIRMED, BookingStatus.ASSIGNED, BookingStatus.IN_PROGRESS, 'PENDING_DOCTOR' as BookingStatus, 'TIME_PROPOSED' as BookingStatus];
 
       // Atomic UPDATE with WHERE guard — Prisma compiles to a single SQL statement.
       // If 0 rows match, another writer already changed the status.
@@ -446,6 +459,106 @@ export const bookingController = {
       });
 
       success(res, visits);
+    } catch (err) { next(err); }
+  },
+
+  // Doctor accepts the booking → moves to PENDING (admin queue)
+  async doctorAccept(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      if (!req.user) throw new UnauthorizedError('UNAUTHENTICATED');
+      if (req.user.role !== 'STAFF') throw new ForbiddenError('STAFF_ONLY');
+
+      const booking = await prisma.booking.findUnique({ where: { id: pickParam(req, 'id') } });
+      if (!booking) throw new NotFoundError('BOOKING_NOT_FOUND');
+      if (booking.preferredDoctorUserId !== req.user.sub) {
+        throw new ForbiddenError('NOT_YOUR_BOOKING', 'This booking is not assigned to you');
+      }
+
+      assertBookingTransition(booking.status, 'PENDING');
+
+      const updated = await prisma.booking.update({
+        where: { id: booking.id },
+        data: { status: 'PENDING' },
+      });
+
+      success(res, updated);
+    } catch (err) { next(err); }
+  },
+
+  // Doctor proposes a different time → TIME_PROPOSED
+  async doctorProposeTime(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      if (!req.user) throw new UnauthorizedError('UNAUTHENTICATED');
+      if (req.user.role !== 'STAFF') throw new ForbiddenError('STAFF_ONLY');
+
+      const { proposedStartAt } = z.object({ proposedStartAt: z.string().datetime() }).parse(req.body);
+
+      const booking = await prisma.booking.findUnique({ where: { id: pickParam(req, 'id') } });
+      if (!booking) throw new NotFoundError('BOOKING_NOT_FOUND');
+      if (booking.preferredDoctorUserId !== req.user.sub) {
+        throw new ForbiddenError('NOT_YOUR_BOOKING', 'This booking is not assigned to you');
+      }
+
+      assertBookingTransition(booking.status, 'TIME_PROPOSED');
+
+      const updated = await prisma.booking.update({
+        where: { id: booking.id },
+        data: { status: 'TIME_PROPOSED', proposedStartAt: new Date(proposedStartAt) },
+      });
+
+      success(res, updated);
+    } catch (err) { next(err); }
+  },
+
+  // Customer accepts the doctor's proposed time → PENDING (admin queue)
+  async customerAcceptTime(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      if (!req.user) throw new UnauthorizedError('UNAUTHENTICATED');
+      if (req.user.role !== 'CUSTOMER') throw new ForbiddenError('CUSTOMER_ONLY');
+
+      const booking = await prisma.booking.findUnique({ where: { id: pickParam(req, 'id') } });
+      if (!booking) throw new NotFoundError('BOOKING_NOT_FOUND');
+      if (booking.customerUserId !== req.user.sub) throw new ForbiddenError('FORBIDDEN');
+      if (booking.status !== 'TIME_PROPOSED') {
+        throw new BusinessError('WRONG_STATUS', 'Booking is not in TIME_PROPOSED state');
+      }
+      if (!booking.proposedStartAt) {
+        throw new BusinessError('NO_PROPOSED_TIME', 'No proposed time found on this booking');
+      }
+
+      const updated = await prisma.booking.update({
+        where: { id: booking.id },
+        data: { status: 'PENDING', requestedStartAt: booking.proposedStartAt, proposedStartAt: null },
+      });
+
+      success(res, updated);
+    } catch (err) { next(err); }
+  },
+
+  // Customer declines the doctor's proposed time → CANCELLED
+  async customerDeclineTime(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      if (!req.user) throw new UnauthorizedError('UNAUTHENTICATED');
+      if (req.user.role !== 'CUSTOMER') throw new ForbiddenError('CUSTOMER_ONLY');
+
+      const booking = await prisma.booking.findUnique({ where: { id: pickParam(req, 'id') } });
+      if (!booking) throw new NotFoundError('BOOKING_NOT_FOUND');
+      if (booking.customerUserId !== req.user.sub) throw new ForbiddenError('FORBIDDEN');
+      if (booking.status !== 'TIME_PROPOSED') {
+        throw new BusinessError('WRONG_STATUS', 'Booking is not in TIME_PROPOSED state');
+      }
+
+      const updated = await prisma.booking.update({
+        where: { id: booking.id },
+        data: {
+          status: 'CANCELLED',
+          cancelledAt: new Date(),
+          cancelledByUserId: req.user.sub,
+          cancellationReason: 'Customer declined proposed time',
+        },
+      });
+
+      success(res, updated);
     } catch (err) { next(err); }
   },
 };

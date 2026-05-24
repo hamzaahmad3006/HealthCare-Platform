@@ -13,6 +13,7 @@ import type {
   Booking,
   UrgencyLevel,
   Gender,
+  Doctor,
 } from '../../../types/booking.types';
 
 export type StepNumber = 1 | 2 | 3 | 4;
@@ -27,10 +28,15 @@ interface UseBookingFormReturn {
   // Step 1
   services: ServiceType[];
   packages: Package[];
+  doctors: Doctor[];
+  isLoadingDoctors: boolean;
   selectedServiceId: string | null;
   selectedPackageId: string | null;
+  selectedDoctorId: string | null;
   selectService: (id: string) => void;
   selectPackage: (id: string) => void;
+  selectDoctor: (id: string | null) => void;
+  isVisitingDoctorService: boolean;
 
   // Step 2
   patients: Patient[];
@@ -87,8 +93,11 @@ export function useBookingForm(): UseBookingFormReturn {
   // Step 1 state
   const [services, setServices] = useState<ServiceType[]>([]);
   const [packages, setPackages] = useState<Package[]>([]);
+  const [doctors, setDoctors] = useState<Doctor[]>([]);
   const [selectedServiceId, setSelectedServiceId] = useState<string | null>(null);
   const [selectedPackageId, setSelectedPackageId] = useState<string | null>(null);
+  const [selectedDoctorId, setSelectedDoctorId] = useState<string | null>(null);
+  const [isLoadingDoctors, setIsLoadingDoctors] = useState(false);
 
   // Step 2 state
   const [patients, setPatients] = useState<Patient[]>([]);
@@ -176,6 +185,34 @@ export function useBookingForm(): UseBookingFormReturn {
       cancelled = true;
     };
   }, [selectedServiceId]);
+
+  const isVisitingDoctorService = useMemo(
+    () => services.find((s) => s.id === selectedServiceId)?.code === 'VISITING_DOCTOR',
+    [services, selectedServiceId],
+  );
+
+  // ── Load doctors when VISITING_DOCTOR service is selected ─────────────────
+  useEffect(() => {
+    if (!isVisitingDoctorService) {
+      setDoctors([]);
+      setSelectedDoctorId(null);
+      return;
+    }
+    let cancelled = false;
+    setIsLoadingDoctors(true);
+    const load = async (): Promise<void> => {
+      try {
+        const { data } = await api.get<{ success: true; data: Doctor[] }>(API.STAFF.DOCTORS);
+        if (!cancelled) setDoctors(data.data);
+      } catch {
+        // non-fatal — doctor selection is optional
+      } finally {
+        if (!cancelled) setIsLoadingDoctors(false);
+      }
+    };
+    void load();
+    return () => { cancelled = true; };
+  }, [isVisitingDoctorService]);
 
   // ── Derived selections ─────────────────────────────────────────────────────
   const selectedService = useMemo(
@@ -271,6 +308,7 @@ export function useBookingForm(): UseBookingFormReturn {
         source: 'WEB',
       };
       if (preferredGender) payload.preferredStaffGender = preferredGender;
+      if (selectedDoctorId && isVisitingDoctorService) payload.preferredDoctorUserId = selectedDoctorId;
       if (specialInstructions.trim()) payload.specialInstructions = specialInstructions.trim();
 
       const { data } = await api.post<{ success: true; data: Booking }>(API.BOOKINGS.LIST, payload, {
@@ -294,6 +332,8 @@ export function useBookingForm(): UseBookingFormReturn {
     urgencyLevel,
     preferredGender,
     specialInstructions,
+    selectedDoctorId,
+    isVisitingDoctorService,
     idempotencyKey,
     navigate,
   ]);
@@ -305,10 +345,15 @@ export function useBookingForm(): UseBookingFormReturn {
     goToStep,
     services,
     packages,
+    doctors,
+    isLoadingDoctors,
     selectedServiceId,
     selectedPackageId,
+    selectedDoctorId,
     selectService: setSelectedServiceId,
     selectPackage: setSelectedPackageId,
+    selectDoctor: setSelectedDoctorId,
+    isVisitingDoctorService,
     patients,
     addresses,
     selectedPatientId,

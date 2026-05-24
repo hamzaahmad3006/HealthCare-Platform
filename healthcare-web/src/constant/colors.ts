@@ -54,6 +54,8 @@ export const BOOKING_STATUS_CLASS: Record<string, string> = {
   COMPLETED: 'bg-success-50 text-success-700 ring-success-500/20',
   CANCELLED: 'bg-danger-50 text-danger-700 ring-danger-500/20',
   RESCHEDULED: 'bg-amber-50 text-amber-700 ring-amber-500/20',
+  PENDING_DOCTOR: 'bg-purple-50 text-purple-700 ring-purple-500/20',
+  TIME_PROPOSED: 'bg-orange-50 text-orange-700 ring-orange-500/20',
 };
 
 export const VISIT_STATUS_CLASS: Record<string, string> = {

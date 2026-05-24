@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
-import { ArrowLeft, Calendar, MapPin, User, Phone, AlertCircle, Star, Banknote } from 'lucide-react';
+import { ArrowLeft, Calendar, MapPin, User, Phone, AlertCircle, Star, Banknote, Clock, CheckCircle2, XCircle } from 'lucide-react';
 import { Button } from '../../../constant/Button';
 import { Card } from '../../../constant/Card';
 import { StatusBadge } from '../../../component/common/StatusBadge';
@@ -70,6 +70,54 @@ export function BookingDetail(): JSX.Element {
             </div>
           </div>
         </Card>
+
+        {/* PENDING_DOCTOR banner */}
+        {b.status === 'PENDING_DOCTOR' ? (
+          <div className="mb-6 p-4 rounded-xl bg-purple-50 ring-1 ring-purple-200 flex items-start gap-3">
+            <Clock className="h-5 w-5 text-purple-600 flex-shrink-0 mt-0.5" />
+            <div>
+              <p className="font-semibold text-purple-800">Waiting for doctor confirmation</p>
+              <p className="text-sm text-purple-700 mt-0.5">
+                The doctor will review your request and either accept or propose a new time.
+              </p>
+            </div>
+          </div>
+        ) : null}
+
+        {/* TIME_PROPOSED banner */}
+        {b.status === 'TIME_PROPOSED' && b.proposedStartAt ? (
+          <div className="mb-6 p-4 rounded-xl bg-orange-50 ring-1 ring-orange-200">
+            <div className="flex items-start gap-3 mb-4">
+              <Clock className="h-5 w-5 text-orange-600 flex-shrink-0 mt-0.5" />
+              <div>
+                <p className="font-semibold text-orange-800">Doctor proposed a new time</p>
+                <p className="text-sm text-orange-700 mt-0.5">
+                  The doctor is available at <strong>{formatDateTime(b.proposedStartAt)}</strong>.
+                  Do you accept this new time?
+                </p>
+              </div>
+            </div>
+            <div className="flex gap-2">
+              <Button
+                size="sm"
+                onClick={() => void d.handleAcceptTime()}
+                isLoading={d.isActingOnTime}
+                leftIcon={<CheckCircle2 className="h-4 w-4" />}
+              >
+                Accept new time
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => void d.handleDeclineTime()}
+                isLoading={d.isActingOnTime}
+                leftIcon={<XCircle className="h-4 w-4" />}
+              >
+                Decline
+              </Button>
+            </div>
+          </div>
+        ) : null}
 
         <div className="grid lg:grid-cols-3 gap-6">
           {/* Left — details */}

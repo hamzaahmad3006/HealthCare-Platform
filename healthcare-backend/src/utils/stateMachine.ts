@@ -68,6 +68,8 @@ const BOOKING_TRANSITIONS: Record<BookingStatus, BookingStatus[]> = {
   COMPLETED: [],
   CANCELLED: [],
   RESCHEDULED: ['CONFIRMED', 'CANCELLED'],
+  PENDING_DOCTOR: ['PENDING', 'TIME_PROPOSED', 'CANCELLED'],
+  TIME_PROPOSED: ['PENDING', 'CANCELLED'],
 };
 
 export function assertBookingTransition(

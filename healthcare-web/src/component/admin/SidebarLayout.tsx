@@ -18,6 +18,7 @@ import {
   Settings,
   ClipboardList,
   Banknote,
+  UserSquare2,
 } from 'lucide-react';
 import clsx from 'clsx';
 import { useAppDispatch, useAppSelector } from '../../redux/store';
@@ -49,6 +50,7 @@ const ADMIN_NAV_ITEMS = [
 
 const STAFF_NAV_ITEMS = [
   { to: '/staff/visits', label: 'My Visits', icon: Activity },
+  { to: '/staff/doctor-requests', label: 'Doctor Requests', icon: UserSquare2 },
   { to: '/staff/reports', label: 'My Reports', icon: FileText },
   { to: '/staff/patients', label: 'My Patients', icon: HeartPulse },
   { to: '/staff/documents', label: 'My Documents', icon: FolderUp },
