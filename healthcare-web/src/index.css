@@ -65,7 +65,7 @@
 }
 
 *::-webkit-scrollbar-thumb:hover {
-  background: rgba(99, 102, 241, 0.45);
+  background: rgba(4, 120, 87, 0.5);
 }
 
 *::-webkit-scrollbar-corner {
@@ -76,7 +76,7 @@
 @layer utilities {
   .scrollbar-sidebar {
     scrollbar-width: thin;
-    scrollbar-color: rgba(99, 102, 241, 0.18) transparent;
+    scrollbar-color: rgba(4, 120, 87, 0.18) transparent;
   }
   .scrollbar-sidebar::-webkit-scrollbar {
     width: 3px;
@@ -86,10 +86,10 @@
     margin: 8px 0;
   }
   .scrollbar-sidebar::-webkit-scrollbar-thumb {
-    background: rgba(99, 102, 241, 0.2);
+    background: rgba(4, 120, 87, 0.2);
     border-radius: 999px;
   }
   .scrollbar-sidebar::-webkit-scrollbar-thumb:hover {
-    background: rgba(99, 102, 241, 0.5);
+    background: rgba(4, 120, 87, 0.55);
   }
 }
