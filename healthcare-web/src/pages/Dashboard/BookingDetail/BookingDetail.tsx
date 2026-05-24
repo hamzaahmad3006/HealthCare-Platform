@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { ArrowLeft, Calendar, MapPin, User, Phone, CheckCircle2, XCircle, UserPlus } from 'lucide-react';
+import { ArrowLeft, Calendar, MapPin, User, Phone, CheckCircle2, XCircle, UserPlus, Star } from 'lucide-react';
 import { SidebarLayout } from '../../../component/admin/SidebarLayout';
 import { StaffAssignPanel } from '../../../component/booking/StaffAssignPanel';
 import { StatusBadge } from '../../../component/common/StatusBadge';
@@ -212,6 +212,22 @@ export function AdminBookingDetail(): JSX.Element {
           </Card>
         </div>
       </div>
+
+      {b.reviews?.length ? (
+        <Card padding="md" className="mt-6">
+          <h3 className="text-sm font-semibold text-ink-800 mb-3">Customer review</h3>
+          <div className="flex gap-0.5 mb-2">
+            {[1, 2, 3, 4, 5].map((s) => (
+              <Star key={s} className={`h-5 w-5 ${s <= b.reviews[0].rating ? 'fill-amber-400 text-amber-400' : 'text-ink-200'}`} />
+            ))}
+            <span className="ml-2 text-sm font-semibold text-ink-700">{b.reviews[0].rating} / 5</span>
+          </div>
+          {b.reviews[0].reviewText ? (
+            <p className="text-sm text-ink-700 leading-relaxed">{b.reviews[0].reviewText}</p>
+          ) : null}
+          <p className="text-xs text-ink-400 mt-2">{b.reviews[0].createdAt ? new Date(b.reviews[0].createdAt).toLocaleString() : ''}</p>
+        </Card>
+      ) : null}
 
       <StaffAssignPanel
         open={d.assignPanelOpen}

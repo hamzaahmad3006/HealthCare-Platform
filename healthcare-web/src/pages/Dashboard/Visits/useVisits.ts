@@ -16,7 +16,7 @@ export interface UploadReportPayload {
 }
 
 interface VisitRow extends BookingVisit {
-  booking?: { bookingNumber: string; customerUserId: string; patientId: string; serviceType?: { code: string } | null };
+  booking?: { bookingNumber: string; customerUserId: string; patientId: string; serviceType?: { code: string } | null; reviews?: { rating: number; reviewText: string | null; createdAt: string }[] };
 }
 
 export interface CheckInPayload {

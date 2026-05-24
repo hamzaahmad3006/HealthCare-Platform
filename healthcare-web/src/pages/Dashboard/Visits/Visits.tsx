@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react';
-import { Calendar, Navigation, LogIn, LogOut, CheckCircle2, Loader2, X, CalendarX, FileText, ClipboardList, Upload } from 'lucide-react';
+import { Calendar, Navigation, LogIn, LogOut, CheckCircle2, Loader2, X, CalendarX, FileText, ClipboardList, Upload, Star } from 'lucide-react';
 import { SidebarLayout } from '../../../component/admin/SidebarLayout';
 import { DataTable, type ColumnDef } from '../../../component/admin/DataTable';
 import { StatusBadge } from '../../../component/common/StatusBadge';
@@ -13,7 +13,7 @@ import type { BookingVisit, VisitStatus } from '../../../types/booking.types';
 import type { ReportType } from '../../../types/report.types';
 
 interface VisitRow extends BookingVisit {
-  booking?: { bookingNumber: string; customerUserId: string; patientId: string; serviceType?: { code: string } | null };
+  booking?: { bookingNumber: string; customerUserId: string; patientId: string; serviceType?: { code: string } | null; reviews?: { rating: number; reviewText: string | null; createdAt: string }[] };
 }
 
 const STATUS_OPTIONS: { id: VisitStatus | 'ALL'; label: string }[] = [
@@ -352,6 +352,22 @@ function DetailsModal({ visit, onClose }: DetailsModalProps): JSX.Element {
             value={visit.afterConditionText}
           />
           <NoteBlock label="Visit notes" value={visit.visitNotes} />
+
+          {visit.status === 'COMPLETED' && visit.booking?.reviews?.length ? (
+            <div>
+              <p className="text-2xs font-semibold uppercase tracking-wider text-ink-500 mb-1">Customer review</p>
+              <div className="flex gap-0.5 mb-1">
+                {[1, 2, 3, 4, 5].map((s) => (
+                  <Star key={s} className={`h-4 w-4 ${s <= (visit.booking!.reviews![0]?.rating ?? 0) ? 'fill-amber-400 text-amber-400' : 'text-ink-200'}`} />
+                ))}
+              </div>
+              {visit.booking.reviews[0]?.reviewText ? (
+                <p className="text-sm text-ink-700 bg-ink-50 ring-1 ring-ink-100 rounded-xl px-3 py-2 leading-relaxed">
+                  {visit.booking.reviews[0].reviewText}
+                </p>
+              ) : null}
+            </div>
+          ) : null}
         </div>
 
         <div className="mt-6 flex justify-end">
