@@ -5,6 +5,11 @@ import { api, extractApiError } from '../../../helper/axios';
 import { API } from '../../../constant/apiUrls';
 import type { BookingWithRelations } from '../../../types/booking.types';
 
+export interface ReviewFormData {
+  rating: number;
+  reviewText?: string;
+}
+
 interface UseBookingDetailReturn {
   bookingId: string | undefined;
   booking: BookingWithRelations | null;
@@ -13,6 +18,8 @@ interface UseBookingDetailReturn {
   isCancelling: boolean;
   canCancel: boolean;
   handleCancel: (reason: string) => Promise<void>;
+  isSubmittingReview: boolean;
+  handleReview: (data: ReviewFormData) => Promise<void>;
   goBack: () => void;
 }
 
@@ -23,6 +30,7 @@ export function useBookingDetail(): UseBookingDetailReturn {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isCancelling, setIsCancelling] = useState(false);
+  const [isSubmittingReview, setIsSubmittingReview] = useState(false);
   const [reloadFlag, setReloadFlag] = useState(0);
 
   useEffect(() => {
@@ -68,6 +76,23 @@ export function useBookingDetail(): UseBookingDetailReturn {
     [id],
   );
 
+  const handleReview = useCallback(
+    async (data: ReviewFormData): Promise<void> => {
+      if (!id) return;
+      setIsSubmittingReview(true);
+      try {
+        await api.post(API.REVIEWS, { bookingId: id, ...data });
+        toast.success('Review submitted — thank you!');
+        setReloadFlag((f) => f + 1);
+      } catch (err) {
+        toast.error(extractApiError(err).message);
+      } finally {
+        setIsSubmittingReview(false);
+      }
+    },
+    [id],
+  );
+
   return {
     bookingId: id,
     booking,
@@ -76,6 +101,8 @@ export function useBookingDetail(): UseBookingDetailReturn {
     isCancelling,
     canCancel,
     handleCancel,
+    isSubmittingReview,
+    handleReview,
     goBack: () => navigate('/my-bookings'),
   };
 }

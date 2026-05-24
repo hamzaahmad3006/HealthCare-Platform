@@ -128,6 +128,13 @@ export interface BookingVisit {
   createdAt: string;
 }
 
+export interface BookingReview {
+  id: string;
+  rating: number;
+  reviewText: string | null;
+  createdAt: string;
+}
+
 export interface BookingWithRelations extends Booking {
   patient: Patient;
   serviceType: ServiceType;
@@ -135,6 +142,7 @@ export interface BookingWithRelations extends Booking {
   address: Address;
   city: City;
   visits: BookingVisit[];
+  reviews: BookingReview[];
 }
 
 export interface CreateBookingRequest {

@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { ArrowLeft, Calendar, MapPin, User, Phone, AlertCircle } from 'lucide-react';
+import { useForm } from 'react-hook-form';
+import { ArrowLeft, Calendar, MapPin, User, Phone, AlertCircle, Star } from 'lucide-react';
 import { Button } from '../../../constant/Button';
 import { Card } from '../../../constant/Card';
 import { StatusBadge } from '../../../component/common/StatusBadge';
@@ -7,7 +8,7 @@ import { LoadingSpinner } from '../../../component/common/LoadingSpinner';
 import { VisitTimeline } from '../../../component/booking/VisitTimeline';
 import { TopNav } from '../../../component/common/TopNav';
 import { formatCurrency, formatDateTime } from '../../../helper/format';
-import { useBookingDetail } from './useBookingDetail';
+import { useBookingDetail, type ReviewFormData } from './useBookingDetail';
 
 export function BookingDetail(): JSX.Element {
   const d = useBookingDetail();
@@ -149,6 +150,14 @@ export function BookingDetail(): JSX.Element {
                 <p className="text-sm text-ink-700 leading-relaxed">{b.specialInstructions}</p>
               </Card>
             ) : null}
+
+            {b.status === 'COMPLETED' ? (
+              <ReviewSection
+                existingReview={b.reviews?.[0] ?? null}
+                isSubmitting={d.isSubmittingReview}
+                onSubmit={d.handleReview}
+              />
+            ) : null}
           </div>
         </div>
       </main>
@@ -190,5 +199,85 @@ export function BookingDetail(): JSX.Element {
         </div>
       ) : null}
     </div>
+  );
+}
+
+function StarPicker({ value, onChange }: { value: number; onChange: (v: number) => void }): JSX.Element {
+  const [hovered, setHovered] = useState(0);
+  return (
+    <div className="flex gap-1">
+      {[1, 2, 3, 4, 5].map((star) => (
+        <button
+          key={star}
+          type="button"
+          onClick={() => onChange(star)}
+          onMouseEnter={() => setHovered(star)}
+          onMouseLeave={() => setHovered(0)}
+          className="p-0.5 transition-transform hover:scale-110"
+        >
+          <Star
+            className={`h-7 w-7 transition-colors ${
+              star <= (hovered || value)
+                ? 'fill-amber-400 text-amber-400'
+                : 'text-ink-200'
+            }`}
+          />
+        </button>
+      ))}
+    </div>
+  );
+}
+
+function ReviewSection({
+  existingReview,
+  isSubmitting,
+  onSubmit,
+}: {
+  existingReview: { rating: number; reviewText: string | null; createdAt: string } | null;
+  isSubmitting: boolean;
+  onSubmit: (data: ReviewFormData) => Promise<void>;
+}): JSX.Element {
+  const { register, handleSubmit, watch, setValue } = useForm<ReviewFormData>({ defaultValues: { rating: 0 } });
+  const rating = watch('rating');
+
+  if (existingReview) {
+    return (
+      <Card padding="md" className="mt-6">
+        <h3 className="text-sm font-semibold text-ink-800 mb-3">Your review</h3>
+        <div className="flex gap-0.5 mb-2">
+          {[1, 2, 3, 4, 5].map((s) => (
+            <Star key={s} className={`h-5 w-5 ${s <= existingReview.rating ? 'fill-amber-400 text-amber-400' : 'text-ink-200'}`} />
+          ))}
+        </div>
+        {existingReview.reviewText && (
+          <p className="text-sm text-ink-600 leading-relaxed">{existingReview.reviewText}</p>
+        )}
+        <p className="text-xs text-ink-400 mt-2">{formatDateTime(existingReview.createdAt)}</p>
+      </Card>
+    );
+  }
+
+  return (
+    <Card padding="md" className="mt-6">
+      <h3 className="text-sm font-semibold text-ink-800 mb-1">Rate this visit</h3>
+      <p className="text-xs text-ink-500 mb-4">How was your experience?</p>
+      <form onSubmit={handleSubmit((data) => void onSubmit(data))} className="space-y-4">
+        <StarPicker value={rating} onChange={(v) => setValue('rating', v)} />
+        <textarea
+          {...register('reviewText')}
+          rows={3}
+          placeholder="Tell us about your experience (optional)…"
+          className="w-full px-3 py-2.5 rounded-xl ring-1 ring-ink-200 text-sm text-ink-900 bg-white focus:outline-none focus:ring-2 focus:ring-brand-500 resize-none"
+        />
+        <Button
+          type="submit"
+          loading={isSubmitting}
+          disabled={rating === 0}
+          leftIcon={<Star className="h-4 w-4" />}
+        >
+          Submit review
+        </Button>
+      </form>
+    </Card>
   );
 }

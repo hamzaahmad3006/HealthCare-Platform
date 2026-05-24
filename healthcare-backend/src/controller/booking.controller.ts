@@ -187,6 +187,7 @@ export const bookingController = {
               },
             },
           },
+          reviews: { select: { id: true, rating: true, reviewText: true, createdAt: true } },
         },
       });
 
