@@ -13,6 +13,15 @@ const MyBookings = lazy(() =>
 const BookingDetail = lazy(() =>
   import('./BookingDetail/BookingDetail').then((m) => ({ default: m.BookingDetail })),
 );
+const MyPatients = lazy(() =>
+  import('./MyPatients/MyPatients').then((m) => ({ default: m.MyPatients })),
+);
+const MyReports = lazy(() =>
+  import('./MyReports/MyReports').then((m) => ({ default: m.MyReports })),
+);
+const Account = lazy(() =>
+  import('./Account/Account').then((m) => ({ default: m.Account })),
+);
 
 const withSuspense = (element: JSX.Element): JSX.Element => (
   <Suspense fallback={<PageSpinner />}>{element}</Suspense>
@@ -41,6 +50,30 @@ export const frontendRoutes: RouteObject[] = [
     element: withSuspense(
       <ProtectedRoute roles={['CUSTOMER', 'ADMIN']}>
         <BookingDetail />
+      </ProtectedRoute>,
+    ),
+  },
+  {
+    path: '/my-patients',
+    element: withSuspense(
+      <ProtectedRoute roles={['CUSTOMER', 'ADMIN']}>
+        <MyPatients />
+      </ProtectedRoute>,
+    ),
+  },
+  {
+    path: '/my-reports',
+    element: withSuspense(
+      <ProtectedRoute roles={['CUSTOMER', 'ADMIN']}>
+        <MyReports />
+      </ProtectedRoute>,
+    ),
+  },
+  {
+    path: '/account',
+    element: withSuspense(
+      <ProtectedRoute roles={['CUSTOMER', 'ADMIN']}>
+        <Account />
       </ProtectedRoute>,
     ),
   },
