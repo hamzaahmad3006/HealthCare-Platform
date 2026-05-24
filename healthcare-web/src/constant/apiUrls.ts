@@ -66,6 +66,7 @@ export const API = {
   ADMIN: {
     DASHBOARD: '/admin/dashboard/summary',
     ANALYTICS: '/admin/dashboard/analytics',
+    CUSTOMERS: '/admin/customers',
     STAFF_UTIL: '/admin/dashboard/staff-util',
     AUDIT_LOGS: '/admin/audit-logs',
     NOTIFICATION_RETRY: (id: string): string => `/admin/notifications/${id}/retry`,

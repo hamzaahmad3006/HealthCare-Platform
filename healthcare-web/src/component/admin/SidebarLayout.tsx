@@ -33,6 +33,7 @@ interface SidebarLayoutProps {
 const ADMIN_NAV_ITEMS = [
   { to: '/admin', label: 'Dashboard', icon: LayoutDashboard, end: true },
   { to: '/admin/bookings', label: 'Bookings', icon: CalendarClock },
+  { to: '/admin/customers', label: 'Customers', icon: Users },
   { to: '/admin/staff', label: 'Staff', icon: Users },
   { to: '/admin/visits', label: 'Visits', icon: Activity },
   { to: '/admin/reports', label: 'Reports', icon: FileText },

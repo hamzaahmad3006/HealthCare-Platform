@@ -19,6 +19,7 @@ const Visits = lazy(() => import('./Visits/Visits').then((m) => ({ default: m.Vi
 const Reports = lazy(() => import('./Reports/Reports').then((m) => ({ default: m.Reports })));
 const Reviews = lazy(() => import('./Reviews/Reviews').then((m) => ({ default: m.Reviews })));
 const Analytics = lazy(() => import('./Analytics/Analytics').then((m) => ({ default: m.Analytics })));
+const Customers = lazy(() => import('./Customers/Customers').then((m) => ({ default: m.Customers })));
 const StaffDocuments = lazy(() =>
   import('./StaffDocuments/StaffDocuments').then((m) => ({ default: m.StaffDocuments })),
 );
@@ -48,6 +49,7 @@ export function AdminRoutes(): JSX.Element {
         <Route path="reports" element={<Reports />} />
         <Route path="reviews" element={<Reviews />} />
         <Route path="analytics" element={<Analytics />} />
+        <Route path="customers" element={<Customers />} />
         <Route path="change-password" element={<ChangePassword />} />
       </Routes>
     </Suspense>

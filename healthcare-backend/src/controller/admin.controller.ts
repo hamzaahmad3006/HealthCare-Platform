@@ -143,6 +143,45 @@ export const adminController = {
     } catch (err) { next(err); }
   },
 
+  async listCustomers(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const schema = z.object({
+        search: z.string().optional(),
+        page:   z.coerce.number().min(1).default(1),
+        limit:  z.coerce.number().min(1).max(100).default(20),
+      });
+      const { search, page, limit } = schema.parse(req.query);
+
+      const where = {
+        role: 'CUSTOMER' as const,
+        ...(search && {
+          OR: [
+            { fullName: { contains: search, mode: 'insensitive' as const } },
+            { phone:    { contains: search, mode: 'insensitive' as const } },
+            { email:    { contains: search, mode: 'insensitive' as const } },
+          ],
+        }),
+      };
+
+      const [users, total] = await prisma.$transaction([
+        prisma.user.findMany({
+          where,
+          select: {
+            id: true, fullName: true, email: true, phone: true,
+            status: true, createdAt: true,
+            _count: { select: { bookings: true, patients: true } },
+          },
+          orderBy: { createdAt: 'desc' },
+          skip: (page - 1) * limit,
+          take: limit,
+        }),
+        prisma.user.count({ where }),
+      ]);
+
+      paginated(res, users, { total, page, limit, hasNext: page * limit < total });
+    } catch (err) { next(err); }
+  },
+
   async staffUtilization(_req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const staff = await prisma.staffProfile.findMany({
