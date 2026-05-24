@@ -24,6 +24,12 @@ const StaffDocuments = lazy(() =>
 const StaffProfile = lazy(() =>
   import('./StaffProfile/StaffProfile').then((m) => ({ default: m.StaffProfile })),
 );
+const StaffReports = lazy(() =>
+  import('./StaffReports/StaffReports').then((m) => ({ default: m.StaffReports })),
+);
+const StaffPatients = lazy(() =>
+  import('./StaffPatients/StaffPatients').then((m) => ({ default: m.StaffPatients })),
+);
 
 // Paths here are RELATIVE to the parent route match (/admin/*).
 // React Router v6 nested <Routes> strips the parent's matched prefix and
@@ -59,6 +65,8 @@ export function StaffRoutes(): JSX.Element {
             </StaffVerificationGate>
           }
         />
+        <Route path="reports" element={<StaffReports />} />
+        <Route path="patients" element={<StaffPatients />} />
         <Route path="documents" element={<StaffDocuments />} />
         <Route path="profile" element={<StaffProfile />} />
         <Route path="change-password" element={<ChangePassword />} />

@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import { z } from 'zod';
+import { Prisma } from '@prisma/client';
 import { prisma } from '../config/database';
 import { success, paginated } from '../helper/response.helper';
 import { NotFoundError, UnauthorizedError, ForbiddenError } from '../utils/stateMachine';
@@ -102,9 +103,17 @@ export const userController = {
       if (!req.user) throw new UnauthorizedError('UNAUTHENTICATED');
       const { page, limit } = PaginationSchema.parse(req.query);
 
-      const where = req.user.role === 'ADMIN' ? {} : { customerUserId: req.user.sub };
+      let where: Prisma.PatientWhereInput;
+      if (req.user.role === 'ADMIN') {
+        where = {};
+      } else if (req.user.role === 'STAFF') {
+        where = { bookings: { some: { assignments: { some: { staffUserId: req.user.sub } } } } };
+      } else {
+        where = { customerUserId: req.user.sub };
+      }
+
       const [patients, total] = await prisma.$transaction([
-        prisma.patient.findMany({ where, skip: (page - 1) * limit, take: limit }),
+        prisma.patient.findMany({ where, skip: (page - 1) * limit, take: limit, orderBy: { fullName: 'asc' } }),
         prisma.patient.count({ where }),
       ]);
 

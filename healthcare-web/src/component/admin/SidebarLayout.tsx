@@ -13,6 +13,7 @@ import {
   KeyRound,
   Menu,
   X,
+  HeartPulse,
 } from 'lucide-react';
 import clsx from 'clsx';
 import { useAppDispatch, useAppSelector } from '../../redux/store';
@@ -39,6 +40,8 @@ const ADMIN_NAV_ITEMS = [
 
 const STAFF_NAV_ITEMS = [
   { to: '/staff/visits', label: 'My Visits', icon: Activity },
+  { to: '/staff/reports', label: 'My Reports', icon: FileText },
+  { to: '/staff/patients', label: 'My Patients', icon: HeartPulse },
   { to: '/staff/documents', label: 'My Documents', icon: FolderUp },
   { to: '/staff/profile', label: 'My Profile', icon: UserCircle },
 ];
