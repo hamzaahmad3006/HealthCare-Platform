@@ -7,6 +7,7 @@ import { adminOnly } from '../middleware/role.middleware';
 const router = Router();
 
 router.get('/dashboard/summary', authenticateToken, adminOnly, adminController.dashboardSummary);
+router.get('/dashboard/analytics', authenticateToken, adminOnly, adminController.analytics);
 router.get('/dashboard/staff-util', authenticateToken, adminOnly, adminController.staffUtilization);
 router.get('/audit-logs', authenticateToken, adminOnly, adminController.auditLogs);
 router.post('/notifications/:id/retry', authenticateToken, adminOnly, notificationController.retry);

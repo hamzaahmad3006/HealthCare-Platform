@@ -5,6 +5,17 @@ import { redis } from '../config/redis';
 import { success, paginated } from '../helper/response.helper';
 import { ADMIN_DASHBOARD_CACHE_TTL } from '../utils/constants';
 
+function last7Days(): { date: string; label: string }[] {
+  return Array.from({ length: 7 }, (_, i) => {
+    const d = new Date();
+    d.setDate(d.getDate() - (6 - i));
+    return {
+      date: d.toISOString().split('T')[0]!,
+      label: d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' }),
+    };
+  });
+}
+
 const AuditLogQuerySchema = z.object({
   entityType: z.string().optional(),
   actorUserId: z.string().uuid().optional(),
@@ -23,6 +34,9 @@ export const adminController = {
         return;
       }
 
+      const days = last7Days();
+      const sevenDaysAgo = new Date(days[0]!.date + 'T00:00:00.000Z');
+
       const [
         totalBookings,
         completedBookings,
@@ -30,6 +44,8 @@ export const adminController = {
         availableStaff,
         pendingBookings,
         avgRatingResult,
+        recentBookings,
+        statusGroups,
       ] = await prisma.$transaction([
         prisma.booking.count(),
         prisma.booking.count({ where: { status: 'COMPLETED' } }),
@@ -37,7 +53,24 @@ export const adminController = {
         prisma.staffProfile.count({ where: { isAvailable: true } }),
         prisma.booking.count({ where: { status: 'PENDING' } }),
         prisma.review.aggregate({ _avg: { rating: true } }),
+        prisma.booking.findMany({
+          where: { createdAt: { gte: sevenDaysAgo } },
+          select: { createdAt: true },
+        }),
+        prisma.$queryRaw<{ status: string; count: bigint }[]>`SELECT status, COUNT(*) as count FROM bookings GROUP BY status ORDER BY count DESC`,
       ]);
+
+      // Build day-by-day trend
+      const bookingsTrend = days.map(({ date, label }) => ({
+        label,
+        bookings: recentBookings.filter((b) => b.createdAt.toISOString().startsWith(date)).length,
+      }));
+
+      // Status breakdown
+      const statusBreakdown = statusGroups.map((g) => ({
+        status: g.status,
+        count: Number(g.count),
+      }));
 
       const summary = {
         totalBookings,
@@ -48,10 +81,65 @@ export const adminController = {
         staffUtilization: totalStaff > 0 ? Math.round(((totalStaff - availableStaff) / totalStaff) * 100) : 0,
         pendingBookings,
         avgRating: avgRatingResult._avg.rating ? Number(avgRatingResult._avg.rating.toFixed(1)) : null,
+        bookingsTrend,
+        statusBreakdown,
       };
 
       await redis.set(cacheKey, JSON.stringify(summary), 'EX', ADMIN_DASHBOARD_CACHE_TTL);
       success(res, summary);
+    } catch (err) { next(err); }
+  },
+
+  async analytics(_req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const cacheKey = 'admin:analytics';
+      const cached = await redis.get(cacheKey);
+      if (cached) { success(res, JSON.parse(cached) as Record<string, unknown>); return; }
+
+      const now = new Date();
+      const months = Array.from({ length: 6 }, (_, i) => {
+        const d = new Date(now.getFullYear(), now.getMonth() - (5 - i), 1);
+        return {
+          start: new Date(d.getFullYear(), d.getMonth(), 1),
+          end:   new Date(d.getFullYear(), d.getMonth() + 1, 0, 23, 59, 59),
+          label: d.toLocaleDateString('en-US', { month: 'short', year: '2-digit' }),
+        };
+      });
+
+      const monthlyData = await Promise.all(
+        months.map(async ({ start, end, label }) => {
+          const [bookings, completed, payments] = await Promise.all([
+            prisma.booking.count({ where: { createdAt: { gte: start, lte: end } } }),
+            prisma.booking.count({ where: { status: 'COMPLETED', createdAt: { gte: start, lte: end } } }),
+            prisma.payment.aggregate({
+              where: { status: 'PAID', paidAt: { gte: start, lte: end } },
+              _sum: { amount: true },
+            }),
+          ]);
+          return {
+            label,
+            bookings,
+            completed,
+            revenue: payments._sum.amount ? Number(payments._sum.amount) : 0,
+          };
+        }),
+      );
+
+      // Service type breakdown (all time)
+      const serviceBreakdown = await prisma.$queryRaw<{ name: string; count: bigint }[]>`
+        SELECT st.name, COUNT(b.id) as count
+        FROM bookings b
+        JOIN service_types st ON b."serviceTypeId" = st.id
+        GROUP BY st.name ORDER BY count DESC
+      `;
+
+      const data = {
+        monthlyData,
+        serviceBreakdown: serviceBreakdown.map((s) => ({ name: s.name, count: Number(s.count) })),
+      };
+
+      await redis.set(cacheKey, JSON.stringify(data), 'EX', 300);
+      success(res, data);
     } catch (err) { next(err); }
   },
 

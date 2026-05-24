@@ -7,6 +7,8 @@ export interface DashboardSummary {
   staffUtilization: number;
   pendingBookings: number;
   avgRating: number | null;
+  bookingsTrend: { label: string; bookings: number }[];
+  statusBreakdown: { status: string; count: number }[];
 }
 
 export interface StaffUtilizationRow {

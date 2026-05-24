@@ -1,4 +1,8 @@
-import { CalendarClock, Users, Activity, Star, ArrowUpRight } from 'lucide-react';
+import { CalendarClock, Users, Activity, Star, ArrowUpRight, TrendingUp, PieChart } from 'lucide-react';
+import {
+  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
+  PieChart as RechartsPie, Pie, Cell, Legend,
+} from 'recharts';
 import { SidebarLayout } from '../../../component/admin/SidebarLayout';
 import { KpiCard } from '../../../component/admin/KpiCard';
 import { DataTable, type ColumnDef } from '../../../component/admin/DataTable';
@@ -8,12 +12,22 @@ import { KpiCardSkeleton, Skeleton } from '../../../component/common/Skeleton';
 import { EmptyState } from '../../../component/common/EmptyState';
 import { formatDateTime, formatCurrency } from '../../../helper/format';
 import { useAdminDashboard } from './useAdminDashboard';
-import type { Booking } from '../../../types/booking.types';
+import type { Booking, BookingStatus } from '../../../types/booking.types';
 
 interface RecentBookingRow extends Booking {
   patient?: { fullName: string };
   serviceType?: { name: string };
 }
+
+const STATUS_COLORS: Record<string, string> = {
+  PENDING:     '#f59e0b',
+  CONFIRMED:   '#3b82f6',
+  ASSIGNED:    '#8b5cf6',
+  IN_PROGRESS: '#06b6d4',
+  COMPLETED:   '#10b981',
+  CANCELLED:   '#ef4444',
+  RESCHEDULED: '#f97316',
+};
 
 export function AdminDashboard(): JSX.Element {
   const d = useAdminDashboard();
@@ -67,9 +81,11 @@ export function AdminDashboard(): JSX.Element {
       {d.isLoading || !d.summary ? (
         <div className="animate-fade-in">
           <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            {Array.from({ length: 4 }).map((_, i) => (
-              <KpiCardSkeleton key={i} />
-            ))}
+            {Array.from({ length: 4 }).map((_, i) => <KpiCardSkeleton key={i} />)}
+          </div>
+          <div className="mt-6 grid lg:grid-cols-3 gap-6">
+            <div className="lg:col-span-2 h-64 rounded-2xl bg-ink-100 animate-pulse" />
+            <div className="h-64 rounded-2xl bg-ink-100 animate-pulse" />
           </div>
           <div className="mt-6 bg-white rounded-2xl ring-1 ring-ink-100 shadow-card overflow-hidden">
             <div className="px-6 py-4 border-b border-ink-100 flex items-center justify-between">
@@ -77,9 +93,7 @@ export function AdminDashboard(): JSX.Element {
               <Skeleton className="h-3 w-16" />
             </div>
             <div className="p-6 space-y-3">
-              {Array.from({ length: 5 }).map((_, i) => (
-                <Skeleton key={i} className="h-12 w-full" />
-              ))}
+              {Array.from({ length: 5 }).map((_, i) => <Skeleton key={i} className="h-12 w-full" />)}
             </div>
           </div>
         </div>
@@ -141,6 +155,81 @@ export function AdminDashboard(): JSX.Element {
               </div>
             </Card>
           ) : null}
+
+          {/* Charts row */}
+          <div className="mt-6 grid lg:grid-cols-3 gap-6 animate-slide-up">
+            {/* Bookings trend — bar chart */}
+            <Card padding="lg" className="lg:col-span-2">
+              <div className="flex items-center gap-2 mb-5">
+                <TrendingUp className="h-4 w-4 text-brand-600" />
+                <h2 className="font-semibold text-ink-900">Bookings — last 7 days</h2>
+              </div>
+              <ResponsiveContainer width="100%" height={200}>
+                <BarChart data={d.summary.bookingsTrend} barSize={28}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" vertical={false} />
+                  <XAxis
+                    dataKey="label"
+                    tick={{ fontSize: 11, fill: '#94a3b8' }}
+                    axisLine={false}
+                    tickLine={false}
+                  />
+                  <YAxis
+                    allowDecimals={false}
+                    tick={{ fontSize: 11, fill: '#94a3b8' }}
+                    axisLine={false}
+                    tickLine={false}
+                    width={24}
+                  />
+                  <Tooltip
+                    contentStyle={{ borderRadius: 12, border: 'none', boxShadow: '0 4px 24px rgba(0,0,0,0.10)', fontSize: 13 }}
+                    cursor={{ fill: '#f1f5f9' }}
+                  />
+                  <Bar dataKey="bookings" fill="#6366f1" radius={[6, 6, 0, 0]} name="Bookings" />
+                </BarChart>
+              </ResponsiveContainer>
+            </Card>
+
+            {/* Status breakdown — pie chart */}
+            <Card padding="lg">
+              <div className="flex items-center gap-2 mb-5">
+                <PieChart className="h-4 w-4 text-brand-600" />
+                <h2 className="font-semibold text-ink-900">Status breakdown</h2>
+              </div>
+              {d.summary.statusBreakdown.length === 0 ? (
+                <div className="flex items-center justify-center h-48 text-sm text-ink-400">No data</div>
+              ) : (
+                <ResponsiveContainer width="100%" height={200}>
+                  <RechartsPie>
+                    <Pie
+                      data={d.summary.statusBreakdown}
+                      dataKey="count"
+                      nameKey="status"
+                      cx="50%"
+                      cy="45%"
+                      outerRadius={70}
+                      paddingAngle={3}
+                    >
+                      {d.summary.statusBreakdown.map((entry) => (
+                        <Cell
+                          key={entry.status}
+                          fill={STATUS_COLORS[entry.status] ?? '#94a3b8'}
+                        />
+                      ))}
+                    </Pie>
+                    <Tooltip
+                      contentStyle={{ borderRadius: 12, border: 'none', boxShadow: '0 4px 24px rgba(0,0,0,0.10)', fontSize: 12 }}
+                      formatter={(val, name) => [val, String(name).replace(/_/g, ' ')]}
+                    />
+                    <Legend
+                      iconType="circle"
+                      iconSize={8}
+                      formatter={(val) => <span style={{ fontSize: 11, color: '#64748b' }}>{String(val).replace(/_/g, ' ')}</span>}
+                    />
+                  </RechartsPie>
+                </ResponsiveContainer>
+              )}
+            </Card>
+          </div>
 
           {/* Recent bookings */}
           <Card padding="none" className="mt-6 animate-slide-up overflow-hidden">

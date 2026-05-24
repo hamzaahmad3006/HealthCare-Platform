@@ -14,6 +14,7 @@ import {
   Menu,
   X,
   HeartPulse,
+  BarChart2,
 } from 'lucide-react';
 import clsx from 'clsx';
 import { useAppDispatch, useAppSelector } from '../../redux/store';
@@ -36,6 +37,7 @@ const ADMIN_NAV_ITEMS = [
   { to: '/admin/visits', label: 'Visits', icon: Activity },
   { to: '/admin/reports', label: 'Reports', icon: FileText },
   { to: '/admin/reviews', label: 'Reviews', icon: Star },
+  { to: '/admin/analytics', label: 'Analytics', icon: BarChart2 },
 ];
 
 const STAFF_NAV_ITEMS = [
