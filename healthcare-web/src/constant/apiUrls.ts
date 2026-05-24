@@ -70,6 +70,16 @@ export const API = {
     STAFF_UTIL: '/admin/dashboard/staff-util',
     AUDIT_LOGS: '/admin/audit-logs',
     NOTIFICATION_RETRY: (id: string): string => `/admin/notifications/${id}/retry`,
+    SETTINGS: {
+      SERVICE_TYPES: '/admin/settings/service-types',
+      SERVICE_TYPE_BY_ID: (id: string): string => `/admin/settings/service-types/${id}`,
+      PACKAGES: '/admin/settings/packages',
+      PACKAGE_BY_ID: (id: string): string => `/admin/settings/packages/${id}`,
+      CITIES: '/admin/settings/cities',
+      CITY_BY_ID: (id: string): string => `/admin/settings/cities/${id}`,
+      ZONES: (cityId: string): string => `/admin/settings/cities/${cityId}/zones`,
+      ZONE_BY_ID: (cityId: string, zoneId: string): string => `/admin/settings/cities/${cityId}/zones/${zoneId}`,
+    },
   },
   PAYMENTS: {
     CREATE_INTENT: '/payments/create-intent',
