@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { Link } from 'react-router-dom';
 import {
   Bell,
   CalendarCheck,
@@ -9,6 +10,7 @@ import {
   CheckCircle2,
 } from 'lucide-react';
 import clsx from 'clsx';
+import { useAppSelector } from '../../redux/store';
 import { api } from '../../helper/axios';
 import { API } from '../../constant/apiUrls';
 import { formatDateTime } from '../../helper/format';
@@ -31,12 +33,12 @@ interface NotifItem {
 }
 
 const TEMPLATE_META: Record<TemplateCode, { label: string; Icon: React.ElementType; color: string }> = {
-  BOOKING_RECEIVED:  { label: 'Booking received',   Icon: CalendarClock,  color: 'text-brand-500' },
-  BOOKING_CONFIRMED: { label: 'Booking confirmed',  Icon: CalendarCheck,  color: 'text-success-600' },
-  STAFF_ASSIGNED:    { label: 'Staff assigned',      Icon: ClipboardList,  color: 'text-brand-500' },
-  STAFF_EN_ROUTE:    { label: 'Staff on the way',    Icon: MapPin,         color: 'text-accent-600' },
-  VISIT_COMPLETED:   { label: 'Visit completed',     Icon: CheckCircle2,   color: 'text-success-600' },
-  REPORT_AVAILABLE:  { label: 'New report available',Icon: FileText,       color: 'text-info-600' },
+  BOOKING_RECEIVED:  { label: 'Booking received',    Icon: CalendarClock, color: 'text-brand-500'   },
+  BOOKING_CONFIRMED: { label: 'Booking confirmed',   Icon: CalendarCheck, color: 'text-success-600' },
+  STAFF_ASSIGNED:    { label: 'Staff assigned',       Icon: ClipboardList, color: 'text-brand-500'   },
+  STAFF_EN_ROUTE:    { label: 'Staff on the way',     Icon: MapPin,        color: 'text-accent-600'  },
+  VISIT_COMPLETED:   { label: 'Visit completed',      Icon: CheckCircle2,  color: 'text-success-600' },
+  REPORT_AVAILABLE:  { label: 'New report available', Icon: FileText,      color: 'text-info-600'    },
 };
 
 const LAST_READ_KEY = 'notif_last_read';
@@ -44,12 +46,22 @@ const LAST_READ_KEY = 'notif_last_read';
 function getLastRead(): number {
   return parseInt(localStorage.getItem(LAST_READ_KEY) ?? '0', 10);
 }
-
-function markAllRead(): void {
+function saveLastRead(): void {
   localStorage.setItem(LAST_READ_KEY, String(Date.now()));
 }
 
+function buildLink(role: string | undefined, templateCode: string, bookingId: string | null): string | null {
+  if (!bookingId) return null;
+  if (role === 'CUSTOMER') {
+    return templateCode === 'REPORT_AVAILABLE' ? '/my-reports' : `/my-bookings/${bookingId}`;
+  }
+  if (role === 'ADMIN') return `/admin/bookings/${bookingId}`;
+  if (role === 'STAFF') return '/staff/visits';
+  return null;
+}
+
 export function NotificationBell(): JSX.Element {
+  const role = useAppSelector((s) => s.auth.user?.role);
   const [open, setOpen] = useState(false);
   const [notifs, setNotifs] = useState<NotifItem[]>([]);
   const [loading, setLoading] = useState(false);
@@ -76,12 +88,8 @@ export function NotificationBell(): JSX.Element {
 
   const unread = notifs.filter((n) => new Date(n.createdAt).getTime() > lastRead).length;
 
-  const handleOpen = (): void => {
-    setOpen((v) => !v);
-  };
-
   const handleMarkRead = (): void => {
-    markAllRead();
+    saveLastRead();
     setLastRead(Date.now());
   };
 
@@ -89,7 +97,7 @@ export function NotificationBell(): JSX.Element {
     <div ref={ref} className="relative">
       <button
         type="button"
-        onClick={handleOpen}
+        onClick={() => setOpen((v) => !v)}
         aria-label="Notifications"
         className="relative p-2 rounded-xl text-ink-600 hover:bg-ink-100 transition-colors"
       >
@@ -103,6 +111,7 @@ export function NotificationBell(): JSX.Element {
 
       {open && (
         <div className="absolute right-0 mt-2 w-80 bg-white rounded-2xl shadow-lg ring-1 ring-ink-100 z-50 animate-fade-in overflow-hidden">
+          {/* Header */}
           <div className="flex items-center justify-between px-4 py-3 border-b border-ink-100">
             <p className="text-sm font-semibold text-ink-900">Notifications</p>
             {unread > 0 && (
@@ -116,6 +125,7 @@ export function NotificationBell(): JSX.Element {
             )}
           </div>
 
+          {/* List */}
           <div className="max-h-96 overflow-y-auto divide-y divide-ink-50">
             {loading ? (
               <div className="py-8 text-center text-sm text-ink-400">Loading…</div>
@@ -127,33 +137,48 @@ export function NotificationBell(): JSX.Element {
                 const isUnread = new Date(n.createdAt).getTime() > lastRead;
                 const Icon = meta?.Icon ?? Bell;
                 const color = meta?.color ?? 'text-ink-400';
-                return (
-                  <div
-                    key={n.id}
-                    className={clsx(
-                      'flex gap-3 px-4 py-3 transition-colors',
-                      isUnread ? 'bg-brand-50/60' : 'hover:bg-ink-50',
-                    )}
-                  >
+                const href = buildLink(role, n.templateCode, n.bookingId);
+
+                const inner = (
+                  <>
                     <div className={clsx('mt-0.5 flex-shrink-0', color)}>
                       <Icon className="h-4 w-4" />
                     </div>
-                    <div className="min-w-0">
+                    <div className="min-w-0 flex-1">
                       <p className="text-xs font-semibold text-ink-900">
                         {meta?.label ?? n.templateCode}
                       </p>
                       <p className="text-xs text-ink-500 mt-0.5 line-clamp-2 leading-relaxed">
                         {n.renderedContent}
                       </p>
-                      <p className="text-2xs text-ink-400 mt-1">
-                        {formatDateTime(n.createdAt)}
-                      </p>
+                      <p className="text-2xs text-ink-400 mt-1">{formatDateTime(n.createdAt)}</p>
                     </div>
                     {isUnread && (
                       <div className="flex-shrink-0 mt-1.5">
                         <span className="h-1.5 w-1.5 rounded-full bg-brand-500 block" />
                       </div>
                     )}
+                  </>
+                );
+
+                const rowClass = clsx(
+                  'flex gap-3 px-4 py-3 transition-colors w-full text-left',
+                  isUnread ? 'bg-brand-50/60' : 'hover:bg-ink-50',
+                  href && 'cursor-pointer',
+                );
+
+                return href ? (
+                  <Link
+                    key={n.id}
+                    to={href}
+                    className={rowClass}
+                    onClick={() => setOpen(false)}
+                  >
+                    {inner}
+                  </Link>
+                ) : (
+                  <div key={n.id} className={rowClass}>
+                    {inner}
                   </div>
                 );
               })
