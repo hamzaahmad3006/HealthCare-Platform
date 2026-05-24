@@ -21,6 +21,9 @@ const Reviews = lazy(() => import('./Reviews/Reviews').then((m) => ({ default: m
 const Analytics = lazy(() => import('./Analytics/Analytics').then((m) => ({ default: m.Analytics })));
 const Customers = lazy(() => import('./Customers/Customers').then((m) => ({ default: m.Customers })));
 const Settings = lazy(() => import('./Settings/Settings').then((m) => ({ default: m.Settings })));
+const AuditLogs = lazy(() => import('./AuditLogs/AuditLogs').then((m) => ({ default: m.AuditLogs })));
+const CustomerDetail = lazy(() => import('./CustomerDetail/CustomerDetail').then((m) => ({ default: m.CustomerDetail })));
+const PaymentHistory = lazy(() => import('./PaymentHistory/PaymentHistory').then((m) => ({ default: m.PaymentHistory })));
 const StaffDocuments = lazy(() =>
   import('./StaffDocuments/StaffDocuments').then((m) => ({ default: m.StaffDocuments })),
 );
@@ -52,6 +55,9 @@ export function AdminRoutes(): JSX.Element {
         <Route path="analytics" element={<Analytics />} />
         <Route path="customers" element={<Customers />} />
         <Route path="settings" element={<Settings />} />
+        <Route path="audit-logs" element={<AuditLogs />} />
+        <Route path="customers/:id" element={<CustomerDetail />} />
+        <Route path="payments" element={<PaymentHistory />} />
         <Route path="change-password" element={<ChangePassword />} />
       </Routes>
     </Suspense>

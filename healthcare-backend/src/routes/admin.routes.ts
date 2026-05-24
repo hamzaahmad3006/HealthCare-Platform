@@ -10,6 +10,8 @@ const router = Router();
 router.get('/dashboard/summary', authenticateToken, adminOnly, adminController.dashboardSummary);
 router.get('/dashboard/analytics', authenticateToken, adminOnly, adminController.analytics);
 router.get('/customers', authenticateToken, adminOnly, adminController.listCustomers);
+router.get('/customers/:id', authenticateToken, adminOnly, adminController.getCustomerById);
+router.get('/payments', authenticateToken, adminOnly, adminController.listPayments);
 router.get('/dashboard/staff-util', authenticateToken, adminOnly, adminController.staffUtilization);
 router.get('/audit-logs', authenticateToken, adminOnly, adminController.auditLogs);
 router.post('/notifications/:id/retry', authenticateToken, adminOnly, notificationController.retry);

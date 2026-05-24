@@ -16,6 +16,8 @@ import {
   HeartPulse,
   BarChart2,
   Settings,
+  ClipboardList,
+  Banknote,
 } from 'lucide-react';
 import clsx from 'clsx';
 import { useAppDispatch, useAppSelector } from '../../redux/store';
@@ -40,6 +42,8 @@ const ADMIN_NAV_ITEMS = [
   { to: '/admin/reports', label: 'Reports', icon: FileText },
   { to: '/admin/reviews', label: 'Reviews', icon: Star },
   { to: '/admin/analytics', label: 'Analytics', icon: BarChart2 },
+  { to: '/admin/payments', label: 'Payments', icon: Banknote },
+  { to: '/admin/audit-logs', label: 'Audit Logs', icon: ClipboardList },
   { to: '/admin/settings', label: 'Settings', icon: Settings },
 ];
 

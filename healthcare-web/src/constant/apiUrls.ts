@@ -69,6 +69,8 @@ export const API = {
     CUSTOMERS: '/admin/customers',
     STAFF_UTIL: '/admin/dashboard/staff-util',
     AUDIT_LOGS: '/admin/audit-logs',
+    CUSTOMER_BY_ID: (id: string): string => `/admin/customers/${id}`,
+    PAYMENTS: '/admin/payments',
     NOTIFICATION_RETRY: (id: string): string => `/admin/notifications/${id}/retry`,
     SETTINGS: {
       SERVICE_TYPES: '/admin/settings/service-types',

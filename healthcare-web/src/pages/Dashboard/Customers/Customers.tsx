@@ -1,4 +1,5 @@
 import { useEffect, useState, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Search, Users, Mail, Phone, CalendarDays, BookOpen, UserSquare2 } from 'lucide-react';
 import { SidebarLayout } from '../../../component/admin/SidebarLayout';
 import { DataTable, type ColumnDef } from '../../../component/admin/DataTable';
@@ -21,6 +22,7 @@ interface CustomerRow {
 }
 
 export function Customers(): JSX.Element {
+  const navigate = useNavigate();
   const [customers, setCustomers] = useState<CustomerRow[]>([]);
   const [meta, setMeta] = useState<PaginationMeta | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -172,6 +174,7 @@ export function Customers(): JSX.Element {
           columns={columns}
           data={customers}
           rowKey={(r) => r.id}
+          onRowClick={(r) => navigate(`/admin/customers/${r.id}`)}
           isLoading={isLoading}
           emptyState={
             <EmptyState

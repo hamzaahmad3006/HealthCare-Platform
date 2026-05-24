@@ -182,6 +182,74 @@ export const adminController = {
     } catch (err) { next(err); }
   },
 
+  async getCustomerById(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const id = String(req.params['id']);
+      const customer = await prisma.user.findFirst({
+        where: { id, role: 'CUSTOMER' },
+        select: {
+          id: true, fullName: true, email: true, phone: true,
+          status: true, createdAt: true,
+          patients: {
+            select: { id: true, fullName: true, dateOfBirth: true, gender: true, primaryCondition: true, allergies: true },
+            orderBy: { fullName: 'asc' },
+          },
+          bookings: {
+            select: {
+              id: true, bookingNumber: true, status: true, totalPrice: true, currency: true,
+              requestedStartAt: true, createdAt: true,
+              serviceType: { select: { name: true } },
+              package: { select: { name: true } },
+            },
+            orderBy: { createdAt: 'desc' },
+            take: 20,
+          },
+          _count: { select: { bookings: true, patients: true } },
+        },
+      });
+      if (!customer) throw new Error('CUSTOMER_NOT_FOUND');
+      success(res, customer);
+    } catch (err) { next(err); }
+  },
+
+  async listPayments(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const schema = z.object({
+        status:   z.enum(['PENDING', 'PAID', 'FAILED', 'REFUNDED']).optional(),
+        method:   z.enum(['CASH', 'JAZZCASH', 'STRIPE']).optional(),
+        page:     z.coerce.number().min(1).default(1),
+        limit:    z.coerce.number().min(1).max(100).default(20),
+      });
+      const { status, method, page, limit } = schema.parse(req.query);
+
+      const where = {
+        ...(status && { status }),
+        ...(method && { paymentMethod: method }),
+      };
+
+      const [payments, total] = await prisma.$transaction([
+        prisma.payment.findMany({
+          where,
+          include: {
+            booking: {
+              select: {
+                bookingNumber: true,
+                customer: { select: { fullName: true, phone: true } },
+                serviceType: { select: { name: true } },
+              },
+            },
+          },
+          orderBy: { createdAt: 'desc' },
+          skip: (page - 1) * limit,
+          take: limit,
+        }),
+        prisma.payment.count({ where }),
+      ]);
+
+      paginated(res, payments, { total, page, limit, hasNext: page * limit < total });
+    } catch (err) { next(err); }
+  },
+
   async staffUtilization(_req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const staff = await prisma.staffProfile.findMany({
