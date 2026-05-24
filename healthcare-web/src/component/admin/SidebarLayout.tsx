@@ -19,6 +19,7 @@ import { useAppDispatch, useAppSelector } from '../../redux/store';
 import { clearAuth } from '../../redux/slices/authSlice';
 import { api } from '../../helper/axios';
 import { API } from '../../constant/apiUrls';
+import { NotificationBell } from '../common/NotificationBell';
 
 interface SidebarLayoutProps {
   children: ReactNode;
@@ -98,7 +99,9 @@ export function SidebarLayout({ children, title, description, actions }: Sidebar
                 {description ? <p className="text-sm text-ink-500 truncate">{description}</p> : null}
               </div>
             </div>
-            {actions ? <div className="flex items-center gap-2">{actions}</div> : null}
+            <div className="flex items-center gap-2">
+              <NotificationBell />
+              {actions}</div>
           </div>
         </header>
         <main className="p-6">{children}</main>

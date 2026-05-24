@@ -61,6 +61,7 @@ export const API = {
     DELETE_FILE: (id: string, fileId: string): string => `/reports/${id}/files/${fileId}`,
   },
   REVIEWS: '/reviews',
+  NOTIFICATIONS: '/notifications',
   ADMIN: {
     DASHBOARD: '/admin/dashboard/summary',
     STAFF_UTIL: '/admin/dashboard/staff-util',

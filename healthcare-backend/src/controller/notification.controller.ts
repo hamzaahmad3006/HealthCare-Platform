@@ -1,11 +1,46 @@
 import { Request, Response, NextFunction } from 'express';
 import { prisma } from '../config/database';
 import { success } from '../helper/response.helper';
-import { NotFoundError } from '../utils/stateMachine';
+import { NotFoundError, UnauthorizedError } from '../utils/stateMachine';
 import { notificationQueue } from '../../worker/notification.worker';
 import { pickParam } from '../helper/request.helper';
 
+const NOTIF_SELECT = {
+  id: true,
+  templateCode: true,
+  renderedContent: true,
+  bookingId: true,
+  bookingVisitId: true,
+  status: true,
+  sentAt: true,
+  createdAt: true,
+} as const;
+
 export const notificationController = {
+  async list(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      if (!req.user) throw new UnauthorizedError('UNAUTHENTICATED');
+
+      const { role, sub } = req.user;
+
+      const where =
+        role === 'CUSTOMER'
+          ? { booking: { customerUserId: sub } }
+          : role === 'STAFF'
+          ? { booking: { assignments: { some: { staffUserId: sub } } } }
+          : {}; // ADMIN — all
+
+      const logs = await prisma.notificationLog.findMany({
+        where,
+        orderBy: { createdAt: 'desc' },
+        take: 30,
+        select: NOTIF_SELECT,
+      });
+
+      success(res, logs);
+    } catch (err) { next(err); }
+  },
+
   async retry(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const log = await prisma.notificationLog.findUnique({ where: { id: pickParam(req, 'id') } });

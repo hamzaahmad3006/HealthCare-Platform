@@ -4,6 +4,7 @@ import { useSelector, useDispatch } from 'react-redux';
 import { Menu, X, LogOut, User as UserIcon, Calendar, Settings, ChevronDown, FileText } from 'lucide-react';
 import clsx from 'clsx';
 import { Button } from '../../constant/Button';
+import { NotificationBell } from './NotificationBell';
 import type { RootState } from '../../redux/store';
 import { clearAuth } from '../../redux/slices/authSlice';
 import { api } from '../../helper/axios';
@@ -102,7 +103,10 @@ export function TopNav({ variant = 'solid' }: TopNavProps): JSX.Element {
 
         <div className="hidden md:flex items-center gap-2">
           {isLoggedIn ? (
-            <ProfileMenu user={user} onLogout={handleLogout} />
+            <>
+              <NotificationBell />
+              <ProfileMenu user={user} onLogout={handleLogout} />
+            </>
           ) : (
             <>
               <Link to="/auth/login">
