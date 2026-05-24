@@ -112,6 +112,18 @@ export function MyReports(): JSX.Element {
   );
 }
 
+async function downloadFile(url: string, filename: string): Promise<void> {
+  const resp = await fetch(url);
+  if (!resp.ok) throw new Error('Download failed');
+  const blob = await resp.blob();
+  const blobUrl = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = blobUrl;
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(blobUrl);
+}
+
 function ReportCard({ report }: { report: Report }): JSX.Element {
   const firstFile = report.files?.[0];
   const isImage = firstFile?.mimeType.startsWith('image/');
@@ -175,14 +187,14 @@ function ReportCard({ report }: { report: Report }): JSX.Element {
               <ExternalLink className="h-3.5 w-3.5" />
               View
             </a>
-            <a
-              href={firstFile.fileUrl}
-              download
+            <button
+              type="button"
+              onClick={() => void downloadFile(firstFile.fileUrl, report.title)}
               className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg bg-brand-50 hover:bg-brand-100 text-xs font-semibold text-brand-700 transition-colors"
             >
               <Download className="h-3.5 w-3.5" />
               Download
-            </a>
+            </button>
           </div>
         ) : (
           <p className="text-xs text-ink-400 text-center pt-1 border-t border-ink-100">No file attached</p>

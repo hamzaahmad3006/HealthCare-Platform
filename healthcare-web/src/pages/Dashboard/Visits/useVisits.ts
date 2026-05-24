@@ -221,7 +221,6 @@ export function useVisits(): UseVisitsReturn {
               timestamp: number;
               signature: string;
               public_id: string;
-              folder: string;
               resource_type: string;
             };
           };
@@ -238,7 +237,6 @@ export function useVisits(): UseVisitsReturn {
         formData.append('timestamp', String(uploadParams.timestamp));
         formData.append('signature', uploadParams.signature);
         formData.append('public_id', uploadParams.public_id);
-        formData.append('folder', uploadParams.folder);
         const uploadResp = await fetch(uploadUrl, { method: 'POST', body: formData });
         if (!uploadResp.ok) throw new Error('File upload to storage failed');
         const uploaded = (await uploadResp.json()) as { secure_url: string };

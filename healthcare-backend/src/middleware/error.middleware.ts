@@ -3,6 +3,7 @@ import { Prisma } from '@prisma/client';
 import { ZodError } from 'zod';
 import { AppError } from '../utils/stateMachine';
 import { logger } from '../utils/logger';
+import { PrismaClientValidationError } from '@prisma/client/runtime/library';
 
 interface ErrorWithDetails extends AppError {
   details?: Record<string, string>[];
@@ -66,8 +67,21 @@ export function globalErrorHandler(
     }
   }
 
+  // Prisma: bad query / validation (wrong type, missing required field, etc.)
+  if (err instanceof PrismaClientValidationError) {
+    logger.warn('Prisma validation error', { message: err.message, path: req.path });
+    res.status(400).json({
+      success: false,
+      error: { code: 'BAD_REQUEST', message: 'Invalid query parameters.' },
+      requestId,
+    });
+    return;
+  }
+
   // Unknown / unhandled errors
   logger.error('Unhandled error', {
+    errName: err instanceof Error ? err.constructor.name : typeof err,
+    errMessage: err instanceof Error ? err.message : String(err),
     err,
     path: req.path,
     method: req.method,

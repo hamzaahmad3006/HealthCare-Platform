@@ -2,7 +2,7 @@ import { Request, Response, NextFunction } from 'express';
 import { z } from 'zod';
 import { Prisma } from '@prisma/client';
 import { prisma } from '../config/database';
-import { getPresignedUploadUrl, deleteFile } from '../helper/cloudinary.helper';
+import { getPresignedUploadUrl, deleteFile, signDeliveryUrl } from '../helper/cloudinary.helper';
 import { renderTemplate } from '../helper/template.helper';
 import { success, paginated } from '../helper/response.helper';
 import { NotFoundError, UnauthorizedError, ForbiddenError } from '../utils/stateMachine';
@@ -97,7 +97,15 @@ export const reportController = {
         prisma.report.count({ where }),
       ]);
 
-      paginated(res, reports, { total, page, limit, hasNext: page * limit < total });
+      const serialized = reports.map((r) => ({
+        ...r,
+        files: r.files.map((f) => ({
+          ...f,
+          fileSizeBytes: f.fileSizeBytes.toString(),
+          fileUrl: signDeliveryUrl(f.fileUrl, f.mimeType),
+        })),
+      }));
+      paginated(res, serialized, { total, page, limit, hasNext: page * limit < total });
     } catch (err) { next(err); }
   },
 
@@ -115,7 +123,15 @@ export const reportController = {
         throw new ForbiddenError('FORBIDDEN');
       }
 
-      success(res, report);
+      const signed = {
+        ...report,
+        files: report.files.map((f) => ({
+          ...f,
+          fileSizeBytes: f.fileSizeBytes.toString(),
+          fileUrl: signDeliveryUrl(f.fileUrl, f.mimeType),
+        })),
+      };
+      success(res, signed);
     } catch (err) { next(err); }
   },
 
@@ -159,7 +175,17 @@ export const reportController = {
 
       const report = await prisma.report.findUnique({
         where: { id: pickParam(req, 'id') },
-        include: { booking: { select: { customerUserId: true, bookingNumber: true } }, patient: { select: { fullName: true } } },
+        include: {
+          booking: {
+            select: {
+              customerUserId: true,
+              bookingNumber: true,
+              address: { select: { contactPhone: true } },
+              customer: { select: { phone: true } },
+            },
+          },
+          patient: { select: { fullName: true } },
+        },
       });
       if (!report) throw new NotFoundError('REPORT_NOT_FOUND');
 
@@ -185,7 +211,7 @@ export const reportController = {
           data: {
             bookingId: report.bookingId,
             templateCode: 'REPORT_AVAILABLE',
-            recipient: report.booking.customerUserId,
+            recipient: report.booking.address.contactPhone ?? report.booking.customer.phone,
             renderedContent: renderTemplate('REPORT_AVAILABLE', {
               patientName: report.patient.fullName,
               bookingNumber: report.booking.bookingNumber,
