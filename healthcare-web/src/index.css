@@ -40,19 +40,56 @@
   }
 }
 
+/* ── Premium global scrollbar ─────────────────────────────────────────────── */
+
+/* Firefox */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(100, 116, 139, 0.25) transparent;
+}
+
+/* Chrome / Edge / Safari */
+*::-webkit-scrollbar {
+  width: 4px;
+  height: 4px;
+}
+
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+*::-webkit-scrollbar-thumb {
+  background: rgba(100, 116, 139, 0.22);
+  border-radius: 999px;
+  transition: background 0.2s ease;
+}
+
+*::-webkit-scrollbar-thumb:hover {
+  background: rgba(99, 102, 241, 0.45);
+}
+
+*::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
+/* Sidebar nav — slightly more visible against white background */
 @layer utilities {
-  .scrollbar-thin::-webkit-scrollbar {
-    width: 8px;
-    height: 8px;
+  .scrollbar-sidebar {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(99, 102, 241, 0.18) transparent;
   }
-  .scrollbar-thin::-webkit-scrollbar-track {
+  .scrollbar-sidebar::-webkit-scrollbar {
+    width: 3px;
+  }
+  .scrollbar-sidebar::-webkit-scrollbar-track {
     background: transparent;
+    margin: 8px 0;
   }
-  .scrollbar-thin::-webkit-scrollbar-thumb {
-    background: rgb(203 213 225);
+  .scrollbar-sidebar::-webkit-scrollbar-thumb {
+    background: rgba(99, 102, 241, 0.2);
     border-radius: 999px;
   }
-  .scrollbar-thin::-webkit-scrollbar-thumb:hover {
-    background: rgb(148 163 184);
+  .scrollbar-sidebar::-webkit-scrollbar-thumb:hover {
+    background: rgba(99, 102, 241, 0.5);
   }
 }

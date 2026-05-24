@@ -158,7 +158,7 @@ function SidebarContent({
         </button>
       </div>
 
-      <nav className="flex-1 p-3 space-y-0.5 overflow-y-auto">
+      <nav className="flex-1 p-3 space-y-0.5 overflow-y-auto scrollbar-sidebar">
         {navItems.map((item) => (
           <NavLink
             key={item.to}
