@@ -10,6 +10,7 @@ import {
   ScrollView,
   StatusBar,
 } from 'react-native';
+import { Ionicons } from '@react-native-vector-icons/ionicons/static';
 import { Colors, FontSize, Spacing, Radius } from '../../../constants/theme';
 import { useLogin } from './useLogin';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
@@ -65,6 +66,7 @@ export function Login({ navigation }: Props): JSX.Element {
         <Text style={styles.label}>Phone Number</Text>
         <View style={[styles.inputRow, phoneFocused && styles.inputRowFocused]}>
           <View style={styles.prefixBox}>
+            <Ionicons name="call-outline" size={16} color={Colors.primary} />
             <Text style={styles.prefixText}>+92</Text>
           </View>
           <TextInput
@@ -83,6 +85,9 @@ export function Login({ navigation }: Props): JSX.Element {
         {/* Password */}
         <Text style={[styles.label, styles.labelSpaced]}>Password</Text>
         <View style={[styles.inputRow, passFocused && styles.inputRowFocused]}>
+          <View style={styles.fieldIconBox}>
+            <Ionicons name="lock-closed-outline" size={16} color={Colors.neutral} />
+          </View>
           <TextInput
             style={[styles.textInput, styles.passwordInput]}
             placeholder="Enter your password"
@@ -95,7 +100,11 @@ export function Login({ navigation }: Props): JSX.Element {
             onBlur={() => setPassFocused(false)}
           />
           <TouchableOpacity style={styles.eyeBtn} onPress={togglePassword} activeOpacity={0.7}>
-            <Text style={styles.eyeIcon}>{showPassword ? '🙈' : '👁'}</Text>
+            <Ionicons
+              name={showPassword ? 'eye-off-outline' : 'eye-outline'}
+              size={20}
+              color={Colors.neutral}
+            />
           </TouchableOpacity>
         </View>
 
@@ -226,6 +235,14 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.primarySurface,
   },
   prefixBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 14,
+    borderRightWidth: 1.5,
+    borderRightColor: Colors.neutralBorder,
+  },
+  fieldIconBox: {
     paddingHorizontal: 14,
     justifyContent: 'center',
     borderRightWidth: 1.5,
@@ -249,9 +266,6 @@ const styles = StyleSheet.create({
   eyeBtn: {
     paddingHorizontal: 14,
     justifyContent: 'center',
-  },
-  eyeIcon: {
-    fontSize: 16,
   },
   errorBox: {
     marginTop: Spacing.sm,
