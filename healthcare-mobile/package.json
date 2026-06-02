@@ -3,10 +3,7 @@
   "version": "0.0.1",
   "private": true,
   "scripts": {
-    "android": "node scripts/get-ip.js && concurrently --kill-others-on-fail --names \"BACKEND,METRO,APP\" --prefix-colors \"cyan,yellow,green\" \"npm run backend\" \"npm run metro\" \"npm run run-android\"",
-    "backend": "cd ../healthcare-backend && npm run dev",
-    "metro": "react-native start --reset-cache",
-    "run-android": "react-native run-android",
+    "android": "node scripts/get-ip.js && react-native run-android",
     "ios": "react-native run-ios",
     "lint": "eslint .",
     "start": "react-native start",
