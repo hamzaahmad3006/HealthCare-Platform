@@ -6,6 +6,7 @@ import { useAppDispatch, useAppSelector } from '../store';
 import { hydrateAuth } from '../store/slices/authSlice';
 import { AuthNavigator } from './AuthNavigator';
 import { CustomerNavigator } from './CustomerNavigator';
+import { Colors } from '../constants/theme';
 import type { RootStackParamList } from './types';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -21,7 +22,7 @@ export function RootNavigator(): JSX.Element {
   if (!hydrated) {
     return (
       <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-        <ActivityIndicator size="large" color="#0ea5e9" />
+        <ActivityIndicator size="large" color={Colors.primary} />
       </View>
     );
   }

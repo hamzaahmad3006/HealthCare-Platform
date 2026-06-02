@@ -9,26 +9,32 @@ import {
   Platform,
   ActivityIndicator,
   Alert,
+  ScrollView,
+  StatusBar,
 } from 'react-native';
 import { useAppDispatch, useAppSelector } from '../../store';
 import { login } from '../../store/slices/authSlice';
+import { Colors, FontSize, Spacing, Radius } from '../../constants/theme';
 import type { LoginScreenProps } from '../../navigation/types';
 
 export function LoginScreen(_props: LoginScreenProps): JSX.Element {
   const dispatch = useAppDispatch();
   const { loading, error } = useAppSelector((s) => s.auth);
+
   const [phone, setPhone] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const [phoneFocused, setPhoneFocused] = useState(false);
+  const [passFocused, setPassFocused] = useState(false);
 
   const handleLogin = async (): Promise<void> => {
     if (!phone.trim() || !password.trim()) {
-      Alert.alert('Required', 'Enter phone and password');
+      Alert.alert('Required', 'Please enter your phone number and password.');
       return;
     }
     const result = await dispatch(login({ phone, password }));
     if (login.rejected.match(result)) {
-      Alert.alert('Login failed', result.payload as string);
+      Alert.alert('Login Failed', result.payload as string);
     }
   };
 
@@ -37,105 +43,287 @@ export function LoginScreen(_props: LoginScreenProps): JSX.Element {
       style={styles.root}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
-      <View style={styles.card}>
-        {/* Header */}
-        <Text style={styles.brand}>HomeHealth</Text>
-        <Text style={styles.subtitle}>Faisalabad</Text>
-        <Text style={styles.title}>Welcome back</Text>
-        <Text style={styles.hint}>Sign in to manage your bookings and care.</Text>
+      <StatusBar backgroundColor={Colors.primary} barStyle="light-content" />
 
-        {/* Phone */}
-        <Text style={styles.label}>Phone number</Text>
-        <View style={styles.phoneRow}>
-          <View style={styles.prefix}>
+      {/* ── Green Header ── */}
+      <View style={styles.header}>
+        {/* Medical cross icon */}
+        <View style={styles.logoIcon}>
+          <View style={styles.crossH} />
+          <View style={styles.crossV} />
+        </View>
+        <Text style={styles.brandName}>HomeHealth</Text>
+        <Text style={styles.brandSub}>Pakistan</Text>
+      </View>
+
+      {/* ── White form sheet ── */}
+      <ScrollView
+        style={styles.sheet}
+        contentContainerStyle={styles.sheetContent}
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
+      >
+        <Text style={styles.welcomeTitle}>Welcome back</Text>
+        <Text style={styles.welcomeSub}>Sign in to manage your bookings and care.</Text>
+
+        {/* Phone field */}
+        <Text style={styles.label}>Phone Number</Text>
+        <View style={[styles.inputRow, phoneFocused && styles.inputRowFocused]}>
+          <View style={styles.prefixBox}>
             <Text style={styles.prefixText}>+92</Text>
           </View>
           <TextInput
-            style={styles.phoneInput}
+            style={styles.textInput}
             placeholder="3001234567"
-            placeholderTextColor="#94a3b8"
+            placeholderTextColor={Colors.neutralMuted}
             keyboardType="phone-pad"
             value={phone}
             onChangeText={setPhone}
             autoComplete="tel"
+            onFocus={() => setPhoneFocused(true)}
+            onBlur={() => setPhoneFocused(false)}
           />
         </View>
 
-        {/* Password */}
-        <Text style={[styles.label, { marginTop: 12 }]}>Password</Text>
-        <View style={styles.passwordRow}>
+        {/* Password field */}
+        <Text style={[styles.label, styles.labelSpaced]}>Password</Text>
+        <View style={[styles.inputRow, passFocused && styles.inputRowFocused]}>
           <TextInput
-            style={styles.passwordInput}
-            placeholder="Your password"
-            placeholderTextColor="#94a3b8"
+            style={[styles.textInput, styles.passwordInput]}
+            placeholder="Enter your password"
+            placeholderTextColor={Colors.neutralMuted}
             secureTextEntry={!showPassword}
             value={password}
             onChangeText={setPassword}
             autoComplete="password"
+            onFocus={() => setPassFocused(true)}
+            onBlur={() => setPassFocused(false)}
           />
-          <TouchableOpacity onPress={() => setShowPassword((v) => !v)} style={styles.eyeBtn}>
-            <Text style={styles.eyeText}>{showPassword ? '🙈' : '👁'}</Text>
+          <TouchableOpacity
+            style={styles.eyeBtn}
+            onPress={() => setShowPassword((v) => !v)}
+            activeOpacity={0.7}
+          >
+            <Text style={styles.eyeIcon}>{showPassword ? '🙈' : '👁'}</Text>
           </TouchableOpacity>
         </View>
 
-        {/* Error */}
-        {error ? <Text style={styles.errorText}>{error}</Text> : null}
+        {/* Error message */}
+        {error ? (
+          <View style={styles.errorBox}>
+            <Text style={styles.errorText}>{error}</Text>
+          </View>
+        ) : null}
 
-        {/* Submit */}
+        {/* Sign in button */}
         <TouchableOpacity
-          style={[styles.btn, loading && styles.btnDisabled]}
+          style={[styles.signInBtn, loading && styles.signInBtnDisabled]}
           onPress={handleLogin}
           disabled={loading}
-          activeOpacity={0.8}
+          activeOpacity={0.85}
         >
           {loading ? (
-            <ActivityIndicator color="#fff" />
+            <ActivityIndicator color={Colors.white} />
           ) : (
-            <Text style={styles.btnText}>Sign in</Text>
+            <Text style={styles.signInBtnText}>Sign In</Text>
           )}
         </TouchableOpacity>
-      </View>
+
+        {/* Divider hint */}
+        <Text style={styles.footerHint}>
+          Don't have an account?{' '}
+          <Text style={styles.footerLink}>Contact admin to register</Text>
+        </Text>
+      </ScrollView>
     </KeyboardAvoidingView>
   );
 }
 
+const HEADER_HEIGHT = 260;
+
 const styles = StyleSheet.create({
   root: {
     flex: 1,
-    backgroundColor: '#f0f9ff',
-    justifyContent: 'center',
-    paddingHorizontal: 24,
+    backgroundColor: Colors.primary,
   },
-  card: {
-    backgroundColor: '#fff',
-    borderRadius: 16,
-    padding: 24,
-    shadowColor: '#000',
-    shadowOpacity: 0.08,
-    shadowRadius: 12,
-    elevation: 4,
-  },
-  brand: { fontSize: 22, fontWeight: '700', color: '#0ea5e9', textAlign: 'center' },
-  subtitle: { fontSize: 12, color: '#64748b', textAlign: 'center', marginBottom: 20 },
-  title: { fontSize: 20, fontWeight: '700', color: '#0f172a', marginBottom: 4 },
-  hint: { fontSize: 13, color: '#64748b', marginBottom: 20 },
-  label: { fontSize: 13, fontWeight: '600', color: '#374151', marginBottom: 6 },
-  phoneRow: { flexDirection: 'row', borderWidth: 1, borderColor: '#e2e8f0', borderRadius: 10, overflow: 'hidden' },
-  prefix: { backgroundColor: '#f1f5f9', paddingHorizontal: 12, justifyContent: 'center' },
-  prefixText: { fontSize: 14, color: '#374151', fontWeight: '600' },
-  phoneInput: { flex: 1, paddingHorizontal: 12, paddingVertical: 12, fontSize: 15, color: '#0f172a' },
-  passwordRow: { flexDirection: 'row', borderWidth: 1, borderColor: '#e2e8f0', borderRadius: 10, overflow: 'hidden' },
-  passwordInput: { flex: 1, paddingHorizontal: 12, paddingVertical: 12, fontSize: 15, color: '#0f172a' },
-  eyeBtn: { paddingHorizontal: 12, justifyContent: 'center' },
-  eyeText: { fontSize: 16 },
-  errorText: { color: '#ef4444', fontSize: 13, marginTop: 8 },
-  btn: {
-    marginTop: 20,
-    backgroundColor: '#0ea5e9',
-    borderRadius: 10,
-    paddingVertical: 14,
+
+  /* ─── Header ─── */
+  header: {
+    height: HEADER_HEIGHT,
     alignItems: 'center',
+    justifyContent: 'center',
+    paddingBottom: Spacing.xl,
   },
-  btnDisabled: { opacity: 0.6 },
-  btnText: { color: '#fff', fontSize: 16, fontWeight: '700' },
+  logoIcon: {
+    width: 64,
+    height: 64,
+    backgroundColor: Colors.white,
+    borderRadius: Radius.lg,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: Spacing.md,
+    shadowColor: '#000',
+    shadowOpacity: 0.2,
+    shadowRadius: 10,
+    elevation: 6,
+  },
+  crossH: {
+    position: 'absolute',
+    width: 36,
+    height: 10,
+    backgroundColor: Colors.primary,
+    borderRadius: 3,
+  },
+  crossV: {
+    position: 'absolute',
+    width: 10,
+    height: 36,
+    backgroundColor: Colors.primary,
+    borderRadius: 3,
+  },
+  brandName: {
+    fontSize: FontSize.xxl,
+    fontWeight: '800',
+    color: Colors.white,
+    letterSpacing: -0.3,
+  },
+  brandSub: {
+    fontSize: FontSize.sm,
+    fontWeight: '500',
+    color: 'rgba(255,255,255,0.65)',
+    letterSpacing: 3,
+    textTransform: 'uppercase',
+    marginTop: 2,
+  },
+
+  /* ─── Sheet ─── */
+  sheet: {
+    flex: 1,
+    backgroundColor: Colors.white,
+    borderTopLeftRadius: 28,
+    borderTopRightRadius: 28,
+  },
+  sheetContent: {
+    padding: Spacing.xl,
+    paddingTop: 32,
+    paddingBottom: 48,
+  },
+
+  welcomeTitle: {
+    fontSize: FontSize.xxl,
+    fontWeight: '800',
+    color: Colors.textPrimary,
+    marginBottom: 6,
+  },
+  welcomeSub: {
+    fontSize: FontSize.md,
+    color: Colors.textMuted,
+    fontWeight: '400',
+    marginBottom: Spacing.xl,
+    lineHeight: 22,
+  },
+
+  /* ─── Form ─── */
+  label: {
+    fontSize: FontSize.sm,
+    fontWeight: '600',
+    color: Colors.textSecondary,
+    marginBottom: 8,
+  },
+  labelSpaced: {
+    marginTop: Spacing.md,
+  },
+  inputRow: {
+    flexDirection: 'row',
+    borderWidth: 1.5,
+    borderColor: Colors.neutralBorder,
+    borderRadius: Radius.md,
+    overflow: 'hidden',
+    backgroundColor: Colors.neutralLight,
+  },
+  inputRowFocused: {
+    borderColor: Colors.primary,
+    backgroundColor: Colors.primarySurface,
+  },
+  prefixBox: {
+    paddingHorizontal: 14,
+    justifyContent: 'center',
+    backgroundColor: 'transparent',
+    borderRightWidth: 1.5,
+    borderRightColor: Colors.neutralBorder,
+  },
+  prefixText: {
+    fontSize: FontSize.md,
+    fontWeight: '700',
+    color: Colors.primary,
+  },
+  textInput: {
+    flex: 1,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: 14,
+    fontSize: FontSize.md,
+    color: Colors.textPrimary,
+  },
+  passwordInput: {
+    paddingRight: 0,
+  },
+  eyeBtn: {
+    paddingHorizontal: 14,
+    justifyContent: 'center',
+  },
+  eyeIcon: {
+    fontSize: 16,
+  },
+
+  /* ─── Error ─── */
+  errorBox: {
+    marginTop: Spacing.sm,
+    backgroundColor: '#FEF2F2',
+    borderRadius: Radius.sm,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: 10,
+    borderLeftWidth: 3,
+    borderLeftColor: Colors.danger,
+  },
+  errorText: {
+    fontSize: FontSize.sm,
+    color: Colors.danger,
+    fontWeight: '500',
+  },
+
+  /* ─── Button ─── */
+  signInBtn: {
+    marginTop: Spacing.xl,
+    height: 52,
+    backgroundColor: Colors.primary,
+    borderRadius: Radius.lg,
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: Colors.primary,
+    shadowOpacity: 0.35,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 5,
+  },
+  signInBtnDisabled: {
+    opacity: 0.65,
+  },
+  signInBtnText: {
+    fontSize: FontSize.lg,
+    fontWeight: '700',
+    color: Colors.white,
+    letterSpacing: 0.3,
+  },
+
+  /* ─── Footer ─── */
+  footerHint: {
+    marginTop: Spacing.xl,
+    textAlign: 'center',
+    fontSize: FontSize.sm,
+    color: Colors.textMuted,
+  },
+  footerLink: {
+    color: Colors.primary,
+    fontWeight: '600',
+  },
 });
