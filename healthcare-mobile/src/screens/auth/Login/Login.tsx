@@ -1,4 +1,3 @@
-import { useState } from 'react';
 import {
   View,
   Text,
@@ -8,35 +7,32 @@ import {
   KeyboardAvoidingView,
   Platform,
   ActivityIndicator,
-  Alert,
   ScrollView,
   StatusBar,
 } from 'react-native';
-import { useAppDispatch, useAppSelector } from '../../store';
-import { login } from '../../store/slices/authSlice';
-import { Colors, FontSize, Spacing, Radius } from '../../constants/theme';
-import type { LoginScreenProps } from '../../navigation/types';
+import { Colors, FontSize, Spacing, Radius } from '../../../constants/theme';
+import { useLogin } from './useLogin';
+import type { NativeStackScreenProps } from '@react-navigation/native-stack';
+import type { AuthStackParamList } from '../../../navigation/types';
 
-export function LoginScreen(_props: LoginScreenProps): JSX.Element {
-  const dispatch = useAppDispatch();
-  const { loading, error } = useAppSelector((s) => s.auth);
+type Props = NativeStackScreenProps<AuthStackParamList, 'Login'>;
 
-  const [phone, setPhone] = useState('');
-  const [password, setPassword] = useState('');
-  const [showPassword, setShowPassword] = useState(false);
-  const [phoneFocused, setPhoneFocused] = useState(false);
-  const [passFocused, setPassFocused] = useState(false);
-
-  const handleLogin = async (): Promise<void> => {
-    if (!phone.trim() || !password.trim()) {
-      Alert.alert('Required', 'Please enter your phone number and password.');
-      return;
-    }
-    const result = await dispatch(login({ phone, password }));
-    if (login.rejected.match(result)) {
-      Alert.alert('Login Failed', result.payload as string);
-    }
-  };
+export function Login({ navigation }: Props): JSX.Element {
+  const {
+    phone,
+    password,
+    showPassword,
+    phoneFocused,
+    passFocused,
+    loading,
+    error,
+    setPhone,
+    setPassword,
+    setPhoneFocused,
+    setPassFocused,
+    togglePassword,
+    handleLogin,
+  } = useLogin(navigation);
 
   return (
     <KeyboardAvoidingView
@@ -47,7 +43,6 @@ export function LoginScreen(_props: LoginScreenProps): JSX.Element {
 
       {/* ── Green Header ── */}
       <View style={styles.header}>
-        {/* Medical cross icon */}
         <View style={styles.logoIcon}>
           <View style={styles.crossH} />
           <View style={styles.crossV} />
@@ -66,7 +61,7 @@ export function LoginScreen(_props: LoginScreenProps): JSX.Element {
         <Text style={styles.welcomeTitle}>Welcome back</Text>
         <Text style={styles.welcomeSub}>Sign in to manage your bookings and care.</Text>
 
-        {/* Phone field */}
+        {/* Phone */}
         <Text style={styles.label}>Phone Number</Text>
         <View style={[styles.inputRow, phoneFocused && styles.inputRowFocused]}>
           <View style={styles.prefixBox}>
@@ -85,7 +80,7 @@ export function LoginScreen(_props: LoginScreenProps): JSX.Element {
           />
         </View>
 
-        {/* Password field */}
+        {/* Password */}
         <Text style={[styles.label, styles.labelSpaced]}>Password</Text>
         <View style={[styles.inputRow, passFocused && styles.inputRowFocused]}>
           <TextInput
@@ -99,23 +94,19 @@ export function LoginScreen(_props: LoginScreenProps): JSX.Element {
             onFocus={() => setPassFocused(true)}
             onBlur={() => setPassFocused(false)}
           />
-          <TouchableOpacity
-            style={styles.eyeBtn}
-            onPress={() => setShowPassword((v) => !v)}
-            activeOpacity={0.7}
-          >
+          <TouchableOpacity style={styles.eyeBtn} onPress={togglePassword} activeOpacity={0.7}>
             <Text style={styles.eyeIcon}>{showPassword ? '🙈' : '👁'}</Text>
           </TouchableOpacity>
         </View>
 
-        {/* Error message */}
+        {/* Error */}
         {error ? (
           <View style={styles.errorBox}>
             <Text style={styles.errorText}>{error}</Text>
           </View>
         ) : null}
 
-        {/* Sign in button */}
+        {/* Sign In */}
         <TouchableOpacity
           style={[styles.signInBtn, loading && styles.signInBtnDisabled]}
           onPress={handleLogin}
@@ -129,7 +120,6 @@ export function LoginScreen(_props: LoginScreenProps): JSX.Element {
           )}
         </TouchableOpacity>
 
-        {/* Divider hint */}
         <Text style={styles.footerHint}>
           Don't have an account?{' '}
           <Text style={styles.footerLink}>Contact admin to register</Text>
@@ -139,17 +129,13 @@ export function LoginScreen(_props: LoginScreenProps): JSX.Element {
   );
 }
 
-const HEADER_HEIGHT = 260;
-
 const styles = StyleSheet.create({
   root: {
     flex: 1,
     backgroundColor: Colors.primary,
   },
-
-  /* ─── Header ─── */
   header: {
-    height: HEADER_HEIGHT,
+    height: 260,
     alignItems: 'center',
     justifyContent: 'center',
     paddingBottom: Spacing.xl,
@@ -195,8 +181,6 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase',
     marginTop: 2,
   },
-
-  /* ─── Sheet ─── */
   sheet: {
     flex: 1,
     backgroundColor: Colors.white,
@@ -208,7 +192,6 @@ const styles = StyleSheet.create({
     paddingTop: 32,
     paddingBottom: 48,
   },
-
   welcomeTitle: {
     fontSize: FontSize.xxl,
     fontWeight: '800',
@@ -218,12 +201,9 @@ const styles = StyleSheet.create({
   welcomeSub: {
     fontSize: FontSize.md,
     color: Colors.textMuted,
-    fontWeight: '400',
     marginBottom: Spacing.xl,
     lineHeight: 22,
   },
-
-  /* ─── Form ─── */
   label: {
     fontSize: FontSize.sm,
     fontWeight: '600',
@@ -248,7 +228,6 @@ const styles = StyleSheet.create({
   prefixBox: {
     paddingHorizontal: 14,
     justifyContent: 'center',
-    backgroundColor: 'transparent',
     borderRightWidth: 1.5,
     borderRightColor: Colors.neutralBorder,
   },
@@ -274,8 +253,6 @@ const styles = StyleSheet.create({
   eyeIcon: {
     fontSize: 16,
   },
-
-  /* ─── Error ─── */
   errorBox: {
     marginTop: Spacing.sm,
     backgroundColor: '#FEF2F2',
@@ -290,8 +267,6 @@ const styles = StyleSheet.create({
     color: Colors.danger,
     fontWeight: '500',
   },
-
-  /* ─── Button ─── */
   signInBtn: {
     marginTop: Spacing.xl,
     height: 52,
@@ -314,8 +289,6 @@ const styles = StyleSheet.create({
     color: Colors.white,
     letterSpacing: 0.3,
   },
-
-  /* ─── Footer ─── */
   footerHint: {
     marginTop: Spacing.xl,
     textAlign: 'center',

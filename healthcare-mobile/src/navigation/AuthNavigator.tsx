@@ -1,5 +1,5 @@
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
-import { LoginScreen } from '../screens/auth/LoginScreen';
+import { Login } from '../screens/auth/Login/Login';
 import { SplashScreen } from '../screens/onboarding/SplashScreen';
 import { OnboardingScreen } from '../screens/onboarding/OnboardingScreen';
 import type { AuthStackParamList } from './types';
@@ -11,7 +11,7 @@ export function AuthNavigator(): JSX.Element {
     <Stack.Navigator screenOptions={{ headerShown: false }} initialRouteName="Splash">
       <Stack.Screen name="Splash" component={SplashScreen} />
       <Stack.Screen name="Onboarding" component={OnboardingScreen} />
-      <Stack.Screen name="Login" component={LoginScreen} />
+      <Stack.Screen name="Login" component={Login} />
     </Stack.Navigator>
   );
 }
