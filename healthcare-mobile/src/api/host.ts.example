@@ -1,0 +1,3 @@
+// Copy this file to host.ts and set your machine's local IP,
+// OR just run "npm run android" — it auto-generates host.ts for you.
+export const DEV_HOST = '192.168.1.100';
