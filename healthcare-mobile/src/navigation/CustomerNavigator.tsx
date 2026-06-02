@@ -1,6 +1,7 @@
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
-import { MyBookingsScreen } from '../screens/customer/MyBookingsScreen';
-import { BookingDetailScreen } from '../screens/customer/BookingDetailScreen';
+import { MyBookings } from '../screens/dashboard/MyBookings/MyBookings';
+import { BookingDetail } from '../screens/dashboard/BookingDetail/BookingDetail';
+import { Colors } from '../constants/theme';
 import type { CustomerStackParamList } from './types';
 
 const Stack = createNativeStackNavigator<CustomerStackParamList>();
@@ -8,20 +9,22 @@ const Stack = createNativeStackNavigator<CustomerStackParamList>();
 export function CustomerNavigator(): JSX.Element {
   return (
     <Stack.Navigator
+      initialRouteName="MyBookings"
       screenOptions={{
-        headerStyle: { backgroundColor: '#0ea5e9' },
-        headerTintColor: '#fff',
-        headerTitleStyle: { fontWeight: '600' },
+        headerStyle: { backgroundColor: Colors.primary },
+        headerTintColor: Colors.white,
+        headerTitleStyle: { fontWeight: '700' },
+        headerBackTitle: 'Back',
       }}
     >
       <Stack.Screen
         name="MyBookings"
-        component={MyBookingsScreen}
+        component={MyBookings}
         options={{ title: 'My Bookings' }}
       />
       <Stack.Screen
         name="BookingDetail"
-        component={BookingDetailScreen}
+        component={BookingDetail}
         options={{ title: 'Booking Detail' }}
       />
     </Stack.Navigator>
