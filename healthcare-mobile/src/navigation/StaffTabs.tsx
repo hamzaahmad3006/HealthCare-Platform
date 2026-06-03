@@ -1,6 +1,7 @@
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { MaterialDesignIcons } from '@react-native-vector-icons/material-design-icons/static';
 import { StaffHome } from '../screens/staff/Home/Home';
+import { StaffProfile } from '../screens/staff/Profile/StaffProfile';
 import { Colors, FontSize } from '../constants/theme';
 import { View, Text, StyleSheet } from 'react-native';
 
@@ -71,7 +72,7 @@ export function StaffTabs(): JSX.Element {
       />
       <Tab.Screen
         name="Profile"
-        component={() => <Placeholder title="Profile" />}
+        component={StaffProfile}
         options={{
           tabBarIcon: ({ color, size }) => (
             <MaterialDesignIcons name="account-outline" size={size} color={color} />
