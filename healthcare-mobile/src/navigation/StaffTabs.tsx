@@ -1,9 +1,10 @@
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { MaterialDesignIcons } from '@react-native-vector-icons/material-design-icons/static';
 import { StaffHome } from '../screens/staff/Home/Home';
+import { StaffVisits } from '../screens/staff/Visits/StaffVisits';
+import { StaffReports } from '../screens/staff/Reports/StaffReports';
 import { StaffProfile } from '../screens/staff/Profile/StaffProfile';
 import { Colors, FontSize } from '../constants/theme';
-import { View, Text, StyleSheet } from 'react-native';
 
 export type StaffTabParamList = {
   Home: undefined;
@@ -13,14 +14,6 @@ export type StaffTabParamList = {
 };
 
 const Tab = createBottomTabNavigator<StaffTabParamList>();
-
-function Placeholder({ title }: { title: string }) {
-  return (
-    <View style={s.ph}>
-      <Text style={s.phText}>{title}</Text>
-    </View>
-  );
-}
 
 export function StaffTabs(): JSX.Element {
   return (
@@ -46,44 +39,23 @@ export function StaffTabs(): JSX.Element {
       <Tab.Screen
         name="Home"
         component={StaffHome}
-        options={{
-          tabBarIcon: ({ color, size }) => (
-            <MaterialDesignIcons name="home" size={size} color={color} />
-          ),
-        }}
+        options={{ tabBarIcon: ({ color, size }) => <MaterialDesignIcons name="home" size={size} color={color} /> }}
       />
       <Tab.Screen
         name="Visits"
-        component={() => <Placeholder title="Visits" />}
-        options={{
-          tabBarIcon: ({ color, size }) => (
-            <MaterialDesignIcons name="medical-bag" size={size} color={color} />
-          ),
-        }}
+        component={StaffVisits}
+        options={{ tabBarIcon: ({ color, size }) => <MaterialDesignIcons name="medical-bag" size={size} color={color} /> }}
       />
       <Tab.Screen
         name="Reports"
-        component={() => <Placeholder title="Reports" />}
-        options={{
-          tabBarIcon: ({ color, size }) => (
-            <MaterialDesignIcons name="file-document-outline" size={size} color={color} />
-          ),
-        }}
+        component={StaffReports}
+        options={{ tabBarIcon: ({ color, size }) => <MaterialDesignIcons name="file-document-outline" size={size} color={color} /> }}
       />
       <Tab.Screen
         name="Profile"
         component={StaffProfile}
-        options={{
-          tabBarIcon: ({ color, size }) => (
-            <MaterialDesignIcons name="account-outline" size={size} color={color} />
-          ),
-        }}
+        options={{ tabBarIcon: ({ color, size }) => <MaterialDesignIcons name="account-outline" size={size} color={color} /> }}
       />
     </Tab.Navigator>
   );
 }
-
-const s = StyleSheet.create({
-  ph: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#F9FAFB' },
-  phText: { fontSize: 18, fontWeight: '600', color: '#9CA3AF' },
-});

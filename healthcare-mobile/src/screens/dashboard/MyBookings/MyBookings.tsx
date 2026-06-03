@@ -9,11 +9,7 @@ import {
 } from 'react-native';
 import { Colors, FontSize, Spacing, Radius } from '../../../constants/theme';
 import { useMyBookings } from './useMyBookings';
-import type { NativeStackScreenProps } from '@react-navigation/native-stack';
-import type { CustomerStackParamList } from '../../../navigation/types';
 import type { Booking, BookingStatus } from '../../../types/booking.types';
-
-type Props = NativeStackScreenProps<CustomerStackParamList, 'MyBookings'>;
 
 const STATUS_COLORS: Record<BookingStatus, string> = {
   PENDING:        Colors.warning,
@@ -27,8 +23,8 @@ const STATUS_COLORS: Record<BookingStatus, string> = {
   TIME_PROPOSED:  '#06b6d4',
 };
 
-export function MyBookings({ navigation }: Props): JSX.Element {
-  const { bookings, loading, refreshing, onRefresh, goToDetail } = useMyBookings(navigation);
+export function MyBookings(): JSX.Element {
+  const { bookings, loading, refreshing, onRefresh, goToDetail } = useMyBookings();
 
   if (loading) {
     return (

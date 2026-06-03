@@ -17,6 +17,7 @@ export type CustomerTabParamList = {
 export type CustomerStackParamList = {
   Tabs: undefined;
   BookingDetail: { id: string };
+  MyPatients: undefined;
   NewBooking: undefined;
 };
 
