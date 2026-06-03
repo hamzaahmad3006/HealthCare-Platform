@@ -7,12 +7,17 @@ export type AuthStackParamList = {
   Register: undefined;
 };
 
+export type CustomerTabParamList = {
+  Home: undefined;
+  Bookings: undefined;
+  Reports: undefined;
+  Account: undefined;
+};
+
 export type CustomerStackParamList = {
-  MyBookings: undefined;
+  Tabs: undefined;
   BookingDetail: { id: string };
   NewBooking: undefined;
-  MyPatients: undefined;
-  MyReports: undefined;
 };
 
 export type RootStackParamList = {
