@@ -5,27 +5,27 @@ import {
 import { MaterialDesignIcons } from '@react-native-vector-icons/material-design-icons/static';
 import { Colors, FontSize, Spacing, Radius } from '../../../constants/theme';
 
+export interface BookingSummary {
+  service: string;
+  package: string;
+  price: string;
+  patient: string;
+  address: string;
+  date: string;
+  time: string;
+  urgency: string;
+  gender: string;
+  instructions: string;
+}
+
 interface Props {
+  summary: BookingSummary;
   onBack?: () => void;
   onConfirm?: () => void;
   submitting?: boolean;
 }
 
-// Summary data — will be passed as props/context when wired
-const SUMMARY = {
-  service:      'Home Nursing',
-  package:      'Weekly — 5 visits · 7 days',
-  price:        'PKR 6,000',
-  patient:      'Ahmed Khan',
-  address:      'House 12, Block B, DHA Phase 5, Lahore',
-  date:         'Monday, 09 Jun 2025',
-  time:         '10:00 AM',
-  urgency:      'Normal',
-  gender:       '—',
-  instructions: '—',
-};
-
-export function Step4Confirm({ onBack, onConfirm, submitting = false }: Props): JSX.Element {
+export function Step4Confirm({ summary, onBack, onConfirm, submitting = false }: Props): JSX.Element {
   return (
     <SafeAreaView style={styles.root}>
       <StatusBar backgroundColor={Colors.white} barStyle="dark-content" />
@@ -53,22 +53,22 @@ export function Step4Confirm({ onBack, onConfirm, submitting = false }: Props): 
 
         {/* Summary rows */}
         <View style={styles.summaryCard}>
-          <SummaryRow label="Service"      value={SUMMARY.service} />
-          <SummaryRow label="Package"      value={SUMMARY.package} />
-          <SummaryRow label="Patient"      value={SUMMARY.patient} />
-          <SummaryRow label="Address"      value={SUMMARY.address} />
-          <SummaryRow label="Date"         value={SUMMARY.date} />
-          <SummaryRow label="Time"         value={SUMMARY.time} />
-          <SummaryRow label="Urgency"      value={SUMMARY.urgency} />
-          <SummaryRow label="Staff Gender" value={SUMMARY.gender} />
-          <SummaryRow label="Instructions" value={SUMMARY.instructions} last />
+          <SummaryRow label="Service"      value={summary.service} />
+          <SummaryRow label="Package"      value={summary.package} />
+          <SummaryRow label="Patient"      value={summary.patient} />
+          <SummaryRow label="Address"      value={summary.address} />
+          <SummaryRow label="Date"         value={summary.date} />
+          <SummaryRow label="Time"         value={summary.time} />
+          <SummaryRow label="Urgency"      value={summary.urgency} />
+          <SummaryRow label="Staff Gender" value={summary.gender} />
+          <SummaryRow label="Instructions" value={summary.instructions} last />
         </View>
 
         {/* Total price */}
         <View style={styles.totalCard}>
           <View style={styles.totalRow}>
             <Text style={styles.totalLabel}>Total</Text>
-            <Text style={styles.totalPrice}>{SUMMARY.price}</Text>
+            <Text style={styles.totalPrice}>{summary.price}</Text>
           </View>
           <Text style={styles.totalNote}>
             Pay after care is delivered. No charges until confirmed.

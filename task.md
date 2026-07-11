@@ -9,9 +9,8 @@ Backend base URL: `/api/v1`. All endpoints below already exist and work on the b
 
 | Screen | Endpoint(s) to wire | Priority | Effort | Notes |
 |---|---|---|---|---|
-| **New Booking flow** `NewBooking/*` | `GET /service-types`, `GET /packages?serviceTypeId=`, `GET /users/patients`, `GET /users/addresses`, `POST /bookings` | 🔴 High | 3 hr | Steps 2/3/4 are not assembled in navigation. Build the Step 1→4 wizard with shared state, then submit `POST /bookings` (send `X-Idempotency-Key` header). This is the biggest gap. |
 | **Home — Services grid** `Home/Home.tsx` | `GET /service-types` | 🟡 Medium | 30 min | Grid is a hardcoded list. Fetch real service types; tap → New Booking pre-selected. |
-| **Account — Add address** `Account/Account.tsx` | `POST /users/addresses` | ⚪ Low | 1 hr | "Add" button is a no-op. Needs a city/zone picker (`GET /cities`) + create form. (List/read is already wired.) |
+| **Account — Add address** `Account/Account.tsx` | `POST /users/addresses` | 🟠 High | 1 hr | "Add" button is a no-op. Needs a city/zone picker (`GET /cities`) + create form. (List/read is already wired.) **Now blocks New Booking** — the booking wizard needs a saved address. |
 | **Notifications** (bell icon, all screens) | `GET /notifications` | 🟡 Medium | 1 hr | Bell icons are decorative. Add a notifications list screen + unread badge. |
 
 ## 2. Staff App
@@ -39,7 +38,6 @@ Backend base URL: `/api/v1`. All endpoints below already exist and work on the b
 
 | Item | Effort | Priority |
 |---|---|---|
-| New Booking flow (Steps 2–4 + `POST /bookings`) | 3 hr | 🔴 High |
 | Visit Detail lifecycle + report upload | 2 hr | 🟠 High |
 | Staff Home (visits + duty toggle) | 1.5 hr | 🟠 High |
 | Staff Visits list | 1 hr | 🟠 High |
@@ -52,7 +50,7 @@ Backend base URL: `/api/v1`. All endpoints below already exist and work on the b
 | Staff Reports list | 30 min | 🟡 Medium |
 | Reschedule 403 handling | 15 min | ⚪ Low |
 
-**Total estimated: ~13 hours**
+**Total estimated: ~10 hours**
 
 ---
 

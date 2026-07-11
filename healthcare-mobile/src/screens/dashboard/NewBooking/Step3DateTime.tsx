@@ -1,13 +1,10 @@
-import { useState } from 'react';
 import {
   View, Text, ScrollView, TouchableOpacity, TextInput,
   StyleSheet, StatusBar, SafeAreaView,
 } from 'react-native';
 import { MaterialDesignIcons } from '@react-native-vector-icons/material-design-icons/static';
 import { Colors, FontSize, Spacing, Radius } from '../../../constants/theme';
-
-type Urgency = 'NORMAL' | 'URGENT' | 'EMERGENCY';
-type Gender  = '' | 'MALE' | 'FEMALE' | 'OTHER';
+import type { Urgency, Gender } from './useNewBooking';
 
 const URGENCY_OPTIONS: { id: Urgency; label: string; color: string; bg: string }[] = [
   { id: 'NORMAL',    label: 'Normal',    color: Colors.primary,   bg: Colors.primarySurface },
@@ -21,19 +18,23 @@ const GENDER_OPTIONS: { id: Gender; label: string }[] = [
   { id: 'FEMALE', label: 'Female' },
 ];
 
-interface Props {
+interface Step3Values {
+  date: string;
+  time: string;
+  urgency: Urgency;
+  gender: Gender;
+  instructions: string;
+}
+
+interface Props extends Step3Values {
+  onChange: (patch: Partial<Step3Values>) => void;
   onBack?: () => void;
   onNext?: () => void;
 }
 
-export function Step3DateTime({ onBack, onNext }: Props): JSX.Element {
-  const today = new Date().toISOString().slice(0, 10);
-  const [date, setDate]               = useState(today);
-  const [time, setTime]               = useState('10:00');
-  const [urgency, setUrgency]         = useState<Urgency>('NORMAL');
-  const [gender, setGender]           = useState<Gender>('');
-  const [instructions, setInstructions] = useState('');
-
+export function Step3DateTime({
+  date, time, urgency, gender, instructions, onChange, onBack, onNext,
+}: Props): JSX.Element {
   return (
     <SafeAreaView style={styles.root}>
       <StatusBar backgroundColor={Colors.white} barStyle="dark-content" />
@@ -69,7 +70,7 @@ export function Step3DateTime({ onBack, onNext }: Props): JSX.Element {
             <TextInput
               style={styles.input}
               value={date}
-              onChangeText={setDate}
+              onChangeText={(v) => onChange({ date: v })}
               placeholder="YYYY-MM-DD"
               placeholderTextColor={Colors.neutralMuted}
             />
@@ -82,7 +83,7 @@ export function Step3DateTime({ onBack, onNext }: Props): JSX.Element {
             <TextInput
               style={styles.input}
               value={time}
-              onChangeText={setTime}
+              onChangeText={(v) => onChange({ time: v })}
               placeholder="HH:MM"
               placeholderTextColor={Colors.neutralMuted}
             />
@@ -99,7 +100,7 @@ export function Step3DateTime({ onBack, onNext }: Props): JSX.Element {
                 <TouchableOpacity
                   key={u.id}
                   style={[styles.urgencyBtn, active && { backgroundColor: u.bg, borderColor: u.color }]}
-                  onPress={() => setUrgency(u.id)}
+                  onPress={() => onChange({ urgency: u.id })}
                   activeOpacity={0.75}
                 >
                   {u.id === 'EMERGENCY' && (
@@ -127,7 +128,7 @@ export function Step3DateTime({ onBack, onNext }: Props): JSX.Element {
                 <TouchableOpacity
                   key={g.id}
                   style={[styles.genderBtn, active && styles.genderBtnActive]}
-                  onPress={() => setGender(g.id)}
+                  onPress={() => onChange({ gender: g.id })}
                   activeOpacity={0.75}
                 >
                   <Text style={[styles.genderBtnText, active && styles.genderBtnTextActive]}>
@@ -148,7 +149,7 @@ export function Step3DateTime({ onBack, onNext }: Props): JSX.Element {
           <TextInput
             style={styles.textArea}
             value={instructions}
-            onChangeText={setInstructions}
+            onChangeText={(v) => onChange({ instructions: v })}
             placeholder="Patient allergies, mobility needs, equipment available, etc."
             placeholderTextColor={Colors.neutralMuted}
             multiline

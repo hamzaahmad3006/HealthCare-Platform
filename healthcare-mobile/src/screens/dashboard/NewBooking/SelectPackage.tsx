@@ -1,4 +1,3 @@
-import { useState } from 'react';
 import {
   View,
   Text,
@@ -7,57 +6,27 @@ import {
   StyleSheet,
   StatusBar,
   SafeAreaView,
+  ActivityIndicator,
 } from 'react-native';
 import { MaterialDesignIcons } from '@react-native-vector-icons/material-design-icons/static';
 import { Colors, FontSize, Spacing, Radius } from '../../../constants/theme';
-
-const PACKAGES = [
-  {
-    id: 'per-visit',
-    icon: 'medical-bag',
-    name: 'Per Visit',
-    price: 'PKR 1,500',
-    tags: [
-      { icon: 'counter', label: '1 Visit' },
-      { icon: 'calendar-check', label: 'Flexible' },
-    ],
-    popular: false,
-    saving: null,
-  },
-  {
-    id: 'weekly',
-    icon: 'calendar-week',
-    name: 'Weekly',
-    price: 'PKR 6,000',
-    tags: [
-      { icon: 'format-list-numbered', label: '5 Visits' },
-      { icon: 'update', label: 'Valid 7 days' },
-    ],
-    popular: true,
-    saving: 'Save PKR 1,500',
-  },
-  {
-    id: 'monthly',
-    icon: 'calendar-month',
-    name: 'Monthly',
-    price: 'PKR 20,000',
-    tags: [
-      { icon: 'format-list-numbered', label: '20 Visits' },
-      { icon: 'update', label: 'Valid 30 days' },
-    ],
-    popular: false,
-    saving: 'Save PKR 10,000',
-  },
-];
+import type { PackageOption } from './useNewBooking';
 
 interface Props {
+  packages: PackageOption[];
+  loading: boolean;
+  selectedId: string | null;
+  onSelect: (pkg: PackageOption) => void;
   onBack?: () => void;
-  onNext?: (packageId: string) => void;
+  onNext?: () => void;
 }
 
-export function SelectPackage({ onBack, onNext }: Props): JSX.Element {
-  const [selected, setSelected] = useState('weekly');
+function formatPrice(amount: string, currency: string): string {
+  const n = Number(amount);
+  return `${currency} ${Number.isNaN(n) ? amount : n.toLocaleString('en-PK')}`;
+}
 
+export function SelectPackage({ packages, loading, selectedId, onSelect, onBack, onNext }: Props): JSX.Element {
   return (
     <SafeAreaView style={styles.root}>
       <StatusBar backgroundColor={Colors.white} barStyle="dark-content" />
@@ -81,74 +50,74 @@ export function SelectPackage({ onBack, onNext }: Props): JSX.Element {
       </View>
 
       {/* ── Package cards ── */}
-      <ScrollView
-        style={styles.scroll}
-        contentContainerStyle={styles.scrollContent}
-        showsVerticalScrollIndicator={false}
-      >
-        {PACKAGES.map((pkg) => {
-          const isSelected = selected === pkg.id;
-          return (
-            <TouchableOpacity
-              key={pkg.id}
-              style={[styles.card, isSelected && styles.cardSelected]}
-              onPress={() => setSelected(pkg.id)}
-              activeOpacity={0.85}
-            >
-              {/* Popular badge */}
-              {pkg.popular && (
-                <View style={styles.popularBadge}>
-                  <MaterialDesignIcons name="check" size={12} color={Colors.white} />
-                  <Text style={styles.popularText}>Most Popular</Text>
-                </View>
-              )}
+      {loading ? (
+        <View style={styles.centerFill}>
+          <ActivityIndicator size="large" color={Colors.primary} />
+        </View>
+      ) : packages.length === 0 ? (
+        <View style={styles.centerFill}>
+          <MaterialDesignIcons name="package-variant" size={44} color={Colors.neutralBorder} />
+          <Text style={styles.emptyText}>No packages available right now.</Text>
+        </View>
+      ) : (
+        <ScrollView
+          style={styles.scroll}
+          contentContainerStyle={styles.scrollContent}
+          showsVerticalScrollIndicator={false}
+        >
+          {packages.map((pkg) => {
+            const isSelected = selectedId === pkg.id;
+            return (
+              <TouchableOpacity
+                key={pkg.id}
+                style={[styles.card, isSelected && styles.cardSelected]}
+                onPress={() => onSelect(pkg)}
+                activeOpacity={0.85}
+              >
+                <Text style={styles.serviceLabel}>{pkg.serviceTypeName}</Text>
 
-              {/* Card top row */}
-              <View style={styles.cardTop}>
-                <View style={styles.cardNameRow}>
-                  <MaterialDesignIcons
-                    name={pkg.icon}
-                    size={18}
-                    color={isSelected ? Colors.primary : Colors.neutral}
-                  />
-                  <Text style={[styles.cardName, isSelected && styles.cardNameSelected]}>
-                    {pkg.name}
-                  </Text>
-                </View>
-                <Text style={styles.cardPrice}>{pkg.price}</Text>
-              </View>
-
-              {/* Tags row */}
-              <View style={styles.tagsRow}>
-                {pkg.tags.map((tag) => (
-                  <View key={tag.label} style={styles.tag}>
-                    <MaterialDesignIcons name={tag.icon} size={13} color={Colors.textMuted} />
-                    <Text style={styles.tagText}>{tag.label}</Text>
+                {/* Card top row */}
+                <View style={styles.cardTop}>
+                  <View style={styles.cardNameRow}>
+                    <MaterialDesignIcons
+                      name="medical-bag"
+                      size={18}
+                      color={isSelected ? Colors.primary : Colors.neutral}
+                    />
+                    <Text style={[styles.cardName, isSelected && styles.cardNameSelected]}>
+                      {pkg.name}
+                    </Text>
                   </View>
-                ))}
-              </View>
-
-              {/* Saving chip */}
-              {pkg.saving && (
-                <View style={styles.savingChip}>
-                  <Text style={styles.savingText}>{pkg.saving}</Text>
+                  <Text style={styles.cardPrice}>{formatPrice(pkg.priceAmount, pkg.currency)}</Text>
                 </View>
-              )}
 
-              {/* Selected radio indicator */}
-              <View style={[styles.radio, isSelected && styles.radioSelected]}>
-                {isSelected && <View style={styles.radioDot} />}
-              </View>
-            </TouchableOpacity>
-          );
-        })}
-      </ScrollView>
+                {/* Tags row */}
+                <View style={styles.tagsRow}>
+                  <View style={styles.tag}>
+                    <MaterialDesignIcons name="format-list-numbered" size={13} color={Colors.textMuted} />
+                    <Text style={styles.tagText}>{pkg.visitCount} {pkg.visitCount === 1 ? 'Visit' : 'Visits'}</Text>
+                  </View>
+                  <View style={styles.tag}>
+                    <MaterialDesignIcons name="update" size={13} color={Colors.textMuted} />
+                    <Text style={styles.tagText}>Valid {pkg.durationDays} days</Text>
+                  </View>
+                </View>
+
+                {/* Selected radio indicator */}
+                <View style={[styles.radio, isSelected && styles.radioSelected]}>
+                  {isSelected && <View style={styles.radioDot} />}
+                </View>
+              </TouchableOpacity>
+            );
+          })}
+        </ScrollView>
+      )}
 
       {/* ── Next Step button ── */}
       <View style={styles.footer}>
         <TouchableOpacity
-          style={styles.nextBtn}
-          onPress={() => onNext?.(selected)}
+          style={[styles.nextBtn, !selectedId && styles.nextBtnDisabled]}
+          onPress={selectedId ? onNext : undefined}
           activeOpacity={0.85}
         >
           <Text style={styles.nextBtnText}>Next Step</Text>
@@ -222,6 +191,15 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.primary,
     borderRadius: Radius.full,
   },
+
+  /* States */
+  centerFill: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: Spacing.sm, padding: Spacing.xl },
+  emptyText: { fontSize: FontSize.md, color: Colors.textMuted, textAlign: 'center' },
+  serviceLabel: {
+    fontSize: FontSize.xs, fontWeight: '700', color: Colors.primary,
+    textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 6,
+  },
+  nextBtnDisabled: { opacity: 0.45, shadowOpacity: 0 },
 
   /* Scroll */
   scroll: {

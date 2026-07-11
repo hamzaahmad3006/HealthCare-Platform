@@ -1,31 +1,30 @@
-import { useState } from 'react';
 import {
   View, Text, ScrollView, TouchableOpacity, StyleSheet,
-  StatusBar, SafeAreaView,
+  StatusBar, SafeAreaView, ActivityIndicator,
 } from 'react-native';
 import { MaterialDesignIcons } from '@react-native-vector-icons/material-design-icons/static';
 import { Colors, FontSize, Spacing, Radius } from '../../../constants/theme';
-
-const MOCK_PATIENTS = [
-  { id: '1', fullName: 'Ahmed Khan',   relation: 'Self' },
-  { id: '2', fullName: 'Sara Khan',    relation: 'Spouse' },
-];
-
-const MOCK_ADDRESSES = [
-  { id: '1', label: 'Home',  line1: 'House 12, Block B', area: 'DHA Phase 5', phone: '+92 300 1234567' },
-  { id: '2', label: 'Clinic', line1: 'Shop 4, Iqbal Town', area: 'Lahore',     phone: '+92 321 9876543' },
-];
+import type { PatientOption, AddressOption } from './useNewBooking';
 
 interface Props {
+  patients: PatientOption[];
+  addresses: AddressOption[];
+  loading: boolean;
+  patientId: string | null;
+  addressId: string | null;
+  onSelectPatient: (id: string) => void;
+  onSelectAddress: (addr: AddressOption) => void;
+  onAddPatient?: () => void;
+  onAddAddress?: () => void;
   onBack?: () => void;
   onNext?: () => void;
 }
 
-export function Step2PatientAddress({ onBack, onNext }: Props): JSX.Element {
-  const [selectedPatient, setSelectedPatient] = useState<string | null>(null);
-  const [selectedAddress, setSelectedAddress] = useState<string | null>(null);
-
-  const canProceed = selectedPatient !== null && selectedAddress !== null;
+export function Step2PatientAddress({
+  patients, addresses, loading, patientId, addressId,
+  onSelectPatient, onSelectAddress, onAddPatient, onAddAddress, onBack, onNext,
+}: Props): JSX.Element {
+  const canProceed = patientId !== null && addressId !== null;
 
   return (
     <SafeAreaView style={styles.root}>
@@ -49,6 +48,11 @@ export function Step2PatientAddress({ onBack, onNext }: Props): JSX.Element {
         <View style={[styles.progressFill, { width: '50%' }]} />
       </View>
 
+      {loading ? (
+        <View style={styles.centerFill}>
+          <ActivityIndicator size="large" color={Colors.primary} />
+        </View>
+      ) : (
       <ScrollView style={styles.scroll} contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}>
 
@@ -58,27 +62,27 @@ export function Step2PatientAddress({ onBack, onNext }: Props): JSX.Element {
             <MaterialDesignIcons name="account" size={16} color={Colors.primary} />
             <Text style={styles.sectionLabel}>Patient</Text>
           </View>
-          <TouchableOpacity style={styles.addBtn} activeOpacity={0.8}>
+          <TouchableOpacity style={styles.addBtn} activeOpacity={0.8} onPress={onAddPatient}>
             <MaterialDesignIcons name="plus" size={14} color={Colors.primary} />
             <Text style={styles.addBtnText}>Add patient</Text>
           </TouchableOpacity>
         </View>
 
-        {MOCK_PATIENTS.length === 0 ? (
-          <TouchableOpacity style={styles.emptyDashed} activeOpacity={0.8}>
+        {patients.length === 0 ? (
+          <TouchableOpacity style={styles.emptyDashed} activeOpacity={0.8} onPress={onAddPatient}>
             <MaterialDesignIcons name="plus" size={24} color={Colors.neutralMuted} />
             <Text style={styles.emptyDashedTitle}>Add your first patient</Text>
             <Text style={styles.emptyDashedHint}>The person who'll receive care (yourself or family member)</Text>
           </TouchableOpacity>
         ) : (
           <View style={styles.cardsGrid}>
-            {MOCK_PATIENTS.map((p) => {
-              const active = selectedPatient === p.id;
+            {patients.map((p) => {
+              const active = patientId === p.id;
               return (
                 <TouchableOpacity
                   key={p.id}
                   style={[styles.selectCard, active && styles.selectCardActive]}
-                  onPress={() => setSelectedPatient(p.id)}
+                  onPress={() => onSelectPatient(p.id)}
                   activeOpacity={0.8}
                 >
                   {active && (
@@ -89,7 +93,9 @@ export function Step2PatientAddress({ onBack, onNext }: Props): JSX.Element {
                   <Text style={[styles.selectCardName, active && styles.selectCardNameActive]}>
                     {p.fullName}
                   </Text>
-                  <Text style={styles.selectCardSub}>{p.relation}</Text>
+                  {p.relationshipToCustomer ? (
+                    <Text style={styles.selectCardSub}>{p.relationshipToCustomer}</Text>
+                  ) : null}
                 </TouchableOpacity>
               );
             })}
@@ -104,27 +110,27 @@ export function Step2PatientAddress({ onBack, onNext }: Props): JSX.Element {
             <MaterialDesignIcons name="map-marker" size={16} color={Colors.primary} />
             <Text style={styles.sectionLabel}>Service Address</Text>
           </View>
-          <TouchableOpacity style={styles.addBtn} activeOpacity={0.8}>
+          <TouchableOpacity style={styles.addBtn} activeOpacity={0.8} onPress={onAddAddress}>
             <MaterialDesignIcons name="plus" size={14} color={Colors.primary} />
             <Text style={styles.addBtnText}>Add address</Text>
           </TouchableOpacity>
         </View>
 
-        {MOCK_ADDRESSES.length === 0 ? (
-          <TouchableOpacity style={styles.emptyDashed} activeOpacity={0.8}>
+        {addresses.length === 0 ? (
+          <TouchableOpacity style={styles.emptyDashed} activeOpacity={0.8} onPress={onAddAddress}>
             <MaterialDesignIcons name="plus" size={24} color={Colors.neutralMuted} />
             <Text style={styles.emptyDashedTitle}>Add a service address</Text>
             <Text style={styles.emptyDashedHint}>Where should our staff arrive?</Text>
           </TouchableOpacity>
         ) : (
           <View style={styles.cardsGrid}>
-            {MOCK_ADDRESSES.map((a) => {
-              const active = selectedAddress === a.id;
+            {addresses.map((a) => {
+              const active = addressId === a.id;
               return (
                 <TouchableOpacity
                   key={a.id}
                   style={[styles.selectCard, active && styles.selectCardActive]}
-                  onPress={() => setSelectedAddress(a.id)}
+                  onPress={() => onSelectAddress(a)}
                   activeOpacity={0.8}
                 >
                   {active && (
@@ -133,16 +139,17 @@ export function Step2PatientAddress({ onBack, onNext }: Props): JSX.Element {
                     </View>
                   )}
                   <Text style={[styles.selectCardName, active && styles.selectCardNameActive]}>
-                    {a.label}
+                    {a.label || a.area}
                   </Text>
                   <Text style={styles.selectCardSub}>{a.line1}, {a.area}</Text>
-                  <Text style={styles.selectCardPhone}>{a.phone}</Text>
+                  <Text style={styles.selectCardPhone}>{a.contactPhone}</Text>
                 </TouchableOpacity>
               );
             })}
           </View>
         )}
       </ScrollView>
+      )}
 
       {/* Footer */}
       <View style={styles.footer}>
@@ -183,6 +190,7 @@ const styles = StyleSheet.create({
     borderRadius: Radius.full, marginBottom: Spacing.md,
   },
   progressFill: { height: 4, backgroundColor: Colors.primary, borderRadius: Radius.full },
+  centerFill: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   scroll: { flex: 1 },
   scrollContent: { paddingHorizontal: Spacing.xl, paddingBottom: Spacing.lg, gap: Spacing.sm },
   sectionHeader: {

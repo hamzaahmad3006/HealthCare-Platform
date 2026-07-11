@@ -2,7 +2,7 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { CustomerTabs } from './CustomerTabs';
 import { BookingDetail } from '../screens/dashboard/BookingDetail/BookingDetail';
 import { MyPatients } from '../screens/dashboard/MyPatients/MyPatients';
-import { SelectPackage } from '../screens/dashboard/NewBooking/SelectPackage';
+import { NewBookingWizard } from '../screens/dashboard/NewBooking/NewBookingWizard';
 import { Colors } from '../constants/theme';
 import type { CustomerStackParamList } from './types';
 
@@ -20,7 +20,7 @@ export function CustomerNavigator(): JSX.Element {
       <Stack.Screen name="Tabs"          component={CustomerTabs}   options={{ headerShown: false }} />
       <Stack.Screen name="BookingDetail" component={BookingDetail}  options={{ title: 'Booking Detail' }} />
       <Stack.Screen name="MyPatients"    component={MyPatients}     options={{ title: 'My Patients' }} />
-      <Stack.Screen name="NewBooking"    component={SelectPackage}  options={{ title: 'New Booking' }} />
+      <Stack.Screen name="NewBooking"    component={NewBookingWizard} options={{ headerShown: false }} />
     </Stack.Navigator>
   );
 }
