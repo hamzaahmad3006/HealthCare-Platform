@@ -142,6 +142,10 @@ export const authController = {
 
       success(res, {
         accessToken,
+        // Native mobile clients have no cookie jar — they read this from the
+        // JSON body and store it in AsyncStorage. Web ignores it and keeps
+        // using the httpOnly cookie set above.
+        refreshToken: rawRefreshToken,
         expiresIn: env.JWT_ACCESS_TTL,
         user: {
           id: user.id,
@@ -237,6 +241,7 @@ export const authController = {
         res,
         {
           accessToken,
+          refreshToken: rawRefreshToken,
           expiresIn: env.JWT_ACCESS_TTL,
           user: {
             id: user.id,
@@ -256,7 +261,16 @@ export const authController = {
 
   async refresh(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const rawToken = req.cookies['refresh_token'] as string | undefined;
+      // Web sends the refresh token as an httpOnly cookie; native mobile has no
+      // cookie jar and sends it as `Authorization: Bearer <token>` or in the body.
+      // Cookie takes precedence so existing web behaviour is unchanged.
+      const bearer = req.headers.authorization?.startsWith('Bearer ')
+        ? req.headers.authorization.slice(7)
+        : undefined;
+      const rawToken =
+        (req.cookies['refresh_token'] as string | undefined) ??
+        bearer ??
+        (req.body?.refreshToken as string | undefined);
       if (!rawToken) throw new UnauthorizedError('MISSING_REFRESH_TOKEN');
 
       const tokenHash = hashRefreshToken(rawToken);
@@ -316,7 +330,7 @@ export const authController = {
         path: '/',
       });
 
-      success(res, { accessToken, expiresIn: env.JWT_ACCESS_TTL });
+      success(res, { accessToken, refreshToken: newRawToken, expiresIn: env.JWT_ACCESS_TTL });
     } catch (err) {
       next(err);
     }
@@ -492,6 +506,7 @@ export const authController = {
 
       success(res, {
         accessToken,
+        refreshToken: rawRefreshToken,
         expiresIn: env.JWT_ACCESS_TTL,
         user: {
           id: user.id,
@@ -561,7 +576,7 @@ export const authController = {
         path: '/',
       });
 
-      success(res, { accessToken, expiresIn: env.JWT_ACCESS_TTL });
+      success(res, { accessToken, refreshToken: rawRefreshToken, expiresIn: env.JWT_ACCESS_TTL });
     } catch (err) {
       next(err);
     }

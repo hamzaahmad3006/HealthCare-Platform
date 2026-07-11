@@ -1,22 +1,11 @@
 import { useState } from 'react';
 import {
   View, Text, FlatList, TouchableOpacity, StyleSheet,
-  StatusBar, SafeAreaView, Modal, TextInput, ScrollView,
+  StatusBar, SafeAreaView, Modal, TextInput, ScrollView, ActivityIndicator,
 } from 'react-native';
 import { MaterialDesignIcons } from '@react-native-vector-icons/material-design-icons/static';
 import { Colors, FontSize, Spacing, Radius } from '../../../constants/theme';
-
-type Gender = 'MALE' | 'FEMALE' | 'OTHER';
-
-interface Patient {
-  id: string;
-  fullName: string;
-  gender?: Gender;
-  dateOfBirth?: string;
-  relationshipToCustomer?: string;
-  primaryCondition?: string;
-  allergies?: string;
-}
+import { useMyPatients, type Gender, type Patient } from './useMyPatients';
 
 const GENDER_LABEL: Record<Gender, string> = { MALE: 'Male', FEMALE: 'Female', OTHER: 'Other' };
 const RELATIONSHIPS = ['Self', 'Spouse', 'Son', 'Daughter', 'Mother', 'Father', 'Sibling', 'Other'];
@@ -29,7 +18,7 @@ function calcAge(dob?: string): string {
 }
 
 export function MyPatients(): JSX.Element {
-  const [patients, setPatients] = useState<Patient[]>([]);
+  const { patients, loading, refreshing, saving, onRefresh, savePatient, deletePatient } = useMyPatients();
   const [modalOpen, setModalOpen] = useState(false);
   const [editing, setEditing] = useState<Patient | null>(null);
 
@@ -55,27 +44,22 @@ export function MyPatients(): JSX.Element {
     setModalOpen(true);
   };
 
-  const handleSave = () => {
-    if (!name.trim()) return;
-    if (editing) {
-      setPatients((prev) => prev.map((p) =>
-        p.id === editing.id
-          ? { ...p, fullName: name, gender: gender || undefined, dateOfBirth: dob || undefined,
-              relationshipToCustomer: relation || undefined, primaryCondition: condition || undefined,
-              allergies: allergies || undefined }
-          : p,
-      ));
-    } else {
-      setPatients((prev) => [...prev, {
-        id: Date.now().toString(), fullName: name, gender: gender || undefined,
-        dateOfBirth: dob || undefined, relationshipToCustomer: relation || undefined,
-        primaryCondition: condition || undefined, allergies: allergies || undefined,
-      }]);
-    }
-    setModalOpen(false);
+  const handleSave = async () => {
+    const ok = await savePatient(
+      {
+        fullName: name,
+        gender,
+        dateOfBirth: dob,
+        relationshipToCustomer: relation,
+        primaryCondition: condition,
+        allergies,
+      },
+      editing?.id,
+    );
+    if (ok) setModalOpen(false);
   };
 
-  const handleDelete = (id: string) => setPatients((prev) => prev.filter((p) => p.id !== id));
+  const handleDelete = (id: string) => deletePatient(id);
 
   return (
     <SafeAreaView style={styles.root}>
@@ -95,17 +79,25 @@ export function MyPatients(): JSX.Element {
       <FlatList
         data={patients}
         keyExtractor={(item) => item.id}
+        refreshing={refreshing}
+        onRefresh={onRefresh}
         contentContainerStyle={patients.length === 0 ? styles.emptyContainer : styles.listContent}
         ListEmptyComponent={
-          <View style={styles.emptyBox}>
-            <MaterialDesignIcons name="account-group" size={48} color={Colors.neutralBorder} />
-            <Text style={styles.emptyTitle}>No patients yet</Text>
-            <Text style={styles.emptyHint}>Add a family member to book services for them.</Text>
-            <TouchableOpacity style={styles.emptyAddBtn} onPress={openAdd} activeOpacity={0.85}>
-              <MaterialDesignIcons name="plus" size={16} color={Colors.white} />
-              <Text style={styles.emptyAddText}>Add Patient</Text>
-            </TouchableOpacity>
-          </View>
+          loading ? (
+            <View style={styles.emptyBox}>
+              <ActivityIndicator size="large" color={Colors.primary} />
+            </View>
+          ) : (
+            <View style={styles.emptyBox}>
+              <MaterialDesignIcons name="account-group" size={48} color={Colors.neutralBorder} />
+              <Text style={styles.emptyTitle}>No patients yet</Text>
+              <Text style={styles.emptyHint}>Add a family member to book services for them.</Text>
+              <TouchableOpacity style={styles.emptyAddBtn} onPress={openAdd} activeOpacity={0.85}>
+                <MaterialDesignIcons name="plus" size={16} color={Colors.white} />
+                <Text style={styles.emptyAddText}>Add Patient</Text>
+              </TouchableOpacity>
+            </View>
+          )
         }
         renderItem={({ item }) => (
           <View style={styles.card}>
@@ -229,8 +221,15 @@ export function MyPatients(): JSX.Element {
               <TouchableOpacity style={styles.cancelBtn} onPress={() => setModalOpen(false)} activeOpacity={0.7}>
                 <Text style={styles.cancelBtnText}>Cancel</Text>
               </TouchableOpacity>
-              <TouchableOpacity style={styles.saveBtn} onPress={handleSave} activeOpacity={0.85}>
-                <Text style={styles.saveBtnText}>{editing ? 'Save Changes' : 'Add Patient'}</Text>
+              <TouchableOpacity
+                style={[styles.saveBtn, saving && { opacity: 0.6 }]}
+                onPress={handleSave}
+                disabled={saving}
+                activeOpacity={0.85}
+              >
+                <Text style={styles.saveBtnText}>
+                  {saving ? 'Saving…' : editing ? 'Save Changes' : 'Add Patient'}
+                </Text>
               </TouchableOpacity>
             </View>
           </View>

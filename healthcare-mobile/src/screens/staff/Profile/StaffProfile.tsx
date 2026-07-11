@@ -8,14 +8,31 @@ import {
   StatusBar,
   SafeAreaView,
   Switch,
+  Alert,
 } from 'react-native';
 import { MaterialDesignIcons } from '@react-native-vector-icons/material-design-icons/static';
 import { Colors, FontSize, Spacing, Radius } from '../../../constants/theme';
+import { useAppDispatch, useAppSelector } from '../../../store';
+import { logout } from '../../../store/slices/authSlice';
 
 const SPECIALIZATIONS = ['Nursing', 'Caregiver'];
 
+function initialsOf(name?: string): string {
+  if (!name) return '–';
+  return name.trim().split(/\s+/).slice(0, 2).map((w) => w.charAt(0).toUpperCase()).join('');
+}
+
 export function StaffProfile(): JSX.Element {
+  const dispatch = useAppDispatch();
+  const user = useAppSelector((s) => s.auth.user);
   const [available, setAvailable] = useState(true);
+
+  const signOut = (): void => {
+    Alert.alert('Logout', 'Are you sure you want to log out?', [
+      { text: 'Cancel', style: 'cancel' },
+      { text: 'Logout', style: 'destructive', onPress: () => { dispatch(logout()); } },
+    ]);
+  };
 
   return (
     <SafeAreaView style={styles.root}>
@@ -41,16 +58,16 @@ export function StaffProfile(): JSX.Element {
         <View style={styles.profileCard}>
           {/* Avatar */}
           <View style={styles.avatarCircle}>
-            <Text style={styles.avatarInitials}>MA</Text>
+            <Text style={styles.avatarInitials}>{initialsOf(user?.fullName)}</Text>
           </View>
 
-          <Text style={styles.profileName}>Dr. Muhammad Ali</Text>
-          <Text style={styles.profileId}>ID: HH-8821</Text>
+          <Text style={styles.profileName}>{user?.fullName ?? 'Staff Member'}</Text>
+          <Text style={styles.profileId}>ID: {user?.id ? user.id.slice(0, 8).toUpperCase() : '—'}</Text>
 
           {/* Phone */}
           <View style={styles.phoneRow}>
             <MaterialDesignIcons name="phone" size={15} color={Colors.primary} />
-            <Text style={styles.phoneText}>+92 300 1234567</Text>
+            <Text style={styles.phoneText}>{user?.phone ?? '—'}</Text>
           </View>
 
           {/* Badges */}
@@ -133,7 +150,7 @@ export function StaffProfile(): JSX.Element {
         </View>
 
         {/* ── Logout ── */}
-        <TouchableOpacity style={styles.logoutBtn} activeOpacity={0.85}>
+        <TouchableOpacity style={styles.logoutBtn} activeOpacity={0.85} onPress={signOut}>
           <MaterialDesignIcons name="logout" size={20} color={Colors.danger} />
           <Text style={styles.logoutText}>Logout</Text>
         </TouchableOpacity>

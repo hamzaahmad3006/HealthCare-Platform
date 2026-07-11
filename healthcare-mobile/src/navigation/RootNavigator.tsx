@@ -6,6 +6,7 @@ import { useAppDispatch, useAppSelector } from '../store';
 import { hydrateAuth } from '../store/slices/authSlice';
 import { AuthNavigator } from './AuthNavigator';
 import { CustomerNavigator } from './CustomerNavigator';
+import { StaffNavigator } from './StaffNavigator';
 import { Colors } from '../constants/theme';
 import type { RootStackParamList } from './types';
 
@@ -30,10 +31,12 @@ export function RootNavigator(): JSX.Element {
   return (
     <NavigationContainer>
       <Stack.Navigator screenOptions={{ headerShown: false }}>
-        {user ? (
-          <Stack.Screen name="Customer" component={CustomerNavigator} />
-        ) : (
+        {!user ? (
           <Stack.Screen name="Auth" component={AuthNavigator} />
+        ) : user.role === 'STAFF' ? (
+          <Stack.Screen name="Staff" component={StaffNavigator} />
+        ) : (
+          <Stack.Screen name="Customer" component={CustomerNavigator} />
         )}
       </Stack.Navigator>
     </NavigationContainer>

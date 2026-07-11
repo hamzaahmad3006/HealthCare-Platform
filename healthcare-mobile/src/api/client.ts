@@ -66,13 +66,19 @@ async function refreshAccessToken(): Promise<string | null> {
 
       const { data } = await axios.post<{
         success: true;
-        data: { accessToken: string; expiresIn: number };
-      }>(`${API_BASE}/auth/refresh`, {}, {
+        data: { accessToken: string; refreshToken?: string; expiresIn: number };
+      }>(`${API_BASE}/auth/refresh`, { refreshToken }, {
         headers: { Authorization: `Bearer ${refreshToken}` },
       });
 
       const newToken = data.data.accessToken;
-      await AsyncStorage.setItem(STORAGE_KEYS.ACCESS_TOKEN, newToken);
+      // The backend rotates the refresh token on every refresh — persist the new
+      // one so the next refresh doesn't send a revoked token.
+      const writes: [string, string][] = [[STORAGE_KEYS.ACCESS_TOKEN, newToken]];
+      if (data.data.refreshToken) {
+        writes.push([STORAGE_KEYS.REFRESH_TOKEN, data.data.refreshToken]);
+      }
+      await AsyncStorage.multiSet(writes);
       return newToken;
     } catch {
       return null;

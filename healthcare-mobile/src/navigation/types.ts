@@ -21,9 +21,23 @@ export type CustomerStackParamList = {
   NewBooking: undefined;
 };
 
+export type StaffTabParamList = {
+  Home: undefined;
+  Visits: undefined;
+  Reports: undefined;
+  Profile: undefined;
+};
+
+export type StaffStackParamList = {
+  Tabs: undefined;
+  VisitDetail: { id: string };
+  StaffPatients: undefined;
+};
+
 export type RootStackParamList = {
   Auth: undefined;
   Customer: undefined;
+  Staff: undefined;
 };
 
 export type LoginScreenProps = NativeStackScreenProps<AuthStackParamList, 'Login'>;

@@ -6,19 +6,23 @@ import {
 import { MaterialDesignIcons } from '@react-native-vector-icons/material-design-icons/static';
 import { Ionicons } from '@react-native-vector-icons/ionicons/static';
 import { Colors, FontSize, Spacing, Radius } from '../../../constants/theme';
+import { useAccount } from './useAccount';
 
 export function Account(): JSX.Element {
-  const [fullName, setFullName]         = useState('Ahmed Khan');
-  const [oldPwd, setOldPwd]             = useState('');
-  const [newPwd, setNewPwd]             = useState('');
-  const [confirmPwd, setConfirmPwd]     = useState('');
+  const {
+    user,
+    fullName, setFullName, savingProfile, saveProfile,
+    oldPwd, setOldPwd, newPwd, setNewPwd, confirmPwd, setConfirmPwd,
+    updatingPwd, updatePassword,
+    addresses, loadingAddresses,
+    signOut,
+  } = useAccount();
   const [showOld, setShowOld]           = useState(false);
   const [showNew, setShowNew]           = useState(false);
   const [showConfirm, setShowConfirm]   = useState(false);
 
-  // read-only user data (will come from Redux when wired)
-  const email = 'ahmed@example.com';
-  const phone = '+92 300 1234567';
+  const email = user?.email ?? '—';
+  const phone = user?.phone ?? '—';
 
   return (
     <SafeAreaView style={styles.root}>
@@ -80,9 +84,14 @@ export function Account(): JSX.Element {
             </View>
           </View>
 
-          <TouchableOpacity style={styles.saveBtn} activeOpacity={0.85}>
+          <TouchableOpacity
+            style={[styles.saveBtn, savingProfile && styles.btnDisabled]}
+            activeOpacity={0.85}
+            onPress={saveProfile}
+            disabled={savingProfile}
+          >
             <MaterialDesignIcons name="content-save" size={16} color={Colors.white} />
-            <Text style={styles.saveBtnText}>Save Changes</Text>
+            <Text style={styles.saveBtnText}>{savingProfile ? 'Saving…' : 'Save Changes'}</Text>
           </TouchableOpacity>
         </View>
 
@@ -104,9 +113,29 @@ export function Account(): JSX.Element {
             </TouchableOpacity>
           </View>
 
-          <View style={styles.emptyAddressBox}>
-            <Text style={styles.emptyAddressText}>No addresses saved yet.</Text>
-          </View>
+          {loadingAddresses ? (
+            <View style={styles.emptyAddressBox}>
+              <Text style={styles.emptyAddressText}>Loading addresses…</Text>
+            </View>
+          ) : addresses.length === 0 ? (
+            <View style={styles.emptyAddressBox}>
+              <Text style={styles.emptyAddressText}>No addresses saved yet.</Text>
+            </View>
+          ) : (
+            <View style={{ gap: Spacing.sm }}>
+              {addresses.map((a) => (
+                <View key={a.id} style={styles.addressRow}>
+                  <MaterialDesignIcons name="map-marker" size={18} color={Colors.primary} />
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.addressLabel}>{a.label || a.contactName}</Text>
+                    <Text style={styles.addressLine} numberOfLines={1}>
+                      {[a.line1, a.line2, a.area].filter(Boolean).join(', ')}
+                    </Text>
+                  </View>
+                </View>
+              ))}
+            </View>
+          )}
         </View>
 
         {/* ── Change Password card ── */}
@@ -125,14 +154,19 @@ export function Account(): JSX.Element {
           <PasswordField label="New Password" value={newPwd} onChange={setNewPwd} show={showNew} onToggle={() => setShowNew(v => !v)} />
           <PasswordField label="Confirm New Password" value={confirmPwd} onChange={setConfirmPwd} show={showConfirm} onToggle={() => setShowConfirm(v => !v)} />
 
-          <TouchableOpacity style={styles.saveBtn} activeOpacity={0.85}>
+          <TouchableOpacity
+            style={[styles.saveBtn, updatingPwd && styles.btnDisabled]}
+            activeOpacity={0.85}
+            onPress={updatePassword}
+            disabled={updatingPwd}
+          >
             <MaterialDesignIcons name="key-variant" size={16} color={Colors.white} />
-            <Text style={styles.saveBtnText}>Update Password</Text>
+            <Text style={styles.saveBtnText}>{updatingPwd ? 'Updating…' : 'Update Password'}</Text>
           </TouchableOpacity>
         </View>
 
         {/* ── Logout ── */}
-        <TouchableOpacity style={styles.logoutBtn} activeOpacity={0.85}>
+        <TouchableOpacity style={styles.logoutBtn} activeOpacity={0.85} onPress={signOut}>
           <MaterialDesignIcons name="logout" size={20} color={Colors.danger} />
           <Text style={styles.logoutText}>Sign Out</Text>
         </TouchableOpacity>
@@ -212,6 +246,13 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   saveBtnText: { fontSize: FontSize.md, fontWeight: '700', color: Colors.white },
+  btnDisabled: { opacity: 0.6 },
+  addressRow: {
+    flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 10, paddingHorizontal: 12,
+    borderWidth: 1, borderColor: Colors.neutralBorder, borderRadius: Radius.md, backgroundColor: Colors.neutralLight,
+  },
+  addressLabel: { fontSize: FontSize.sm, fontWeight: '700', color: Colors.textPrimary },
+  addressLine: { fontSize: FontSize.xs, color: Colors.textMuted, marginTop: 1 },
   smallAddBtn: {
     flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: Colors.primary,
     borderRadius: Radius.md, paddingHorizontal: 12, paddingVertical: 6,

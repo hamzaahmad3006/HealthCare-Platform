@@ -1,24 +1,13 @@
 import { useState } from 'react';
 import {
   View, Text, FlatList, TouchableOpacity, StyleSheet,
-  StatusBar, SafeAreaView,
+  StatusBar, SafeAreaView, ActivityIndicator, Linking,
 } from 'react-native';
 import { MaterialDesignIcons } from '@react-native-vector-icons/material-design-icons/static';
 import { Colors, FontSize, Spacing, Radius } from '../../../constants/theme';
+import { useMyReports, type Report, type ReportType } from './useMyReports';
 
-type ReportType = 'LAB_RESULT' | 'PRESCRIPTION' | 'VISIT_NOTE' | 'PROGRESS_IMAGE' | 'OTHER';
 type Filter = 'ALL' | ReportType;
-
-interface Report {
-  id: string;
-  title: string;
-  reportType: ReportType;
-  notes?: string;
-  patientName?: string;
-  bookingNumber?: string;
-  createdAt: string;
-  hasFile: boolean;
-}
 
 const FILTERS: { id: Filter; label: string }[] = [
   { id: 'ALL',            label: 'All' },
@@ -62,9 +51,7 @@ const TYPE_LABEL: Record<ReportType, string> = {
 
 export function MyReports(): JSX.Element {
   const [activeFilter, setActiveFilter] = useState<Filter>('ALL');
-
-  // empty list for now — will be wired to API later
-  const reports: Report[] = [];
+  const { reports, loading, refreshing, onRefresh } = useMyReports();
 
   const filtered = activeFilter === 'ALL'
     ? reports
@@ -106,13 +93,21 @@ export function MyReports(): JSX.Element {
       <FlatList
         data={filtered}
         keyExtractor={(r) => r.id}
+        refreshing={refreshing}
+        onRefresh={onRefresh}
         contentContainerStyle={filtered.length === 0 ? styles.emptyContainer : styles.listContent}
         ListEmptyComponent={
-          <View style={styles.emptyBox}>
-            <MaterialDesignIcons name="file-document-outline" size={48} color={Colors.neutralBorder} />
-            <Text style={styles.emptyTitle}>No reports yet</Text>
-            <Text style={styles.emptyHint}>Reports uploaded by your healthcare staff will appear here.</Text>
-          </View>
+          loading ? (
+            <View style={styles.emptyBox}>
+              <ActivityIndicator size="large" color={Colors.primary} />
+            </View>
+          ) : (
+            <View style={styles.emptyBox}>
+              <MaterialDesignIcons name="file-document-outline" size={48} color={Colors.neutralBorder} />
+              <Text style={styles.emptyTitle}>No reports yet</Text>
+              <Text style={styles.emptyHint}>Reports uploaded by your healthcare staff will appear here.</Text>
+            </View>
+          )
         }
         renderItem={({ item }) => <ReportCard report={item} />}
       />
@@ -152,13 +147,13 @@ function ReportCard({ report }: { report: Report }) {
           <Text style={styles.metaText}>{new Date(report.createdAt).toLocaleDateString('en-PK', { day: 'numeric', month: 'short', year: 'numeric' })}</Text>
         </View>
 
-        {report.hasFile ? (
+        {report.hasFile && report.fileUrl ? (
           <View style={styles.cardActions}>
-            <TouchableOpacity style={styles.viewBtn} activeOpacity={0.7}>
+            <TouchableOpacity style={styles.viewBtn} activeOpacity={0.7} onPress={() => Linking.openURL(report.fileUrl!)}>
               <MaterialDesignIcons name="open-in-new" size={14} color={Colors.textSecondary} />
               <Text style={styles.viewBtnText}>View</Text>
             </TouchableOpacity>
-            <TouchableOpacity style={styles.downloadBtn} activeOpacity={0.7}>
+            <TouchableOpacity style={styles.downloadBtn} activeOpacity={0.7} onPress={() => Linking.openURL(report.fileUrl!)}>
               <MaterialDesignIcons name="download" size={14} color={Colors.primary} />
               <Text style={styles.downloadBtnText}>Download</Text>
             </TouchableOpacity>

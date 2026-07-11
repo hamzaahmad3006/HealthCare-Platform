@@ -44,9 +44,10 @@ export const login = createAsyncThunk(
         API.AUTH.LOGIN,
         { phone, password: payload.password },
       );
-      const { accessToken, user } = data.data;
+      const { accessToken, refreshToken, user } = data.data;
       await AsyncStorage.multiSet([
         [STORAGE_KEYS.ACCESS_TOKEN, accessToken],
+        [STORAGE_KEYS.REFRESH_TOKEN, refreshToken],
         [STORAGE_KEYS.USER, JSON.stringify(user)],
       ]);
       return { accessToken, user };

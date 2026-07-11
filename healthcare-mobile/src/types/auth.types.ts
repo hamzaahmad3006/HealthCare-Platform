@@ -1,5 +1,11 @@
 export type UserRole = 'CUSTOMER' | 'STAFF' | 'ADMIN';
 
+export type StaffVerificationStatus =
+  | 'PENDING'
+  | 'APPROVED'
+  | 'REJECTED'
+  | null;
+
 export interface AuthUser {
   id: string;
   role: UserRole;
@@ -7,6 +13,9 @@ export interface AuthUser {
   phone: string;
   email: string | null;
   avatarUrl: string | null;
+  // Present for STAFF users; null/undefined for customers.
+  staffVerificationStatus?: StaffVerificationStatus;
+  staffProfileCompletedAt?: string | null;
 }
 
 export interface LoginPayload {
@@ -16,6 +25,7 @@ export interface LoginPayload {
 
 export interface AuthResponse {
   accessToken: string;
+  refreshToken: string;
   expiresIn: number;
   user: AuthUser;
 }

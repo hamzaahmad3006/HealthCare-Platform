@@ -5,9 +5,11 @@ import {
   TouchableOpacity,
   StyleSheet,
   StatusBar,
+  ActivityIndicator,
 } from 'react-native';
 import { MaterialDesignIcons } from '@react-native-vector-icons/material-design-icons/static';
 import { Colors, FontSize, Spacing, Radius } from '../../../constants/theme';
+import { useHome } from './useHome';
 
 const SERVICES = [
   { icon: 'bandage',                   label: 'Nursing' },
@@ -18,7 +20,14 @@ const SERVICES = [
   { icon: 'ambulance',                 label: 'Ambulance' },
 ];
 
+function formatWhen(iso: string): string {
+  const d = new Date(iso);
+  return d.toLocaleString('en-PK', { weekday: 'short', day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit' });
+}
+
 export function Home(): JSX.Element {
+  const { firstName, greeting, nextBooking, loading, goToBooking, goToNewBooking } = useHome();
+
   return (
     <View style={styles.root}>
       <StatusBar backgroundColor={Colors.primary} barStyle="light-content" />
@@ -30,8 +39,8 @@ export function Home(): JSX.Element {
             <MaterialDesignIcons name="account" size={22} color={Colors.primary} />
           </View>
           <View>
-            <Text style={styles.greetingText}>Good morning,</Text>
-            <Text style={styles.greetingName}>Ahmed</Text>
+            <Text style={styles.greetingText}>{greeting}</Text>
+            <Text style={styles.greetingName}>{firstName}</Text>
           </View>
         </View>
         <TouchableOpacity style={styles.notifBtn} activeOpacity={0.7}>
@@ -46,33 +55,42 @@ export function Home(): JSX.Element {
       >
         {/* ── Next Appointment ── */}
         <Text style={styles.sectionTitle}>Next Appointment</Text>
-        <View style={styles.appointmentCard}>
-          <View style={styles.apptTop}>
-            <View style={styles.apptServiceRow}>
-              <MaterialDesignIcons name="medical-bag" size={16} color={Colors.primary} />
-              <Text style={styles.apptServiceLabel}>Home Nursing</Text>
+        {loading ? (
+          <View style={[styles.appointmentCard, { alignItems: 'center' }]}>
+            <ActivityIndicator color={Colors.primary} />
+          </View>
+        ) : nextBooking ? (
+          <View style={styles.appointmentCard}>
+            <View style={styles.apptTop}>
+              <View style={styles.apptServiceRow}>
+                <MaterialDesignIcons name="medical-bag" size={16} color={Colors.primary} />
+                <Text style={styles.apptServiceLabel}>{nextBooking.serviceType.name}</Text>
+              </View>
+              <View style={styles.confirmedBadge}>
+                <Text style={styles.confirmedText}>{nextBooking.status}</Text>
+              </View>
             </View>
-            <View style={styles.confirmedBadge}>
-              <Text style={styles.confirmedText}>Confirmed</Text>
+
+            <Text style={styles.apptNurseName}>{nextBooking.package.name}</Text>
+
+            <View style={styles.apptTimeRow}>
+              <MaterialDesignIcons name="clock-outline" size={14} color={Colors.textMuted} />
+              <Text style={styles.apptTime}>{formatWhen(nextBooking.requestedStartAt)}</Text>
+            </View>
+
+            <View style={styles.apptActions}>
+              <TouchableOpacity style={styles.viewDetailsBtn} activeOpacity={0.8} onPress={() => goToBooking(nextBooking.id)}>
+                <Text style={styles.viewDetailsTxt}>View Details</Text>
+              </TouchableOpacity>
             </View>
           </View>
-
-          <Text style={styles.apptNurseName}>Nurse Sarah</Text>
-
-          <View style={styles.apptTimeRow}>
-            <MaterialDesignIcons name="clock-outline" size={14} color={Colors.textMuted} />
-            <Text style={styles.apptTime}>Today, 4:00 PM</Text>
-          </View>
-
-          <View style={styles.apptActions}>
-            <TouchableOpacity style={styles.viewDetailsBtn} activeOpacity={0.8}>
-              <Text style={styles.viewDetailsTxt}>View Details</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.callBtn} activeOpacity={0.8}>
-              <MaterialDesignIcons name="phone" size={18} color={Colors.primary} />
-            </TouchableOpacity>
-          </View>
-        </View>
+        ) : (
+          <TouchableOpacity style={styles.emptyApptCard} activeOpacity={0.85} onPress={goToNewBooking}>
+            <MaterialDesignIcons name="calendar-plus" size={28} color={Colors.primary} />
+            <Text style={styles.emptyApptTitle}>No upcoming appointments</Text>
+            <Text style={styles.emptyApptHint}>Tap to book a home healthcare visit.</Text>
+          </TouchableOpacity>
+        )}
 
         {/* ── Our Services ── */}
         <View style={styles.serviceHeader}>
@@ -84,7 +102,7 @@ export function Home(): JSX.Element {
 
         <View style={styles.servicesGrid}>
           {SERVICES.map((s) => (
-            <TouchableOpacity key={s.label} style={styles.serviceItem} activeOpacity={0.75}>
+            <TouchableOpacity key={s.label} style={styles.serviceItem} activeOpacity={0.75} onPress={goToNewBooking}>
               <View style={styles.serviceIconBg}>
                 <MaterialDesignIcons name={s.icon} size={26} color={Colors.primary} />
               </View>
@@ -212,6 +230,28 @@ const styles = StyleSheet.create({
   apptTime: {
     fontSize: FontSize.sm,
     color: Colors.textMuted,
+  },
+  emptyApptCard: {
+    backgroundColor: Colors.white,
+    borderRadius: Radius.lg,
+    padding: Spacing.xl,
+    alignItems: 'center',
+    gap: 6,
+    shadowColor: '#000',
+    shadowOpacity: 0.06,
+    shadowRadius: 10,
+    elevation: 3,
+  },
+  emptyApptTitle: {
+    fontSize: FontSize.md,
+    fontWeight: '700',
+    color: Colors.textPrimary,
+    marginTop: 4,
+  },
+  emptyApptHint: {
+    fontSize: FontSize.sm,
+    color: Colors.textMuted,
+    textAlign: 'center',
   },
   apptActions: {
     flexDirection: 'row',
