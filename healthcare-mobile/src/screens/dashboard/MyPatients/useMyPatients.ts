@@ -2,27 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { Alert } from 'react-native';
 import { api, extractApiError } from '../../../api/client';
 import { API } from '../../../api/endpoints';
-
-export type Gender = 'MALE' | 'FEMALE' | 'OTHER';
-
-export interface Patient {
-  id: string;
-  fullName: string;
-  gender?: Gender;
-  dateOfBirth?: string;
-  relationshipToCustomer?: string;
-  primaryCondition?: string;
-  allergies?: string;
-}
-
-export interface PatientInput {
-  fullName: string;
-  gender?: Gender | '';
-  dateOfBirth?: string;
-  relationshipToCustomer?: string;
-  primaryCondition?: string;
-  allergies?: string;
-}
+import type { Patient, PatientInput } from '../../../types/useMyPatients.types';
 
 // Strip empty strings so we don't send an invalid dateOfBirth ('' -> Invalid Date on the server).
 function toPayload(input: PatientInput): Record<string, unknown> {

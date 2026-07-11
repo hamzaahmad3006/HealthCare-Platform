@@ -10,6 +10,7 @@ import {
   SafeAreaView,
 } from 'react-native';
 import { MaterialDesignIcons } from '@react-native-vector-icons/material-design-icons/static';
+import type { DocFieldProps } from '../../../types/VisitDetail.types';
 import { Colors, FontSize, Spacing, Radius } from '../../../constants/theme';
 
 export function VisitDetail(): JSX.Element {
@@ -125,14 +126,6 @@ export function VisitDetail(): JSX.Element {
 }
 
 /* ── Doc field sub-component ── */
-interface DocFieldProps {
-  label:       string;
-  subtitle:    string;
-  placeholder: string;
-  value:       string;
-  onChange:    (v: string) => void;
-}
-
 function DocField({ label, subtitle, placeholder, value, onChange }: DocFieldProps) {
   return (
     <View style={styles.docField}>

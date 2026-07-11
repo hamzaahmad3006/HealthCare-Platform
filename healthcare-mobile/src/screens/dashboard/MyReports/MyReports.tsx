@@ -5,7 +5,8 @@ import {
 } from 'react-native';
 import { MaterialDesignIcons } from '@react-native-vector-icons/material-design-icons/static';
 import { Colors, FontSize, Spacing, Radius } from '../../../constants/theme';
-import { useMyReports, type Report, type ReportType } from './useMyReports';
+import { useMyReports } from './useMyReports';
+import type { Report, ReportType } from '../../../types/useMyReports.types';
 
 type Filter = 'ALL' | ReportType;
 

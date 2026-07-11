@@ -5,7 +5,8 @@ import {
 } from 'react-native';
 import { MaterialDesignIcons } from '@react-native-vector-icons/material-design-icons/static';
 import { Colors, FontSize, Spacing, Radius } from '../../../constants/theme';
-import { useMyPatients, type Gender, type Patient } from './useMyPatients';
+import { useMyPatients } from './useMyPatients';
+import type { Gender, Patient } from '../../../types/useMyPatients.types';
 
 const GENDER_LABEL: Record<Gender, string> = { MALE: 'Male', FEMALE: 'Female', OTHER: 'Other' };
 const RELATIONSHIPS = ['Self', 'Spouse', 'Son', 'Daughter', 'Mother', 'Father', 'Sibling', 'Other'];

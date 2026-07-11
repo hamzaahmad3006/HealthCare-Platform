@@ -4,21 +4,7 @@ import {
 } from 'react-native';
 import { MaterialDesignIcons } from '@react-native-vector-icons/material-design-icons/static';
 import { Colors, FontSize, Spacing, Radius } from '../../../constants/theme';
-import type { PatientOption, AddressOption } from './useNewBooking';
-
-interface Props {
-  patients: PatientOption[];
-  addresses: AddressOption[];
-  loading: boolean;
-  patientId: string | null;
-  addressId: string | null;
-  onSelectPatient: (id: string) => void;
-  onSelectAddress: (addr: AddressOption) => void;
-  onAddPatient?: () => void;
-  onAddAddress?: () => void;
-  onBack?: () => void;
-  onNext?: () => void;
-}
+import type { Props } from '../../../types/Step2PatientAddress.types';
 
 export function Step2PatientAddress({
   patients, addresses, loading, patientId, addressId,

@@ -4,15 +4,7 @@ import {
 } from 'react-native';
 import { MaterialDesignIcons } from '@react-native-vector-icons/material-design-icons/static';
 import { Colors, FontSize, Spacing, Radius } from '../../../constants/theme';
-
-interface StaffReport {
-  id: string;
-  title: string;
-  patientName: string;
-  visitDate: string;
-  type: string;
-  hasFile: boolean;
-}
+import type { StaffReport } from '../../../types/StaffReports.types';
 
 export function StaffReports(): JSX.Element {
   const reports: StaffReport[] = []; // wired to API later

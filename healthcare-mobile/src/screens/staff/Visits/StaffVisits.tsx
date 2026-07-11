@@ -5,18 +5,7 @@ import {
 } from 'react-native';
 import { MaterialDesignIcons } from '@react-native-vector-icons/material-design-icons/static';
 import { Colors, FontSize, Spacing, Radius } from '../../../constants/theme';
-
-type VisitStatus = 'SCHEDULED' | 'EN_ROUTE' | 'IN_PROGRESS' | 'COMPLETED' | 'CANCELLED';
-type TabFilter = 'TODAY' | 'UPCOMING' | 'COMPLETED';
-
-interface Visit {
-  id: string;
-  patientName: string;
-  service: string;
-  scheduledTime: string;
-  address: string;
-  status: VisitStatus;
-}
+import type { VisitStatus, TabFilter, Visit } from '../../../types/StaffVisits.types';
 
 const TABS: { id: TabFilter; label: string }[] = [
   { id: 'TODAY',     label: "Today" },

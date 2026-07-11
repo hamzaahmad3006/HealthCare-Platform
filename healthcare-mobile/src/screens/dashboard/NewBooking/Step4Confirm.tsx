@@ -4,26 +4,7 @@ import {
 } from 'react-native';
 import { MaterialDesignIcons } from '@react-native-vector-icons/material-design-icons/static';
 import { Colors, FontSize, Spacing, Radius } from '../../../constants/theme';
-
-export interface BookingSummary {
-  service: string;
-  package: string;
-  price: string;
-  patient: string;
-  address: string;
-  date: string;
-  time: string;
-  urgency: string;
-  gender: string;
-  instructions: string;
-}
-
-interface Props {
-  summary: BookingSummary;
-  onBack?: () => void;
-  onConfirm?: () => void;
-  submitting?: boolean;
-}
+import type { Props } from '../../../types/Step4Confirm.types';
 
 export function Step4Confirm({ summary, onBack, onConfirm, submitting = false }: Props): JSX.Element {
   return (

@@ -3,14 +3,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { api, STORAGE_KEYS, clearTokens, extractApiError } from '../../api/client';
 import { API } from '../../api/endpoints';
 import type { AuthUser, LoginPayload, AuthResponse } from '../../types/auth.types';
-
-interface AuthState {
-  user: AuthUser | null;
-  accessToken: string | null;
-  loading: boolean;
-  error: string | null;
-  hydrated: boolean;
-}
+import type { AuthState } from '../../types/authSlice.types';
 
 const initialState: AuthState = {
   user: null,

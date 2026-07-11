@@ -11,20 +11,9 @@ import {
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Colors, FontSize, Spacing, Radius } from '../../constants/theme';
-import type { NativeStackScreenProps } from '@react-navigation/native-stack';
-import type { AuthStackParamList } from '../../navigation/types';
-
-type Props = NativeStackScreenProps<AuthStackParamList, 'Onboarding'>;
+import type { Props, Slide } from '../../types/OnboardingScreen.types';
 
 const { width } = Dimensions.get('window');
-
-interface Slide {
-  id: string;
-  icon: string;
-  accent: string;
-  title: string;
-  subtitle: string;
-}
 
 const SLIDES: Slide[] = [
   {

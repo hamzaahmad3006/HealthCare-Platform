@@ -10,16 +10,7 @@ import {
 } from 'react-native';
 import { MaterialDesignIcons } from '@react-native-vector-icons/material-design-icons/static';
 import { Colors, FontSize, Spacing, Radius } from '../../../constants/theme';
-import type { PackageOption } from './useNewBooking';
-
-interface Props {
-  packages: PackageOption[];
-  loading: boolean;
-  selectedId: string | null;
-  onSelect: (pkg: PackageOption) => void;
-  onBack?: () => void;
-  onNext?: () => void;
-}
+import type { Props } from '../../../types/SelectPackage.types';
 
 function formatPrice(amount: string, currency: string): string {
   const n = Number(amount);

@@ -6,7 +6,8 @@ import { SelectPackage } from './SelectPackage';
 import { Step2PatientAddress } from './Step2PatientAddress';
 import { Step3DateTime } from './Step3DateTime';
 import { Step4Confirm } from './Step4Confirm';
-import { useNewBooking, type BookingDraft } from './useNewBooking';
+import { useNewBooking } from './useNewBooking';
+import type { BookingDraft } from '../../../types/useNewBooking.types';
 import type { CustomerStackParamList } from '../../../navigation/types';
 
 type Nav = NativeStackNavigationProp<CustomerStackParamList, 'NewBooking'>;

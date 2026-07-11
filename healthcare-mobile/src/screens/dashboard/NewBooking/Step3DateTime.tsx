@@ -4,7 +4,8 @@ import {
 } from 'react-native';
 import { MaterialDesignIcons } from '@react-native-vector-icons/material-design-icons/static';
 import { Colors, FontSize, Spacing, Radius } from '../../../constants/theme';
-import type { Urgency, Gender } from './useNewBooking';
+import type { Urgency, Gender } from '../../../types/useNewBooking.types';
+import type { Props } from '../../../types/Step3DateTime.types';
 
 const URGENCY_OPTIONS: { id: Urgency; label: string; color: string; bg: string }[] = [
   { id: 'NORMAL',    label: 'Normal',    color: Colors.primary,   bg: Colors.primarySurface },
@@ -17,20 +18,6 @@ const GENDER_OPTIONS: { id: Gender; label: string }[] = [
   { id: 'MALE',   label: 'Male' },
   { id: 'FEMALE', label: 'Female' },
 ];
-
-interface Step3Values {
-  date: string;
-  time: string;
-  urgency: Urgency;
-  gender: Gender;
-  instructions: string;
-}
-
-interface Props extends Step3Values {
-  onChange: (patch: Partial<Step3Values>) => void;
-  onBack?: () => void;
-  onNext?: () => void;
-}
 
 export function Step3DateTime({
   date, time, urgency, gender, instructions, onChange, onBack, onNext,

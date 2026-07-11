@@ -2,31 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { Alert } from 'react-native';
 import { api, extractApiError } from '../../../api/client';
 import { API } from '../../../api/endpoints';
-
-export type ReportType = 'LAB_RESULT' | 'PRESCRIPTION' | 'VISIT_NOTE' | 'PROGRESS_IMAGE' | 'OTHER';
-
-export interface Report {
-  id: string;
-  title: string;
-  reportType: ReportType;
-  notes?: string;
-  patientName?: string;
-  bookingNumber?: string;
-  createdAt: string;
-  hasFile: boolean;
-  fileUrl?: string;
-}
-
-interface ApiReport {
-  id: string;
-  title: string;
-  reportType: ReportType;
-  notes?: string | null;
-  createdAt: string;
-  patient?: { fullName: string } | null;
-  booking?: { bookingNumber: string } | null;
-  files?: { fileUrl: string }[];
-}
+import type { Report, ApiReport } from '../../../types/useMyReports.types';
 
 function mapReport(r: ApiReport): Report {
   return {

@@ -5,14 +5,7 @@ import {
 import { useState } from 'react';
 import { MaterialDesignIcons } from '@react-native-vector-icons/material-design-icons/static';
 import { Colors, FontSize, Spacing, Radius } from '../../../constants/theme';
-
-interface StaffPatient {
-  id: string;
-  fullName: string;
-  primaryCondition?: string;
-  lastVisit?: string;
-  totalVisits: number;
-}
+import type { StaffPatient } from '../../../types/StaffPatients.types';
 
 export function StaffPatients(): JSX.Element {
   const [search, setSearch] = useState('');
