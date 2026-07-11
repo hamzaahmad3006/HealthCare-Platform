@@ -1,4 +1,5 @@
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
+import type { NavigatorScreenParams } from '@react-navigation/native';
 
 export type AuthStackParamList = {
   Splash: undefined;
@@ -15,7 +16,7 @@ export type CustomerTabParamList = {
 };
 
 export type CustomerStackParamList = {
-  Tabs: undefined;
+  Tabs: NavigatorScreenParams<CustomerTabParamList> | undefined;
   BookingDetail: { id: string };
   MyPatients: undefined;
   NewBooking: undefined;

@@ -68,9 +68,7 @@ export function NewBookingWizard(): JSX.Element {
         onSelectPatient={(id) => patch({ patientId: id })}
         onSelectAddress={(a) => patch({ addressId: a.id, cityId: a.cityId })}
         onAddPatient={() => navigation.navigate('MyPatients')}
-        onAddAddress={() =>
-          Alert.alert('Add address', 'Please add a service address from your Account tab first.')
-        }
+        onAddAddress={() => navigation.navigate('Tabs', { screen: 'Account' })}
         onBack={() => setStep(1)}
         onNext={() => setStep(3)}
       />

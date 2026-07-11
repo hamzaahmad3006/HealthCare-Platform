@@ -16,6 +16,28 @@ export interface Address {
   area: string;
 }
 
+export interface Zone {
+  id: string;
+  name: string;
+}
+
+export interface City {
+  id: string;
+  name: string;
+  zones: Zone[];
+}
+
+export interface NewAddressInput {
+  label: string;
+  contactName: string;
+  contactPhone: string;
+  line1: string;
+  line2: string;
+  area: string;
+  cityId: string | null;
+  zoneId: string | null;
+}
+
 export function useAccount() {
   const dispatch = useAppDispatch();
   const user = useAppSelector((s) => s.auth.user);
@@ -31,6 +53,11 @@ export function useAccount() {
 
   const [addresses, setAddresses] = useState<Address[]>([]);
   const [loadingAddresses, setLoadingAddresses] = useState(true);
+
+  const [cities, setCities] = useState<City[]>([]);
+  const [citiesLoading, setCitiesLoading] = useState(true);
+  const [citiesError, setCitiesError] = useState(false);
+  const [addingAddress, setAddingAddress] = useState(false);
 
   useEffect(() => {
     setFullName(user?.fullName ?? '');
@@ -48,6 +75,56 @@ export function useAccount() {
   }, []);
 
   useEffect(() => { fetchAddresses(); }, [fetchAddresses]);
+
+  const fetchCities = useCallback(async (): Promise<void> => {
+    setCitiesLoading(true);
+    setCitiesError(false);
+    try {
+      const { data } = await api.get<{ success: true; data: City[] }>(API.CITIES);
+      setCities(data.data);
+    } catch {
+      // City is required to save an address — surface a retryable error state.
+      setCitiesError(true);
+    } finally {
+      setCitiesLoading(false);
+    }
+  }, []);
+
+  useEffect(() => { fetchCities(); }, [fetchCities]);
+
+  // Returns true on success so the screen can close its modal.
+  const createAddress = async (input: NewAddressInput): Promise<boolean> => {
+    if (!input.cityId) {
+      Alert.alert('Required', 'Please select a city.');
+      return false;
+    }
+    if (!input.contactName.trim() || !input.contactPhone.trim() || !input.line1.trim() || !input.area.trim()) {
+      Alert.alert('Required', 'Contact name, phone, address line and area are required.');
+      return false;
+    }
+    const payload: Record<string, unknown> = {
+      cityId: input.cityId,
+      contactName: input.contactName.trim(),
+      contactPhone: input.contactPhone.trim(),
+      line1: input.line1.trim(),
+      area: input.area.trim(),
+    };
+    if (input.zoneId) payload.zoneId = input.zoneId;
+    if (input.label.trim()) payload.label = input.label.trim();
+    if (input.line2.trim()) payload.line2 = input.line2.trim();
+
+    setAddingAddress(true);
+    try {
+      await api.post(API.ADDRESSES.CREATE, payload);
+      await fetchAddresses();
+      return true;
+    } catch (err) {
+      Alert.alert('Error', extractApiError(err));
+      return false;
+    } finally {
+      setAddingAddress(false);
+    }
+  };
 
   const saveProfile = async (): Promise<void> => {
     if (!fullName.trim()) {
@@ -119,6 +196,8 @@ export function useAccount() {
     oldPwd, setOldPwd, newPwd, setNewPwd, confirmPwd, setConfirmPwd,
     updatingPwd, updatePassword,
     addresses, loadingAddresses,
+    cities, citiesLoading, citiesError, reloadCities: fetchCities,
+    addingAddress, createAddress,
     signOut,
   };
 }

@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import {
   View, Text, ScrollView, TouchableOpacity, TextInput,
-  StyleSheet, StatusBar, SafeAreaView,
+  StyleSheet, StatusBar, SafeAreaView, Modal, ActivityIndicator,
+  KeyboardAvoidingView, Platform,
 } from 'react-native';
 import { MaterialDesignIcons } from '@react-native-vector-icons/material-design-icons/static';
 import { Ionicons } from '@react-native-vector-icons/ionicons/static';
@@ -15,14 +16,44 @@ export function Account(): JSX.Element {
     oldPwd, setOldPwd, newPwd, setNewPwd, confirmPwd, setConfirmPwd,
     updatingPwd, updatePassword,
     addresses, loadingAddresses,
+    cities, citiesLoading, citiesError, reloadCities, addingAddress, createAddress,
     signOut,
   } = useAccount();
   const [showOld, setShowOld]           = useState(false);
   const [showNew, setShowNew]           = useState(false);
   const [showConfirm, setShowConfirm]   = useState(false);
 
+  // Add-address modal
+  const [addrOpen, setAddrOpen]     = useState(false);
+  const [aLabel, setALabel]         = useState('');
+  const [aName, setAName]           = useState('');
+  const [aPhone, setAPhone]         = useState('');
+  const [aLine1, setALine1]         = useState('');
+  const [aLine2, setALine2]         = useState('');
+  const [aArea, setAArea]           = useState('');
+  const [aCityId, setACityId]       = useState<string | null>(null);
+  const [aZoneId, setAZoneId]       = useState<string | null>(null);
+
   const email = user?.email ?? '—';
   const phone = user?.phone ?? '—';
+
+  const openAddress = () => {
+    setALabel(''); setAName(user?.fullName ?? ''); setAPhone(user?.phone ?? '');
+    setALine1(''); setALine2(''); setAArea('');
+    setACityId(null); setAZoneId(null);
+    if (citiesError || cities.length === 0) reloadCities();
+    setAddrOpen(true);
+  };
+
+  const saveAddress = async () => {
+    const ok = await createAddress({
+      label: aLabel, contactName: aName, contactPhone: aPhone,
+      line1: aLine1, line2: aLine2, area: aArea, cityId: aCityId, zoneId: aZoneId,
+    });
+    if (ok) setAddrOpen(false);
+  };
+
+  const selectedCity = cities.find((c) => c.id === aCityId) ?? null;
 
   return (
     <SafeAreaView style={styles.root}>
@@ -107,7 +138,7 @@ export function Account(): JSX.Element {
                 <Text style={styles.cardSectionSubtitle}>Home, clinic, or delivery locations</Text>
               </View>
             </View>
-            <TouchableOpacity style={styles.smallAddBtn} activeOpacity={0.8}>
+            <TouchableOpacity style={styles.smallAddBtn} activeOpacity={0.8} onPress={openAddress}>
               <MaterialDesignIcons name="plus" size={16} color={Colors.white} />
               <Text style={styles.smallAddText}>Add</Text>
             </TouchableOpacity>
@@ -171,6 +202,125 @@ export function Account(): JSX.Element {
           <Text style={styles.logoutText}>Sign Out</Text>
         </TouchableOpacity>
       </ScrollView>
+
+      {/* ── Add Address Modal ── */}
+      <Modal visible={addrOpen} animationType="slide" transparent onRequestClose={() => setAddrOpen(false)}>
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+          style={styles.modalOverlay}
+        >
+          <View style={styles.modalSheet}>
+            <View style={styles.modalHeader}>
+              <View style={styles.modalIconBox}>
+                <MaterialDesignIcons name="map-marker-plus" size={20} color={Colors.primary} />
+              </View>
+              <Text style={styles.modalTitle}>Add Address</Text>
+              <TouchableOpacity onPress={() => setAddrOpen(false)}>
+                <MaterialDesignIcons name="close" size={22} color={Colors.neutral} />
+              </TouchableOpacity>
+            </View>
+
+            <ScrollView
+              style={styles.modalScroll}
+              contentContainerStyle={styles.modalScrollContent}
+              keyboardShouldPersistTaps="handled"
+              showsVerticalScrollIndicator={false}
+            >
+              <View style={styles.fieldGroup}>
+                <Text style={styles.label}>Label (optional)</Text>
+                <TextInput style={styles.addrInput} value={aLabel} onChangeText={setALabel} maxLength={50}
+                  placeholder="e.g. Home, Clinic" placeholderTextColor={Colors.neutralMuted} />
+              </View>
+
+              {/* City */}
+              <View style={styles.fieldGroup}>
+                <Text style={styles.label}>City *</Text>
+                {citiesLoading ? (
+                  <Text style={styles.mutedNote}>Loading cities…</Text>
+                ) : citiesError || cities.length === 0 ? (
+                  <TouchableOpacity onPress={reloadCities} activeOpacity={0.7}>
+                    <Text style={styles.retryNote}>Couldn't load cities — tap to retry</Text>
+                  </TouchableOpacity>
+                ) : (
+                  <View style={styles.chipWrap}>
+                    {cities.map((c) => {
+                      const active = aCityId === c.id;
+                      return (
+                        <TouchableOpacity key={c.id} style={[styles.chip, active && styles.chipActive]}
+                          onPress={() => { setACityId(c.id); setAZoneId(null); }} activeOpacity={0.75}>
+                          <Text style={[styles.chipText, active && styles.chipTextActive]}>{c.name}</Text>
+                        </TouchableOpacity>
+                      );
+                    })}
+                  </View>
+                )}
+              </View>
+
+              {/* Zone (optional) */}
+              {selectedCity && selectedCity.zones.length > 0 ? (
+                <View style={styles.fieldGroup}>
+                  <Text style={styles.label}>Zone (optional)</Text>
+                  <View style={styles.chipWrap}>
+                    {selectedCity.zones.map((z) => {
+                      const active = aZoneId === z.id;
+                      return (
+                        <TouchableOpacity key={z.id} style={[styles.chip, active && styles.chipActive]}
+                          onPress={() => setAZoneId(active ? null : z.id)} activeOpacity={0.75}>
+                          <Text style={[styles.chipText, active && styles.chipTextActive]}>{z.name}</Text>
+                        </TouchableOpacity>
+                      );
+                    })}
+                  </View>
+                </View>
+              ) : null}
+
+              <View style={styles.fieldGroup}>
+                <Text style={styles.label}>Contact Name *</Text>
+                <TextInput style={styles.addrInput} value={aName} onChangeText={setAName} maxLength={150}
+                  placeholder="Full name" placeholderTextColor={Colors.neutralMuted} />
+              </View>
+              <View style={styles.fieldGroup}>
+                <Text style={styles.label}>Contact Phone *</Text>
+                <TextInput style={styles.addrInput} value={aPhone} onChangeText={setAPhone} maxLength={20}
+                  placeholder="+92 300 1234567" keyboardType="phone-pad" placeholderTextColor={Colors.neutralMuted} />
+              </View>
+              <View style={styles.fieldGroup}>
+                <Text style={styles.label}>Address Line 1 *</Text>
+                <TextInput style={styles.addrInput} value={aLine1} onChangeText={setALine1} maxLength={255}
+                  placeholder="House / street" placeholderTextColor={Colors.neutralMuted} />
+              </View>
+              <View style={styles.fieldGroup}>
+                <Text style={styles.label}>Area *</Text>
+                <TextInput style={styles.addrInput} value={aArea} onChangeText={setAArea} maxLength={120}
+                  placeholder="e.g. DHA Phase 5" placeholderTextColor={Colors.neutralMuted} />
+              </View>
+              <View style={styles.fieldGroup}>
+                <Text style={styles.label}>Address Line 2 (optional)</Text>
+                <TextInput style={styles.addrInput} value={aLine2} onChangeText={setALine2} maxLength={255}
+                  placeholder="Apartment, landmark" placeholderTextColor={Colors.neutralMuted} />
+              </View>
+            </ScrollView>
+
+            <View style={styles.modalFooter}>
+              <TouchableOpacity style={styles.cancelBtn} onPress={() => setAddrOpen(false)} activeOpacity={0.7}>
+                <Text style={styles.cancelBtnText}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.modalSaveBtn, addingAddress && { opacity: 0.6 }]}
+                onPress={saveAddress}
+                disabled={addingAddress}
+                activeOpacity={0.85}
+              >
+                {addingAddress ? (
+                  <ActivityIndicator color={Colors.white} />
+                ) : (
+                  <Text style={styles.modalSaveBtnText}>Save Address</Text>
+                )}
+              </TouchableOpacity>
+            </View>
+          </View>
+        </KeyboardAvoidingView>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -266,4 +416,51 @@ const styles = StyleSheet.create({
     borderWidth: 1.5, borderColor: '#FECACA',
   },
   logoutText: { fontSize: FontSize.lg, fontWeight: '700', color: Colors.danger },
+
+  /* Add-address modal */
+  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
+  modalSheet: {
+    backgroundColor: Colors.white, borderTopLeftRadius: 24, borderTopRightRadius: 24, maxHeight: '90%',
+  },
+  modalHeader: {
+    flexDirection: 'row', alignItems: 'center', gap: Spacing.sm,
+    paddingHorizontal: Spacing.xl, paddingVertical: Spacing.md,
+    borderBottomWidth: 1, borderBottomColor: Colors.neutralBorder,
+  },
+  modalIconBox: {
+    width: 36, height: 36, borderRadius: Radius.sm, backgroundColor: Colors.primarySurface,
+    alignItems: 'center', justifyContent: 'center',
+  },
+  modalTitle: { flex: 1, fontSize: FontSize.lg, fontWeight: '700', color: Colors.textPrimary },
+  modalScroll: { flexGrow: 0, flexShrink: 1 },
+  modalScrollContent: { padding: Spacing.xl, gap: Spacing.md },
+  addrInput: {
+    borderWidth: 1.5, borderColor: Colors.neutralBorder, borderRadius: Radius.md,
+    paddingHorizontal: Spacing.md, paddingVertical: 12, fontSize: FontSize.md,
+    color: Colors.textPrimary, backgroundColor: Colors.neutralLight,
+  },
+  mutedNote: { fontSize: FontSize.sm, color: Colors.neutralMuted },
+  retryNote: { fontSize: FontSize.sm, color: Colors.danger, fontWeight: '600' },
+  chipWrap: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  chip: {
+    paddingHorizontal: 14, paddingVertical: 8, borderRadius: Radius.full,
+    borderWidth: 1.5, borderColor: Colors.neutralBorder, backgroundColor: Colors.white,
+  },
+  chipActive: { borderColor: Colors.primary, backgroundColor: Colors.primarySurface },
+  chipText: { fontSize: FontSize.sm, fontWeight: '600', color: Colors.textMuted },
+  chipTextActive: { color: Colors.primary },
+  modalFooter: {
+    flexDirection: 'row', gap: Spacing.sm, padding: Spacing.xl,
+    borderTopWidth: 1, borderTopColor: Colors.neutralBorder,
+  },
+  cancelBtn: {
+    flex: 1, height: 48, borderRadius: Radius.lg, borderWidth: 1.5,
+    borderColor: Colors.neutralBorder, alignItems: 'center', justifyContent: 'center',
+  },
+  cancelBtnText: { fontSize: FontSize.md, fontWeight: '600', color: Colors.textSecondary },
+  modalSaveBtn: {
+    flex: 1, height: 48, borderRadius: Radius.lg, backgroundColor: Colors.primary,
+    alignItems: 'center', justifyContent: 'center',
+  },
+  modalSaveBtnText: { fontSize: FontSize.md, fontWeight: '700', color: Colors.white },
 });

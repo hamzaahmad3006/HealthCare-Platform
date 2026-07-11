@@ -10,7 +10,6 @@ Backend base URL: `/api/v1`. All endpoints below already exist and work on the b
 | Screen | Endpoint(s) to wire | Priority | Effort | Notes |
 |---|---|---|---|---|
 | **Home — Services grid** `Home/Home.tsx` | `GET /service-types` | 🟡 Medium | 30 min | Grid is a hardcoded list. Fetch real service types; tap → New Booking pre-selected. |
-| **Account — Add address** `Account/Account.tsx` | `POST /users/addresses` | 🟠 High | 1 hr | "Add" button is a no-op. Needs a city/zone picker (`GET /cities`) + create form. (List/read is already wired.) **Now blocks New Booking** — the booking wizard needs a saved address. |
 | **Notifications** (bell icon, all screens) | `GET /notifications` | 🟡 Medium | 1 hr | Bell icons are decorative. Add a notifications list screen + unread badge. |
 
 ## 2. Staff App
@@ -43,14 +42,13 @@ Backend base URL: `/api/v1`. All endpoints below already exist and work on the b
 | Staff Visits list | 1 hr | 🟠 High |
 | Notifications list + badge | 1 hr | 🟡 Medium |
 | Register screen | 1 hr | 🟡 Medium |
-| Account add-address (city picker) | 1 hr | ⚪ Low |
 | Staff Profile extras (availability + password) | 45 min | 🟡 Medium |
 | Staff Patients (tab + wire) | 45 min | 🟡 Medium |
 | Home services grid | 30 min | 🟡 Medium |
 | Staff Reports list | 30 min | 🟡 Medium |
 | Reschedule 403 handling | 15 min | ⚪ Low |
 
-**Total estimated: ~10 hours**
+**Total estimated: ~9 hours**
 
 ---
 
