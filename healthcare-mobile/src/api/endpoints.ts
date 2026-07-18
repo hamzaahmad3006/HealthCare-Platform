@@ -57,8 +57,8 @@ export const API = {
     LIST: '/reports',
     CREATE: '/reports',
     DETAIL: (id: string) => `/reports/${id}`,
-    FILES_PRESIGN: '/reports/files/presign',
-    FILES_CONFIRM: '/reports/files/confirm',
+    FILES_PRESIGN: (id: string) => `/reports/${id}/files/presign`,
+    FILES_CONFIRM: (id: string) => `/reports/${id}/files/confirm`,
   },
   NOTIFICATIONS: '/notifications',
 };

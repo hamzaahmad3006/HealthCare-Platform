@@ -15,7 +15,7 @@ export interface Booking {
   status: BookingStatus;
   serviceType: { name: string };
   package: { name: string; price: number };
-  patient: { fullName: string } | null;
+  patient: { id: string; fullName: string } | null;
   requestedStartAt: string;
   urgency: string;
   createdAt: string;
