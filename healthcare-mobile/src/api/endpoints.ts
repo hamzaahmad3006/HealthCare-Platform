@@ -17,7 +17,12 @@ export const API = {
     CREATE: '/bookings',
     DETAIL: (id: string) => `/bookings/${id}`,
     CANCEL: (id: string) => `/bookings/${id}/cancel`,
-    RESCHEDULE: (id: string) => `/bookings/${id}/reschedule`,
+    // No RESCHEDULE here on purpose — PATCH /bookings/:id/reschedule is
+    // adminOnly on the backend (booking.routes.ts) and this app has no ADMIN
+    // role UI (RootNavigator only branches STAFF/CUSTOMER). A customer or
+    // staff call would 403. If in-app rescheduling is ever needed, it has to
+    // go through a customer/staff-facing endpoint the backend doesn't expose
+    // yet, not this one.
     VISITS: (id: string) => `/bookings/${id}/visits`,
   },
   SERVICE_TYPES: '/service-types',
