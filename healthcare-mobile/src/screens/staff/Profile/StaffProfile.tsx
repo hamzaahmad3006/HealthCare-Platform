@@ -1,22 +1,24 @@
-import { useState } from 'react';
 import {
   View,
   Text,
   ScrollView,
   TouchableOpacity,
+  TextInput,
   StyleSheet,
   StatusBar,
   SafeAreaView,
   Switch,
-  Alert,
+  Modal,
+  ActivityIndicator,
+  KeyboardAvoidingView,
+  Platform,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { MaterialDesignIcons } from '@react-native-vector-icons/material-design-icons/static';
 import { Colors, FontSize, Spacing, Radius } from '../../../constants/theme';
-import { useAppDispatch, useAppSelector } from '../../../store';
-import { logout } from '../../../store/slices/authSlice';
 import { useUnreadBadge } from '../../shared/Notifications/useUnreadBadge';
+import { useStaffProfile } from './useStaffProfile';
 import type { StaffStackParamList } from '../../../navigation/types';
 
 type Nav = NativeStackNavigationProp<StaffStackParamList>;
@@ -29,18 +31,15 @@ function initialsOf(name?: string): string {
 }
 
 export function StaffProfile(): JSX.Element {
-  const dispatch = useAppDispatch();
   const navigation = useNavigation<Nav>();
   const unreadCount = useUnreadBadge();
-  const user = useAppSelector((s) => s.auth.user);
-  const [available, setAvailable] = useState(true);
-
-  const signOut = (): void => {
-    Alert.alert('Logout', 'Are you sure you want to log out?', [
-      { text: 'Cancel', style: 'cancel' },
-      { text: 'Logout', style: 'destructive', onPress: () => { dispatch(logout()); } },
-    ]);
-  };
+  const {
+    user, staffCode, experienceYears, locationLabel, verified, available, togglingDuty, toggleDuty,
+    passwordModalVisible, openPasswordModal, closePasswordModal,
+    oldPwd, setOldPwd, newPwd, setNewPwd, confirmPwd, setConfirmPwd,
+    updatingPwd, updatePassword,
+    signOut,
+  } = useStaffProfile();
 
   return (
     <SafeAreaView style={styles.root}>
@@ -69,37 +68,39 @@ export function StaffProfile(): JSX.Element {
       >
         {/* ── Profile card ── */}
         <View style={styles.profileCard}>
-          {/* Avatar */}
           <View style={styles.avatarCircle}>
             <Text style={styles.avatarInitials}>{initialsOf(user?.fullName)}</Text>
           </View>
 
           <Text style={styles.profileName}>{user?.fullName ?? 'Staff Member'}</Text>
-          <Text style={styles.profileId}>ID: {user?.id ? user.id.slice(0, 8).toUpperCase() : '—'}</Text>
+          <Text style={styles.profileId}>ID: {staffCode ?? (user?.id ? user.id.slice(0, 8).toUpperCase() : '—')}</Text>
 
-          {/* Phone */}
           <View style={styles.phoneRow}>
             <MaterialDesignIcons name="phone" size={15} color={Colors.primary} />
             <Text style={styles.phoneText}>{user?.phone ?? '—'}</Text>
           </View>
 
-          {/* Badges */}
           <View style={styles.badgesRow}>
-            <View style={styles.badge}>
-              <MaterialDesignIcons name="check-decagram" size={14} color={Colors.primary} />
-              <Text style={styles.badgeText}>Verified</Text>
-            </View>
-            <View style={styles.badge}>
-              <MaterialDesignIcons name="timer-outline" size={14} color={Colors.primary} />
-              <Text style={styles.badgeText}>5 Years Experience</Text>
-            </View>
+            {verified && (
+              <View style={styles.badge}>
+                <MaterialDesignIcons name="check-decagram" size={14} color={Colors.primary} />
+                <Text style={styles.badgeText}>Verified</Text>
+              </View>
+            )}
+            {experienceYears != null && (
+              <View style={styles.badge}>
+                <MaterialDesignIcons name="timer-outline" size={14} color={Colors.primary} />
+                <Text style={styles.badgeText}>{experienceYears} {experienceYears === 1 ? 'Year' : 'Years'} Experience</Text>
+              </View>
+            )}
           </View>
 
-          {/* Location */}
-          <View style={styles.locationRow}>
-            <MaterialDesignIcons name="map-marker-outline" size={15} color={Colors.textMuted} />
-            <Text style={styles.locationText}>Lahore, DHA Zone L</Text>
-          </View>
+          {locationLabel && (
+            <View style={styles.locationRow}>
+              <MaterialDesignIcons name="map-marker-outline" size={15} color={Colors.textMuted} />
+              <Text style={styles.locationText}>{locationLabel}</Text>
+            </View>
+          )}
         </View>
 
         {/* ── Specializations ── */}
@@ -123,20 +124,26 @@ export function StaffProfile(): JSX.Element {
             </View>
             <View style={styles.settingInfo}>
               <Text style={styles.settingLabel}>Availability</Text>
-              <Text style={styles.settingSubtitle}>Currently accepting visits</Text>
+              <Text style={styles.settingSubtitle}>
+                {available ? 'Currently accepting visits' : 'Not accepting visits'}
+              </Text>
             </View>
-            <Switch
-              value={available}
-              onValueChange={setAvailable}
-              trackColor={{ false: Colors.neutralBorder, true: Colors.primaryLight }}
-              thumbColor={available ? Colors.primary : Colors.neutralMuted}
-            />
+            {togglingDuty ? (
+              <ActivityIndicator color={Colors.primary} />
+            ) : (
+              <Switch
+                value={available}
+                onValueChange={toggleDuty}
+                trackColor={{ false: Colors.neutralBorder, true: Colors.primaryLight }}
+                thumbColor={available ? Colors.primary : Colors.neutralMuted}
+              />
+            )}
           </View>
 
           <View style={styles.rowDivider} />
 
           {/* Change Password */}
-          <TouchableOpacity style={styles.settingRow} activeOpacity={0.7}>
+          <TouchableOpacity style={styles.settingRow} activeOpacity={0.7} onPress={openPasswordModal}>
             <View style={styles.settingIconBox}>
               <MaterialDesignIcons name="lock-outline" size={20} color={Colors.primary} />
             </View>
@@ -168,6 +175,59 @@ export function StaffProfile(): JSX.Element {
           <Text style={styles.logoutText}>Logout</Text>
         </TouchableOpacity>
       </ScrollView>
+
+      {/* ── Change Password modal ── */}
+      <Modal visible={passwordModalVisible} animationType="slide" transparent onRequestClose={closePasswordModal}>
+        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.modalOverlay}>
+          <View style={styles.modalSheet}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Change Password</Text>
+              <TouchableOpacity onPress={closePasswordModal} activeOpacity={0.7}>
+                <MaterialDesignIcons name="close" size={22} color={Colors.textMuted} />
+              </TouchableOpacity>
+            </View>
+
+            <Text style={styles.modalLabel}>Current Password</Text>
+            <TextInput
+              style={styles.modalInput}
+              secureTextEntry
+              value={oldPwd}
+              onChangeText={setOldPwd}
+              placeholder="Enter current password"
+              placeholderTextColor={Colors.neutralMuted}
+            />
+
+            <Text style={styles.modalLabel}>New Password</Text>
+            <TextInput
+              style={styles.modalInput}
+              secureTextEntry
+              value={newPwd}
+              onChangeText={setNewPwd}
+              placeholder="At least 8 characters"
+              placeholderTextColor={Colors.neutralMuted}
+            />
+
+            <Text style={styles.modalLabel}>Confirm New Password</Text>
+            <TextInput
+              style={styles.modalInput}
+              secureTextEntry
+              value={confirmPwd}
+              onChangeText={setConfirmPwd}
+              placeholder="Re-enter new password"
+              placeholderTextColor={Colors.neutralMuted}
+            />
+
+            <TouchableOpacity
+              style={[styles.submitBtn, updatingPwd && styles.submitBtnDisabled]}
+              activeOpacity={0.85}
+              disabled={updatingPwd}
+              onPress={updatePassword}
+            >
+              {updatingPwd ? <ActivityIndicator color={Colors.white} /> : <Text style={styles.submitBtnText}>Update Password</Text>}
+            </TouchableOpacity>
+          </View>
+        </KeyboardAvoidingView>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -296,11 +356,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     paddingVertical: 4,
   },
-  badgeText: {
-    fontSize: FontSize.xs,
-    fontWeight: '600',
-    color: Colors.primary,
-  },
   locationRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -310,6 +365,11 @@ const styles = StyleSheet.create({
   locationText: {
     fontSize: FontSize.sm,
     color: Colors.textMuted,
+  },
+  badgeText: {
+    fontSize: FontSize.xs,
+    fontWeight: '600',
+    color: Colors.primary,
   },
 
   /* Specializations */
@@ -397,5 +457,64 @@ const styles = StyleSheet.create({
     fontSize: FontSize.lg,
     fontWeight: '700',
     color: Colors.danger,
+  },
+
+  /* Change Password modal */
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.4)',
+    justifyContent: 'flex-end',
+  },
+  modalSheet: {
+    backgroundColor: Colors.white,
+    borderTopLeftRadius: Radius.xl,
+    borderTopRightRadius: Radius.xl,
+    padding: Spacing.xl,
+    gap: Spacing.sm,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: Spacing.sm,
+  },
+  modalTitle: {
+    fontSize: FontSize.xl,
+    fontWeight: '800',
+    color: Colors.textPrimary,
+  },
+  modalLabel: {
+    fontSize: FontSize.sm,
+    fontWeight: '600',
+    color: Colors.textSecondary,
+    marginTop: Spacing.sm,
+    marginBottom: 6,
+  },
+  modalInput: {
+    borderWidth: 1.5,
+    borderColor: Colors.neutralBorder,
+    borderRadius: Radius.md,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: 12,
+    fontSize: FontSize.md,
+    color: Colors.textPrimary,
+    backgroundColor: Colors.neutralLight,
+  },
+  submitBtn: {
+    marginTop: Spacing.lg,
+    marginBottom: Spacing.sm,
+    height: 50,
+    backgroundColor: Colors.primary,
+    borderRadius: Radius.lg,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  submitBtnDisabled: {
+    opacity: 0.65,
+  },
+  submitBtnText: {
+    fontSize: FontSize.md,
+    fontWeight: '700',
+    color: Colors.white,
   },
 });
