@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react';
 import { Alert } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useRoute } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import type { RouteProp } from '@react-navigation/native';
 import { SelectPackage } from './SelectPackage';
 import { Step2PatientAddress } from './Step2PatientAddress';
 import { Step3DateTime } from './Step3DateTime';
@@ -11,18 +12,26 @@ import type { BookingDraft } from '../../../types/useNewBooking.types';
 import type { CustomerStackParamList } from '../../../navigation/types';
 
 type Nav = NativeStackNavigationProp<CustomerStackParamList, 'NewBooking'>;
+type NewBookingRouteProp = RouteProp<CustomerStackParamList, 'NewBooking'>;
 
 const todayISO = (): string => new Date().toISOString().slice(0, 10);
 
 export function NewBookingWizard(): JSX.Element {
   const navigation = useNavigation<Nav>();
+  const route = useRoute<NewBookingRouteProp>();
+  const preselectedServiceTypeId = route.params?.serviceTypeId;
   const { packages, patients, addresses, loading, submitting, reload, createBooking } = useNewBooking();
 
   const [step, setStep] = useState(1);
   const [draft, setDraft] = useState<BookingDraft>({
-    packageId: null, serviceTypeId: null, patientId: null, addressId: null, cityId: null,
+    packageId: null, serviceTypeId: preselectedServiceTypeId ?? null, patientId: null, addressId: null, cityId: null,
     date: todayISO(), time: '10:00', urgency: 'NORMAL', gender: '', instructions: '',
   });
+
+  // When arriving from a Home service tile, narrow Step 1 to that service's packages.
+  const visiblePackages = preselectedServiceTypeId
+    ? packages.filter((p) => p.serviceTypeId === preselectedServiceTypeId)
+    : packages;
 
   // Re-pull reference data when returning to the wizard (e.g. after adding a patient).
   useEffect(() => navigation.addListener('focus', () => { reload(); }), [navigation, reload]);
@@ -48,7 +57,7 @@ export function NewBookingWizard(): JSX.Element {
   if (step === 1) {
     return (
       <SelectPackage
-        packages={packages}
+        packages={visiblePackages}
         loading={loading}
         selectedId={draft.packageId}
         onSelect={(pkg) => patch({ packageId: pkg.id, serviceTypeId: pkg.serviceTypeId })}

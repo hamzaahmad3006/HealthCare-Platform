@@ -41,7 +41,7 @@ export interface BookingDraft {
   instructions: string;
 }
 
-export interface ApiServiceType { id: string; name: string }
+export interface ApiServiceType { id: string; name: string; code: string }
 
 export interface ApiPackage {
   id: string; serviceTypeId: string; name: string; packageType: string;

@@ -11,22 +11,16 @@ import { MaterialDesignIcons } from '@react-native-vector-icons/material-design-
 import { Colors, FontSize, Spacing, Radius } from '../../../constants/theme';
 import { useHome } from './useHome';
 
-const SERVICES = [
-  { icon: 'bandage',                   label: 'Nursing' },
-  { icon: 'human-handshelp',           label: 'Caregiver' },
-  { icon: 'flask',                     label: 'Lab Sampling' },
-  { icon: 'stethoscope',               label: 'Visiting Doctor' },
-  { icon: 'human-wheelchair',          label: 'Physiotherapy' },
-  { icon: 'ambulance',                 label: 'Ambulance' },
-];
-
 function formatWhen(iso: string): string {
   const d = new Date(iso);
   return d.toLocaleString('en-PK', { weekday: 'short', day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit' });
 }
 
 export function Home(): JSX.Element {
-  const { firstName, greeting, nextBooking, loading, goToBooking, goToNewBooking } = useHome();
+  const {
+    firstName, greeting, nextBooking, loading,
+    services, servicesLoading, goToBooking, goToNewBooking,
+  } = useHome();
 
   return (
     <View style={styles.root}>
@@ -85,7 +79,7 @@ export function Home(): JSX.Element {
             </View>
           </View>
         ) : (
-          <TouchableOpacity style={styles.emptyApptCard} activeOpacity={0.85} onPress={goToNewBooking}>
+          <TouchableOpacity style={styles.emptyApptCard} activeOpacity={0.85} onPress={() => goToNewBooking()}>
             <MaterialDesignIcons name="calendar-plus" size={28} color={Colors.primary} />
             <Text style={styles.emptyApptTitle}>No upcoming appointments</Text>
             <Text style={styles.emptyApptHint}>Tap to book a home healthcare visit.</Text>
@@ -100,16 +94,22 @@ export function Home(): JSX.Element {
           </TouchableOpacity>
         </View>
 
-        <View style={styles.servicesGrid}>
-          {SERVICES.map((s) => (
-            <TouchableOpacity key={s.label} style={styles.serviceItem} activeOpacity={0.75} onPress={goToNewBooking}>
-              <View style={styles.serviceIconBg}>
-                <MaterialDesignIcons name={s.icon} size={26} color={Colors.primary} />
-              </View>
-              <Text style={styles.serviceLabel}>{s.label}</Text>
-            </TouchableOpacity>
-          ))}
-        </View>
+        {servicesLoading ? (
+          <View style={styles.servicesLoadingBox}>
+            <ActivityIndicator color={Colors.primary} />
+          </View>
+        ) : (
+          <View style={styles.servicesGrid}>
+            {services.map((s) => (
+              <TouchableOpacity key={s.id} style={styles.serviceItem} activeOpacity={0.75} onPress={() => goToNewBooking(s.id)}>
+                <View style={styles.serviceIconBg}>
+                  <MaterialDesignIcons name={s.icon} size={26} color={Colors.primary} />
+                </View>
+                <Text style={styles.serviceLabel}>{s.name}</Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        )}
       </ScrollView>
     </View>
   );
@@ -298,6 +298,11 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: Spacing.sm,
+  },
+  servicesLoadingBox: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    paddingVertical: Spacing.lg,
   },
   serviceItem: {
     width: '30.5%',
