@@ -1,5 +1,6 @@
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { Login } from '../screens/auth/Login/Login';
+import { Register } from '../screens/auth/Register/Register';
 import { SplashScreen } from '../screens/onboarding/SplashScreen';
 import { OnboardingScreen } from '../screens/onboarding/OnboardingScreen';
 import type { AuthStackParamList } from './types';
@@ -12,6 +13,7 @@ export function AuthNavigator(): JSX.Element {
       <Stack.Screen name="Splash" component={SplashScreen} />
       <Stack.Screen name="Onboarding" component={OnboardingScreen} />
       <Stack.Screen name="Login" component={Login} />
+      <Stack.Screen name="Register" component={Register} />
     </Stack.Navigator>
   );
 }

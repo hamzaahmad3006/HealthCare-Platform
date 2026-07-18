@@ -12,28 +12,19 @@ import {
 } from 'react-native';
 import { Ionicons } from '@react-native-vector-icons/ionicons/static';
 import { Colors, FontSize, Spacing, Radius } from '../../../constants/theme';
-import { useLogin } from './useLogin';
+import { useRegister } from './useRegister';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { AuthStackParamList } from '../../../navigation/types';
 
-type Props = NativeStackScreenProps<AuthStackParamList, 'Login'>;
+type Props = NativeStackScreenProps<AuthStackParamList, 'Register'>;
 
-export function Login({ navigation }: Props): JSX.Element {
+export function Register({ navigation }: Props): JSX.Element {
   const {
-    phone,
-    password,
-    showPassword,
-    phoneFocused,
-    passFocused,
-    loading,
-    error,
-    setPhone,
-    setPassword,
-    setPhoneFocused,
-    setPassFocused,
-    togglePassword,
-    handleLogin,
-  } = useLogin(navigation);
+    fullName, phone, email, password, confirmPassword, showPassword,
+    loading, error,
+    setFullName, setPhone, setEmail, setPassword, setConfirmPassword,
+    togglePassword, handleRegister, goToLogin,
+  } = useRegister(navigation);
 
   return (
     <KeyboardAvoidingView
@@ -59,12 +50,28 @@ export function Login({ navigation }: Props): JSX.Element {
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
       >
-        <Text style={styles.welcomeTitle}>Welcome back</Text>
-        <Text style={styles.welcomeSub}>Sign in to manage your bookings and care.</Text>
+        <Text style={styles.welcomeTitle}>Create your account</Text>
+        <Text style={styles.welcomeSub}>Book home healthcare visits in under a minute.</Text>
+
+        {/* Full Name */}
+        <Text style={styles.label}>Full Name</Text>
+        <View style={styles.inputRow}>
+          <View style={styles.fieldIconBox}>
+            <Ionicons name="person-outline" size={16} color={Colors.neutral} />
+          </View>
+          <TextInput
+            style={styles.textInput}
+            placeholder="Your full name"
+            placeholderTextColor={Colors.neutralMuted}
+            value={fullName}
+            onChangeText={setFullName}
+            autoComplete="name"
+          />
+        </View>
 
         {/* Phone */}
-        <Text style={styles.label}>Phone Number</Text>
-        <View style={[styles.inputRow, phoneFocused && styles.inputRowFocused]}>
+        <Text style={[styles.label, styles.labelSpaced]}>Phone Number</Text>
+        <View style={styles.inputRow}>
           <View style={styles.prefixBox}>
             <Ionicons name="call-outline" size={16} color={Colors.primary} />
             <Text style={styles.prefixText}>+92</Text>
@@ -77,27 +84,43 @@ export function Login({ navigation }: Props): JSX.Element {
             value={phone}
             onChangeText={setPhone}
             autoComplete="tel"
-            onFocus={() => setPhoneFocused(true)}
-            onBlur={() => setPhoneFocused(false)}
+          />
+        </View>
+
+        {/* Email (optional) */}
+        <Text style={[styles.label, styles.labelSpaced]}>
+          Email <Text style={styles.labelOptional}>(optional)</Text>
+        </Text>
+        <View style={styles.inputRow}>
+          <View style={styles.fieldIconBox}>
+            <Ionicons name="mail-outline" size={16} color={Colors.neutral} />
+          </View>
+          <TextInput
+            style={styles.textInput}
+            placeholder="you@example.com"
+            placeholderTextColor={Colors.neutralMuted}
+            keyboardType="email-address"
+            autoCapitalize="none"
+            value={email}
+            onChangeText={setEmail}
+            autoComplete="email"
           />
         </View>
 
         {/* Password */}
         <Text style={[styles.label, styles.labelSpaced]}>Password</Text>
-        <View style={[styles.inputRow, passFocused && styles.inputRowFocused]}>
+        <View style={styles.inputRow}>
           <View style={styles.fieldIconBox}>
             <Ionicons name="lock-closed-outline" size={16} color={Colors.neutral} />
           </View>
           <TextInput
             style={[styles.textInput, styles.passwordInput]}
-            placeholder="Enter your password"
+            placeholder="At least 8 characters"
             placeholderTextColor={Colors.neutralMuted}
             secureTextEntry={!showPassword}
             value={password}
             onChangeText={setPassword}
-            autoComplete="password"
-            onFocus={() => setPassFocused(true)}
-            onBlur={() => setPassFocused(false)}
+            autoComplete="password-new"
           />
           <TouchableOpacity style={styles.eyeBtn} onPress={togglePassword} activeOpacity={0.7}>
             <Ionicons
@@ -108,6 +131,23 @@ export function Login({ navigation }: Props): JSX.Element {
           </TouchableOpacity>
         </View>
 
+        {/* Confirm Password */}
+        <Text style={[styles.label, styles.labelSpaced]}>Confirm Password</Text>
+        <View style={styles.inputRow}>
+          <View style={styles.fieldIconBox}>
+            <Ionicons name="lock-closed-outline" size={16} color={Colors.neutral} />
+          </View>
+          <TextInput
+            style={styles.textInput}
+            placeholder="Re-enter your password"
+            placeholderTextColor={Colors.neutralMuted}
+            secureTextEntry={!showPassword}
+            value={confirmPassword}
+            onChangeText={setConfirmPassword}
+            autoComplete="password-new"
+          />
+        </View>
+
         {/* Error */}
         {error ? (
           <View style={styles.errorBox}>
@@ -115,23 +155,23 @@ export function Login({ navigation }: Props): JSX.Element {
           </View>
         ) : null}
 
-        {/* Sign In */}
+        {/* Create Account */}
         <TouchableOpacity
           style={[styles.signInBtn, loading && styles.signInBtnDisabled]}
-          onPress={handleLogin}
+          onPress={handleRegister}
           disabled={loading}
           activeOpacity={0.85}
         >
           {loading ? (
             <ActivityIndicator color={Colors.white} />
           ) : (
-            <Text style={styles.signInBtnText}>Sign In</Text>
+            <Text style={styles.signInBtnText}>Create Account</Text>
           )}
         </TouchableOpacity>
 
         <Text style={styles.footerHint}>
-          Don't have an account?{' '}
-          <Text style={styles.footerLink} onPress={() => navigation.navigate('Register')}>Sign Up</Text>
+          Already have an account?{' '}
+          <Text style={styles.footerLink} onPress={goToLogin}>Sign In</Text>
         </Text>
       </ScrollView>
     </KeyboardAvoidingView>
@@ -144,19 +184,19 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.primary,
   },
   header: {
-    height: 260,
+    height: 200,
     alignItems: 'center',
     justifyContent: 'center',
     paddingBottom: Spacing.xl,
   },
   logoIcon: {
-    width: 64,
-    height: 64,
+    width: 56,
+    height: 56,
     backgroundColor: Colors.white,
     borderRadius: Radius.lg,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: Spacing.md,
+    marginBottom: Spacing.sm,
     shadowColor: '#000',
     shadowOpacity: 0.2,
     shadowRadius: 10,
@@ -164,15 +204,15 @@ const styles = StyleSheet.create({
   },
   crossH: {
     position: 'absolute',
-    width: 36,
-    height: 10,
+    width: 30,
+    height: 8,
     backgroundColor: Colors.primary,
     borderRadius: 3,
   },
   crossV: {
     position: 'absolute',
-    width: 10,
-    height: 36,
+    width: 8,
+    height: 30,
     backgroundColor: Colors.primary,
     borderRadius: 3,
   },
@@ -219,6 +259,10 @@ const styles = StyleSheet.create({
     color: Colors.textSecondary,
     marginBottom: 8,
   },
+  labelOptional: {
+    fontWeight: '400',
+    color: Colors.neutralMuted,
+  },
   labelSpaced: {
     marginTop: Spacing.md,
   },
@@ -229,10 +273,6 @@ const styles = StyleSheet.create({
     borderRadius: Radius.md,
     overflow: 'hidden',
     backgroundColor: Colors.neutralLight,
-  },
-  inputRowFocused: {
-    borderColor: Colors.primary,
-    backgroundColor: Colors.primarySurface,
   },
   prefixBox: {
     flexDirection: 'row',
