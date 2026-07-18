@@ -2,16 +2,11 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { MaterialDesignIcons } from '@react-native-vector-icons/material-design-icons/static';
 import { StaffHome } from '../screens/staff/Home/Home';
 import { StaffVisits } from '../screens/staff/Visits/StaffVisits';
+import { StaffPatients } from '../screens/staff/Patients/StaffPatients';
 import { StaffReports } from '../screens/staff/Reports/StaffReports';
 import { StaffProfile } from '../screens/staff/Profile/StaffProfile';
 import { Colors, FontSize } from '../constants/theme';
-
-export type StaffTabParamList = {
-  Home: undefined;
-  Visits: undefined;
-  Reports: undefined;
-  Profile: undefined;
-};
+import type { StaffTabParamList } from './types';
 
 const Tab = createBottomTabNavigator<StaffTabParamList>();
 
@@ -45,6 +40,11 @@ export function StaffTabs(): JSX.Element {
         name="Visits"
         component={StaffVisits}
         options={{ tabBarIcon: ({ color, size }) => <MaterialDesignIcons name="medical-bag" size={size} color={color} /> }}
+      />
+      <Tab.Screen
+        name="Patients"
+        component={StaffPatients}
+        options={{ tabBarIcon: ({ color, size }) => <MaterialDesignIcons name="account-group-outline" size={size} color={color} /> }}
       />
       <Tab.Screen
         name="Reports"

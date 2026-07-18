@@ -26,6 +26,7 @@ export type CustomerStackParamList = {
 export type StaffTabParamList = {
   Home: undefined;
   Visits: undefined;
+  Patients: undefined;
   Reports: undefined;
   Profile: undefined;
 };
@@ -33,7 +34,6 @@ export type StaffTabParamList = {
 export type StaffStackParamList = {
   Tabs: undefined;
   VisitDetail: { id: string };
-  StaffPatients: undefined;
   Notifications: undefined;
 };
 

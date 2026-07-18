@@ -1,15 +1,16 @@
 import {
   View, Text, FlatList, TouchableOpacity, StyleSheet,
-  StatusBar, SafeAreaView, TextInput,
+  StatusBar, SafeAreaView, TextInput, ActivityIndicator, RefreshControl,
 } from 'react-native';
 import { useState } from 'react';
 import { MaterialDesignIcons } from '@react-native-vector-icons/material-design-icons/static';
 import { Colors, FontSize, Spacing, Radius } from '../../../constants/theme';
+import { useStaffPatients } from './useStaffPatients';
 import type { StaffPatient } from '../../../types/StaffPatients.types';
 
 export function StaffPatients(): JSX.Element {
   const [search, setSearch] = useState('');
-  const patients: StaffPatient[] = []; // wired to API later
+  const { patients, loading, refreshing, onRefresh } = useStaffPatients();
 
   const filtered = patients.filter((p) =>
     p.fullName.toLowerCase().includes(search.toLowerCase()),
@@ -43,44 +44,51 @@ export function StaffPatients(): JSX.Element {
         </View>
       </View>
 
-      <FlatList
-        data={filtered}
-        keyExtractor={(p) => p.id}
-        contentContainerStyle={filtered.length === 0 ? styles.emptyContainer : styles.listContent}
-        ListEmptyComponent={
-          <View style={styles.emptyBox}>
-            <MaterialDesignIcons name="account-group-outline" size={48} color={Colors.neutralBorder} />
-            <Text style={styles.emptyTitle}>No patients yet</Text>
-            <Text style={styles.emptyHint}>Patients from your completed visits will appear here.</Text>
-          </View>
-        }
-        renderItem={({ item }) => (
-          <TouchableOpacity style={styles.card} activeOpacity={0.8}>
-            <View style={styles.avatar}>
-              <Text style={styles.avatarText}>{item.fullName.charAt(0).toUpperCase()}</Text>
+      {loading ? (
+        <View style={styles.emptyBox}>
+          <ActivityIndicator size="large" color={Colors.primary} />
+        </View>
+      ) : (
+        <FlatList
+          data={filtered}
+          keyExtractor={(p) => p.id}
+          contentContainerStyle={filtered.length === 0 ? styles.emptyContainer : styles.listContent}
+          refreshControl={
+            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[Colors.primary]} tintColor={Colors.primary} />
+          }
+          ListEmptyComponent={
+            <View style={styles.emptyBox}>
+              <MaterialDesignIcons name="account-group-outline" size={48} color={Colors.neutralBorder} />
+              <Text style={styles.emptyTitle}>No patients yet</Text>
+              <Text style={styles.emptyHint}>Patients from your assigned visits will appear here.</Text>
             </View>
-            <View style={styles.info}>
-              <Text style={styles.name}>{item.fullName}</Text>
-              {item.primaryCondition ? (
-                <View style={styles.conditionRow}>
-                  <MaterialDesignIcons name="heart-outline" size={12} color={Colors.danger} />
-                  <Text style={styles.condition}>{item.primaryCondition}</Text>
-                </View>
-              ) : null}
-              <View style={styles.metaRow}>
-                {item.lastVisit ? (
-                  <Text style={styles.metaText}>Last visit: {item.lastVisit}</Text>
-                ) : null}
-                <View style={styles.visitBadge}>
-                  <Text style={styles.visitBadgeText}>{item.totalVisits} visits</Text>
-                </View>
-              </View>
-            </View>
-            <MaterialDesignIcons name="chevron-right" size={20} color={Colors.neutralMuted} />
-          </TouchableOpacity>
-        )}
-      />
+          }
+          renderItem={({ item }) => <PatientCard patient={item} />}
+        />
+      )}
     </SafeAreaView>
+  );
+}
+
+function PatientCard({ patient }: { patient: StaffPatient }) {
+  return (
+    <View style={styles.card}>
+      <View style={styles.avatar}>
+        <Text style={styles.avatarText}>{patient.fullName.charAt(0).toUpperCase()}</Text>
+      </View>
+      <View style={styles.info}>
+        <Text style={styles.name}>{patient.fullName}</Text>
+        {patient.primaryCondition ? (
+          <View style={styles.conditionRow}>
+            <MaterialDesignIcons name="heart-outline" size={12} color={Colors.danger} />
+            <Text style={styles.condition}>{patient.primaryCondition}</Text>
+          </View>
+        ) : null}
+        {patient.relationshipToCustomer ? (
+          <Text style={styles.metaText}>{patient.relationshipToCustomer}</Text>
+        ) : null}
+      </View>
+    </View>
   );
 }
 
@@ -121,8 +129,5 @@ const styles = StyleSheet.create({
   name: { fontSize: FontSize.md, fontWeight: '700', color: Colors.textPrimary },
   conditionRow: { flexDirection: 'row', alignItems: 'center', gap: 4 },
   condition: { fontSize: FontSize.xs, color: Colors.textMuted },
-  metaRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 2 },
   metaText: { fontSize: FontSize.xs, color: Colors.neutralMuted },
-  visitBadge: { backgroundColor: Colors.primarySurface, borderRadius: Radius.full, paddingHorizontal: 8, paddingVertical: 2 },
-  visitBadgeText: { fontSize: FontSize.xs, fontWeight: '600', color: Colors.primary },
 });
