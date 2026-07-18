@@ -5,6 +5,7 @@ import { API } from '../../../api/endpoints';
 import { useAppSelector } from '../../../store';
 import type { ApiVisit } from '../../../types/visit.types';
 import type { BookingDetail } from '../../../types/booking.types';
+import { serviceLabelFromCode, startOfDayISO, endOfDayISO } from '../../../utils/format';
 
 const ACTIVE_STATUSES = ['SCHEDULED', 'ASSIGNED', 'EN_ROUTE', 'CHECKED_IN'];
 
@@ -22,27 +23,6 @@ export interface LaterVisit {
   patientName: string;
   serviceLabel: string;
   scheduledStartAt: string;
-}
-
-function startOfDayISO(): string {
-  const d = new Date();
-  d.setHours(0, 0, 0, 0);
-  return d.toISOString();
-}
-
-function endOfDayISO(): string {
-  const d = new Date();
-  d.setHours(23, 59, 59, 999);
-  return d.toISOString();
-}
-
-// Backend seeds fixed SNAKE_CASE codes (see prisma/seed.ts) — format for display
-// since the /visits response only carries the code, not the human-readable name.
-function serviceLabelFromCode(code: string): string {
-  return code
-    .split('_')
-    .map((w) => w.charAt(0) + w.slice(1).toLowerCase())
-    .join(' ');
 }
 
 export function useStaffHome() {
