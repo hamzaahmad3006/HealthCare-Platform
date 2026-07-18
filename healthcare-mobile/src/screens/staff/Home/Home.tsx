@@ -1,4 +1,3 @@
-import { useState } from 'react';
 import {
   View,
   Text,
@@ -7,17 +6,34 @@ import {
   StyleSheet,
   StatusBar,
   SafeAreaView,
+  ActivityIndicator,
 } from 'react-native';
 import { MaterialDesignIcons } from '@react-native-vector-icons/material-design-icons/static';
 import { Colors, FontSize, Spacing, Radius } from '../../../constants/theme';
+import { useStaffHome } from './useStaffHome';
 
-const LATER_PATIENTS = [
-  { initials: 'SA', name: 'Sara Ahmed',      service: 'Post-op Care',    time: '6:00 PM' },
-  { initials: 'MI', name: 'Mohammed Iqbal',  service: 'Routine Vitals',  time: '7:15 PM' },
-];
+function initialsOf(name: string): string {
+  return name.trim().split(/\s+/).slice(0, 2).map((w) => w.charAt(0).toUpperCase()).join('');
+}
+
+function formatTime(iso: string): string {
+  return new Date(iso).toLocaleTimeString('en-PK', { hour: 'numeric', minute: '2-digit' });
+}
+
+function minutesUntil(iso: string): string {
+  const diffMs = new Date(iso).getTime() - Date.now();
+  if (diffMs <= 0) return 'now';
+  const mins = Math.round(diffMs / 60000);
+  if (mins < 60) return `in ${mins} min${mins === 1 ? '' : 's'}`;
+  return `in ${Math.round(mins / 60)} hr${Math.round(mins / 60) === 1 ? '' : 's'}`;
+}
 
 export function StaffHome(): JSX.Element {
-  const [onDuty, setOnDuty] = useState(true);
+  const {
+    loading, todayCount, completedCount, nextPatient, laterToday,
+    available, togglingDuty, toggleDuty, staffCode, fullName,
+  } = useStaffHome();
+  const onDuty = available;
 
   return (
     <SafeAreaView style={styles.root}>
@@ -32,10 +48,11 @@ export function StaffHome(): JSX.Element {
           <Text style={styles.headerTitle}>Care Portal</Text>
         </View>
         <View style={styles.headerRight}>
-          <Text style={styles.staffId}>ID: HH-8821</Text>
+          <Text style={styles.staffId}>{staffCode ? `ID: ${staffCode}` : ''}</Text>
           <TouchableOpacity
             style={[styles.dutyBadge, !onDuty && styles.dutyBadgeOff]}
-            onPress={() => setOnDuty((v) => !v)}
+            onPress={toggleDuty}
+            disabled={togglingDuty}
             activeOpacity={0.8}
           >
             <View style={[styles.dutyDot, !onDuty && styles.dutyDotOff]} />
@@ -53,14 +70,15 @@ export function StaffHome(): JSX.Element {
       >
         {/* ── Greeting ── */}
         <View style={styles.greeting}>
-          <Text style={styles.greetingTitle}>Good morning, Dr. Ali</Text>
+          <Text style={styles.greetingTitle}>Hello, {fullName.trim().split(/\s+/)[0]}</Text>
           <Text style={styles.greetingSubtitle}>Here is your schedule for today.</Text>
         </View>
 
         {/* ── On Duty toggle card ── */}
         <TouchableOpacity
           style={[styles.dutyCard, !onDuty && styles.dutyCardOff]}
-          onPress={() => setOnDuty((v) => !v)}
+          onPress={toggleDuty}
+          disabled={togglingDuty}
           activeOpacity={0.85}
         >
           <View style={styles.dutyCardLeft}>
@@ -84,79 +102,77 @@ export function StaffHome(): JSX.Element {
         <View style={styles.statsRow}>
           <View style={styles.statCard}>
             <MaterialDesignIcons name="calendar-today" size={22} color={Colors.primary} />
-            <Text style={styles.statValue}>8</Text>
+            <Text style={styles.statValue}>{loading ? '—' : todayCount}</Text>
             <Text style={styles.statLabel}>Today's Visits</Text>
           </View>
           <View style={styles.statDivider} />
           <View style={styles.statCard}>
             <MaterialDesignIcons name="check-circle" size={22} color={Colors.success} />
-            <Text style={styles.statValue}>3</Text>
+            <Text style={styles.statValue}>{loading ? '—' : completedCount}</Text>
             <Text style={styles.statLabel}>Completed</Text>
           </View>
         </View>
 
         {/* ── Next Patient ── */}
         <Text style={styles.sectionTitle}>Next Patient</Text>
-        <View style={styles.nextPatientCard}>
-          {/* Patient info row */}
-          <View style={styles.patientTopRow}>
-            <View style={styles.patientInfo}>
-              <Text style={styles.patientName}>Ahmed Khan</Text>
-              <View style={styles.patientServiceRow}>
-                <MaterialDesignIcons name="medical-bag" size={13} color={Colors.textMuted} />
-                <Text style={styles.patientService}>General Checkup</Text>
+        {loading ? (
+          <View style={[styles.nextPatientCard, styles.centeredBox]}>
+            <ActivityIndicator color={Colors.primary} />
+          </View>
+        ) : nextPatient ? (
+          <View style={styles.nextPatientCard}>
+            {/* Patient info row */}
+            <View style={styles.patientTopRow}>
+              <View style={styles.patientInfo}>
+                <Text style={styles.patientName}>{nextPatient.patientName}</Text>
+                <View style={styles.patientServiceRow}>
+                  <MaterialDesignIcons name="medical-bag" size={13} color={Colors.textMuted} />
+                  <Text style={styles.patientService}>{nextPatient.serviceLabel}</Text>
+                </View>
+              </View>
+              <View style={styles.patientTimeBox}>
+                <Text style={styles.patientTime}>{formatTime(nextPatient.scheduledStartAt)}</Text>
+                <Text style={styles.patientTimeHint}>{minutesUntil(nextPatient.scheduledStartAt)}</Text>
               </View>
             </View>
-            <View style={styles.patientTimeBox}>
-              <Text style={styles.patientTime}>4:30 PM</Text>
-              <Text style={styles.patientTimeHint}>in 45 mins</Text>
-            </View>
-          </View>
 
-          {/* Address */}
-          <View style={styles.addressRow}>
-            <MaterialDesignIcons name="map-marker" size={15} color={Colors.primary} />
-            <View>
-              <Text style={styles.addressStreet}>DHA Phase 5, Block L, Street 4</Text>
-              <Text style={styles.addressCity}>Lahore, Punjab</Text>
-            </View>
+            {/* Address */}
+            {nextPatient.addressLine && (
+              <View style={styles.addressRow}>
+                <MaterialDesignIcons name="map-marker" size={15} color={Colors.primary} />
+                <View>
+                  <Text style={styles.addressStreet}>{nextPatient.addressLine}</Text>
+                  {nextPatient.addressCity && <Text style={styles.addressCity}>{nextPatient.addressCity}</Text>}
+                </View>
+              </View>
+            )}
           </View>
-
-          {/* Map placeholder */}
-          <View style={styles.mapPlaceholder}>
-            <MaterialDesignIcons name="map" size={32} color={Colors.primaryLight} />
-            <Text style={styles.mapHint}>Map View</Text>
+        ) : (
+          <View style={[styles.nextPatientCard, styles.centeredBox]}>
+            <MaterialDesignIcons name="calendar-check" size={28} color={Colors.primaryLight} />
+            <Text style={styles.emptyText}>No more visits scheduled today.</Text>
           </View>
-
-          {/* Action buttons */}
-          <View style={styles.actionRow}>
-            <TouchableOpacity style={styles.callBtn} activeOpacity={0.8}>
-              <MaterialDesignIcons name="phone" size={18} color={Colors.primary} />
-              <Text style={styles.callBtnText}>Call</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.navBtn} activeOpacity={0.8}>
-              <MaterialDesignIcons name="navigation" size={18} color={Colors.white} />
-              <Text style={styles.navBtnText}>Start Navigation</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
+        )}
 
         {/* ── Later Today ── */}
-        <Text style={styles.sectionTitle}>Later Today</Text>
-        <View style={styles.laterList}>
-          {LATER_PATIENTS.map((p) => (
-            <TouchableOpacity key={p.name} style={styles.laterRow} activeOpacity={0.8}>
-              <View style={styles.laterAvatar}>
-                <Text style={styles.laterInitials}>{p.initials}</Text>
-              </View>
-              <View style={styles.laterInfo}>
-                <Text style={styles.laterName}>{p.name}</Text>
-                <Text style={styles.laterService}>{p.service} • {p.time}</Text>
-              </View>
-              <MaterialDesignIcons name="chevron-right" size={22} color={Colors.neutralMuted} />
-            </TouchableOpacity>
-          ))}
-        </View>
+        {laterToday.length > 0 && (
+          <>
+            <Text style={styles.sectionTitle}>Later Today</Text>
+            <View style={styles.laterList}>
+              {laterToday.map((v) => (
+                <View key={v.id} style={styles.laterRow}>
+                  <View style={styles.laterAvatar}>
+                    <Text style={styles.laterInitials}>{initialsOf(v.patientName)}</Text>
+                  </View>
+                  <View style={styles.laterInfo}>
+                    <Text style={styles.laterName}>{v.patientName}</Text>
+                    <Text style={styles.laterService}>{v.serviceLabel} • {formatTime(v.scheduledStartAt)}</Text>
+                  </View>
+                </View>
+              ))}
+            </View>
+          </>
+        )}
       </ScrollView>
     </SafeAreaView>
   );
@@ -385,55 +401,16 @@ const styles = StyleSheet.create({
     color: Colors.textMuted,
     marginTop: 1,
   },
-  mapPlaceholder: {
-    height: 100,
-    backgroundColor: Colors.primarySurface,
-    borderRadius: Radius.md,
+  centeredBox: {
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 4,
-    borderWidth: 1,
-    borderColor: Colors.neutralBorder,
-  },
-  mapHint: {
-    fontSize: FontSize.xs,
-    color: Colors.primaryLight,
-    fontWeight: '500',
-  },
-  actionRow: {
-    flexDirection: 'row',
     gap: Spacing.sm,
+    paddingVertical: Spacing.lg,
   },
-  callBtn: {
-    flex: 1,
-    height: 44,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 6,
-    borderRadius: Radius.md,
-    borderWidth: 1.5,
-    borderColor: Colors.primary,
-  },
-  callBtnText: {
-    fontSize: FontSize.md,
-    fontWeight: '700',
-    color: Colors.primary,
-  },
-  navBtn: {
-    flex: 2,
-    height: 44,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 6,
-    borderRadius: Radius.md,
-    backgroundColor: Colors.primary,
-  },
-  navBtnText: {
-    fontSize: FontSize.md,
-    fontWeight: '700',
-    color: Colors.white,
+  emptyText: {
+    fontSize: FontSize.sm,
+    color: Colors.textMuted,
+    textAlign: 'center',
   },
 
   /* Later Today */
