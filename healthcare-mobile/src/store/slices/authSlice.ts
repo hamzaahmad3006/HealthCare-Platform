@@ -2,7 +2,7 @@ import { createSlice, createAsyncThunk, type PayloadAction } from '@reduxjs/tool
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { api, STORAGE_KEYS, clearTokens, extractApiError } from '../../api/client';
 import { API } from '../../api/endpoints';
-import type { AuthUser, LoginPayload, AuthResponse } from '../../types/auth.types';
+import type { AuthUser, LoginPayload, RegisterPayload, AuthResponse } from '../../types/auth.types';
 import type { AuthState } from '../../types/authSlice.types';
 
 const initialState: AuthState = {
@@ -37,6 +37,36 @@ export const login = createAsyncThunk(
         API.AUTH.LOGIN,
         { phone, password: payload.password },
       );
+      const { accessToken, refreshToken, user } = data.data;
+      await AsyncStorage.multiSet([
+        [STORAGE_KEYS.ACCESS_TOKEN, accessToken],
+        [STORAGE_KEYS.REFRESH_TOKEN, refreshToken],
+        [STORAGE_KEYS.USER, JSON.stringify(user)],
+      ]);
+      return { accessToken, user };
+    } catch (err) {
+      return rejectWithValue(extractApiError(err));
+    }
+  },
+);
+
+export const register = createAsyncThunk(
+  'auth/register',
+  async (payload: RegisterPayload, { rejectWithValue }) => {
+    try {
+      // Normalise phone to E.164 — same transform as login().
+      const stripped = payload.phone.replace(/\D/g, '');
+      const local = stripped.startsWith('92') ? stripped.slice(2) : stripped.replace(/^0/, '');
+      const phone = `+92${local}`;
+
+      const body: Record<string, unknown> = {
+        fullName: payload.fullName,
+        phone,
+        password: payload.password,
+      };
+      if (payload.email) body.email = payload.email;
+
+      const { data } = await api.post<{ success: true; data: AuthResponse }>(API.AUTH.REGISTER, body);
       const { accessToken, refreshToken, user } = data.data;
       await AsyncStorage.multiSet([
         [STORAGE_KEYS.ACCESS_TOKEN, accessToken],
@@ -89,6 +119,21 @@ const authSlice = createSlice({
       state.user = payload.user;
     });
     builder.addCase(login.rejected, (state, { payload }) => {
+      state.loading = false;
+      state.error = payload as string;
+    });
+
+    // register
+    builder.addCase(register.pending, (state) => {
+      state.loading = true;
+      state.error = null;
+    });
+    builder.addCase(register.fulfilled, (state, { payload }) => {
+      state.loading = false;
+      state.accessToken = payload.accessToken;
+      state.user = payload.user;
+    });
+    builder.addCase(register.rejected, (state, { payload }) => {
       state.loading = false;
       state.error = payload as string;
     });

@@ -23,6 +23,13 @@ export interface LoginPayload {
   password: string;
 }
 
+export interface RegisterPayload {
+  fullName: string;
+  phone: string;
+  email?: string;
+  password: string;
+}
+
 export interface AuthResponse {
   accessToken: string;
   refreshToken: string;
