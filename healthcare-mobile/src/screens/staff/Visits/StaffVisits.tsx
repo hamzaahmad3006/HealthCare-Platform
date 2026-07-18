@@ -3,10 +3,15 @@ import {
   StatusBar, SafeAreaView, ActivityIndicator, RefreshControl,
 } from 'react-native';
 import { MaterialDesignIcons } from '@react-native-vector-icons/material-design-icons/static';
+import { useNavigation } from '@react-navigation/native';
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Colors, FontSize, Spacing, Radius } from '../../../constants/theme';
-import type { VisitStatus } from '../../../types/visit.types';
+import { VISIT_STATUS_COLOR, VISIT_STATUS_LABEL } from '../../../constants/visitStatus';
 import type { TabFilter, Visit } from '../../../types/StaffVisits.types';
+import type { StaffStackParamList } from '../../../navigation/types';
 import { useStaffVisits } from './useStaffVisits';
+
+type Nav = NativeStackNavigationProp<StaffStackParamList>;
 
 const TABS: { id: TabFilter; label: string }[] = [
   { id: 'TODAY',     label: "Today" },
@@ -14,27 +19,8 @@ const TABS: { id: TabFilter; label: string }[] = [
   { id: 'COMPLETED', label: 'Completed' },
 ];
 
-const STATUS_COLOR: Record<VisitStatus, string> = {
-  SCHEDULED:   Colors.info,
-  ASSIGNED:    Colors.info,
-  EN_ROUTE:    Colors.warning,
-  CHECKED_IN:  Colors.primary,
-  COMPLETED:   Colors.success,
-  MISSED:      Colors.danger,
-  CANCELLED:   Colors.danger,
-};
-
-const STATUS_LABEL: Record<VisitStatus, string> = {
-  SCHEDULED:   'Scheduled',
-  ASSIGNED:    'Assigned',
-  EN_ROUTE:    'En Route',
-  CHECKED_IN:  'Checked In',
-  COMPLETED:   'Completed',
-  MISSED:      'Missed',
-  CANCELLED:   'Cancelled',
-};
-
 export function StaffVisits(): JSX.Element {
+  const navigation = useNavigation<Nav>();
   const { activeTab, setActiveTab, visits, loading, refreshing, onRefresh } = useStaffVisits();
 
   return (
@@ -83,17 +69,19 @@ export function StaffVisits(): JSX.Element {
               </Text>
             </View>
           }
-          renderItem={({ item }) => <VisitCard visit={item} />}
+          renderItem={({ item }) => (
+            <VisitCard visit={item} onPress={() => navigation.navigate('VisitDetail', { id: item.id })} />
+          )}
         />
       )}
     </SafeAreaView>
   );
 }
 
-function VisitCard({ visit }: { visit: Visit }) {
-  const color = STATUS_COLOR[visit.status];
+function VisitCard({ visit, onPress }: { visit: Visit; onPress: () => void }) {
+  const color = VISIT_STATUS_COLOR[visit.status];
   return (
-    <TouchableOpacity style={[styles.card, { borderLeftColor: color }]} activeOpacity={0.8}>
+    <TouchableOpacity style={[styles.card, { borderLeftColor: color }]} activeOpacity={0.8} onPress={onPress}>
       <View style={styles.cardTop}>
         <View style={styles.cardLeft}>
           <Text style={styles.patientName}>{visit.patientName}</Text>
@@ -103,7 +91,7 @@ function VisitCard({ visit }: { visit: Visit }) {
           </View>
         </View>
         <View style={[styles.statusBadge, { backgroundColor: color + '22' }]}>
-          <Text style={[styles.statusText, { color }]}>{STATUS_LABEL[visit.status]}</Text>
+          <Text style={[styles.statusText, { color }]}>{VISIT_STATUS_LABEL[visit.status]}</Text>
         </View>
       </View>
 
