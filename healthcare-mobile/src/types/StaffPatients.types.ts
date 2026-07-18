@@ -2,6 +2,12 @@ export interface StaffPatient {
   id: string;
   fullName: string;
   primaryCondition?: string;
-  lastVisit?: string;
-  totalVisits: number;
+  relationshipToCustomer?: string;
+}
+
+export interface ApiStaffPatient {
+  id: string;
+  fullName: string;
+  primaryCondition?: string | null;
+  relationshipToCustomer?: string | null;
 }
