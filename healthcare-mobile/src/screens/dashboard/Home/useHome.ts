@@ -85,6 +85,7 @@ export function useHome() {
 
   const goToBooking = (id: string): void => navigation.navigate('BookingDetail', { id });
   const goToNewBooking = (serviceTypeId?: string): void => navigation.navigate('NewBooking', serviceTypeId ? { serviceTypeId } : undefined);
+  const goToNotifications = (): void => navigation.navigate('Notifications');
 
   return {
     firstName,
@@ -95,5 +96,6 @@ export function useHome() {
     servicesLoading,
     goToBooking,
     goToNewBooking,
+    goToNotifications,
   };
 }

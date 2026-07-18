@@ -10,6 +10,7 @@ import {
 import { MaterialDesignIcons } from '@react-native-vector-icons/material-design-icons/static';
 import { Colors, FontSize, Spacing, Radius } from '../../../constants/theme';
 import { useHome } from './useHome';
+import { useUnreadBadge } from '../../shared/Notifications/useUnreadBadge';
 
 function formatWhen(iso: string): string {
   const d = new Date(iso);
@@ -19,8 +20,9 @@ function formatWhen(iso: string): string {
 export function Home(): JSX.Element {
   const {
     firstName, greeting, nextBooking, loading,
-    services, servicesLoading, goToBooking, goToNewBooking,
+    services, servicesLoading, goToBooking, goToNewBooking, goToNotifications,
   } = useHome();
+  const unreadCount = useUnreadBadge();
 
   return (
     <View style={styles.root}>
@@ -37,8 +39,13 @@ export function Home(): JSX.Element {
             <Text style={styles.greetingName}>{firstName}</Text>
           </View>
         </View>
-        <TouchableOpacity style={styles.notifBtn} activeOpacity={0.7}>
+        <TouchableOpacity style={styles.notifBtn} activeOpacity={0.7} onPress={goToNotifications}>
           <MaterialDesignIcons name="bell-outline" size={24} color={Colors.white} />
+          {unreadCount > 0 && (
+            <View style={styles.notifBadge}>
+              <Text style={styles.notifBadgeText}>{unreadCount > 9 ? '9+' : unreadCount}</Text>
+            </View>
+          )}
         </TouchableOpacity>
       </View>
 
@@ -160,6 +167,25 @@ const styles = StyleSheet.create({
     height: 40,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  notifBadge: {
+    position: 'absolute',
+    top: 4,
+    right: 4,
+    minWidth: 16,
+    height: 16,
+    paddingHorizontal: 3,
+    borderRadius: 8,
+    backgroundColor: Colors.danger,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1.5,
+    borderColor: Colors.primary,
+  },
+  notifBadgeText: {
+    fontSize: 9,
+    fontWeight: '700',
+    color: Colors.white,
   },
 
   /* Scroll */

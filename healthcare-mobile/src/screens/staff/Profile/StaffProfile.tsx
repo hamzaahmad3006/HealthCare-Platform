@@ -10,10 +10,16 @@ import {
   Switch,
   Alert,
 } from 'react-native';
+import { useNavigation } from '@react-navigation/native';
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { MaterialDesignIcons } from '@react-native-vector-icons/material-design-icons/static';
 import { Colors, FontSize, Spacing, Radius } from '../../../constants/theme';
 import { useAppDispatch, useAppSelector } from '../../../store';
 import { logout } from '../../../store/slices/authSlice';
+import { useUnreadBadge } from '../../shared/Notifications/useUnreadBadge';
+import type { StaffStackParamList } from '../../../navigation/types';
+
+type Nav = NativeStackNavigationProp<StaffStackParamList>;
 
 const SPECIALIZATIONS = ['Nursing', 'Caregiver'];
 
@@ -24,6 +30,8 @@ function initialsOf(name?: string): string {
 
 export function StaffProfile(): JSX.Element {
   const dispatch = useAppDispatch();
+  const navigation = useNavigation<Nav>();
+  const unreadCount = useUnreadBadge();
   const user = useAppSelector((s) => s.auth.user);
   const [available, setAvailable] = useState(true);
 
@@ -44,8 +52,13 @@ export function StaffProfile(): JSX.Element {
           <MaterialDesignIcons name="medical-bag" size={22} color={Colors.white} />
           <Text style={styles.headerTitle}>HomeHealth Pakistan</Text>
         </View>
-        <TouchableOpacity style={styles.notifBtn} activeOpacity={0.7}>
+        <TouchableOpacity style={styles.notifBtn} activeOpacity={0.7} onPress={() => navigation.navigate('Notifications')}>
           <MaterialDesignIcons name="bell-outline" size={24} color={Colors.white} />
+          {unreadCount > 0 && (
+            <View style={styles.notifBadge}>
+              <Text style={styles.notifBadgeText}>{unreadCount > 9 ? '9+' : unreadCount}</Text>
+            </View>
+          )}
         </TouchableOpacity>
       </View>
 
@@ -189,6 +202,25 @@ const styles = StyleSheet.create({
     height: 40,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  notifBadge: {
+    position: 'absolute',
+    top: 4,
+    right: 4,
+    minWidth: 16,
+    height: 16,
+    paddingHorizontal: 3,
+    borderRadius: 8,
+    backgroundColor: Colors.danger,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1.5,
+    borderColor: Colors.primary,
+  },
+  notifBadgeText: {
+    fontSize: 9,
+    fontWeight: '700',
+    color: Colors.white,
   },
 
   /* Scroll */

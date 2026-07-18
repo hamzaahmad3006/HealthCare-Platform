@@ -3,6 +3,7 @@ import { CustomerTabs } from './CustomerTabs';
 import { BookingDetail } from '../screens/dashboard/BookingDetail/BookingDetail';
 import { MyPatients } from '../screens/dashboard/MyPatients/MyPatients';
 import { NewBookingWizard } from '../screens/dashboard/NewBooking/NewBookingWizard';
+import { Notifications } from '../screens/shared/Notifications/Notifications';
 import { Colors } from '../constants/theme';
 import type { CustomerStackParamList } from './types';
 
@@ -21,6 +22,7 @@ export function CustomerNavigator(): JSX.Element {
       <Stack.Screen name="BookingDetail" component={BookingDetail}  options={{ title: 'Booking Detail' }} />
       <Stack.Screen name="MyPatients"    component={MyPatients}     options={{ title: 'My Patients' }} />
       <Stack.Screen name="NewBooking"    component={NewBookingWizard} options={{ headerShown: false }} />
+      <Stack.Screen name="Notifications" component={Notifications}  options={{ headerShown: false }} />
     </Stack.Navigator>
   );
 }
