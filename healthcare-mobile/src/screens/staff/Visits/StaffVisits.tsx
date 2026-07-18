@@ -1,11 +1,12 @@
-import { useState } from 'react';
 import {
   View, Text, FlatList, TouchableOpacity, StyleSheet,
-  StatusBar, SafeAreaView,
+  StatusBar, SafeAreaView, ActivityIndicator, RefreshControl,
 } from 'react-native';
 import { MaterialDesignIcons } from '@react-native-vector-icons/material-design-icons/static';
 import { Colors, FontSize, Spacing, Radius } from '../../../constants/theme';
-import type { VisitStatus, TabFilter, Visit } from '../../../types/StaffVisits.types';
+import type { VisitStatus } from '../../../types/visit.types';
+import type { TabFilter, Visit } from '../../../types/StaffVisits.types';
+import { useStaffVisits } from './useStaffVisits';
 
 const TABS: { id: TabFilter; label: string }[] = [
   { id: 'TODAY',     label: "Today" },
@@ -15,23 +16,26 @@ const TABS: { id: TabFilter; label: string }[] = [
 
 const STATUS_COLOR: Record<VisitStatus, string> = {
   SCHEDULED:   Colors.info,
+  ASSIGNED:    Colors.info,
   EN_ROUTE:    Colors.warning,
-  IN_PROGRESS: Colors.primary,
+  CHECKED_IN:  Colors.primary,
   COMPLETED:   Colors.success,
+  MISSED:      Colors.danger,
   CANCELLED:   Colors.danger,
 };
 
 const STATUS_LABEL: Record<VisitStatus, string> = {
   SCHEDULED:   'Scheduled',
+  ASSIGNED:    'Assigned',
   EN_ROUTE:    'En Route',
-  IN_PROGRESS: 'In Progress',
+  CHECKED_IN:  'Checked In',
   COMPLETED:   'Completed',
+  MISSED:      'Missed',
   CANCELLED:   'Cancelled',
 };
 
 export function StaffVisits(): JSX.Element {
-  const [activeTab, setActiveTab] = useState<TabFilter>('TODAY');
-  const visits: Visit[] = []; // wired to API later
+  const { activeTab, setActiveTab, visits, loading, refreshing, onRefresh } = useStaffVisits();
 
   return (
     <SafeAreaView style={styles.root}>
@@ -58,21 +62,30 @@ export function StaffVisits(): JSX.Element {
         ))}
       </View>
 
-      <FlatList
-        data={visits}
-        keyExtractor={(v) => v.id}
-        contentContainerStyle={visits.length === 0 ? styles.emptyContainer : styles.listContent}
-        ListEmptyComponent={
-          <View style={styles.emptyBox}>
-            <MaterialDesignIcons name="calendar-blank" size={48} color={Colors.neutralBorder} />
-            <Text style={styles.emptyTitle}>No visits</Text>
-            <Text style={styles.emptyHint}>
-              {activeTab === 'TODAY' ? "You have no visits scheduled for today." : "No visits found."}
-            </Text>
-          </View>
-        }
-        renderItem={({ item }) => <VisitCard visit={item} />}
-      />
+      {loading ? (
+        <View style={styles.emptyBox}>
+          <ActivityIndicator size="large" color={Colors.primary} />
+        </View>
+      ) : (
+        <FlatList
+          data={visits}
+          keyExtractor={(v) => v.id}
+          contentContainerStyle={visits.length === 0 ? styles.emptyContainer : styles.listContent}
+          refreshControl={
+            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[Colors.primary]} tintColor={Colors.primary} />
+          }
+          ListEmptyComponent={
+            <View style={styles.emptyBox}>
+              <MaterialDesignIcons name="calendar-blank" size={48} color={Colors.neutralBorder} />
+              <Text style={styles.emptyTitle}>No visits</Text>
+              <Text style={styles.emptyHint}>
+                {activeTab === 'TODAY' ? "You have no visits scheduled for today." : "No visits found."}
+              </Text>
+            </View>
+          }
+          renderItem={({ item }) => <VisitCard visit={item} />}
+        />
+      )}
     </SafeAreaView>
   );
 }
@@ -97,11 +110,15 @@ function VisitCard({ visit }: { visit: Visit }) {
       <View style={styles.cardBottom}>
         <View style={styles.infoRow}>
           <MaterialDesignIcons name="clock-outline" size={13} color={Colors.textMuted} />
-          <Text style={styles.infoText}>{visit.scheduledTime}</Text>
+          <Text style={styles.infoText}>
+            {new Date(visit.scheduledTime).toLocaleString('en-PK', {
+              day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit',
+            })}
+          </Text>
         </View>
         <View style={styles.infoRow}>
-          <MaterialDesignIcons name="map-marker-outline" size={13} color={Colors.textMuted} />
-          <Text style={styles.infoText} numberOfLines={1}>{visit.address}</Text>
+          <MaterialDesignIcons name="receipt-text-outline" size={13} color={Colors.textMuted} />
+          <Text style={styles.infoText} numberOfLines={1}>{visit.bookingNumber}</Text>
         </View>
       </View>
 
