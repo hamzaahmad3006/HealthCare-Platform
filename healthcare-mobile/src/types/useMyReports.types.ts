@@ -1,4 +1,6 @@
-export type ReportType = 'LAB_RESULT' | 'PRESCRIPTION' | 'VISIT_NOTE' | 'PROGRESS_IMAGE' | 'OTHER';
+import type { ReportType } from './report.types';
+
+export type { ReportType };
 
 export interface Report {
   id: string;

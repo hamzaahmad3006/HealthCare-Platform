@@ -5,6 +5,7 @@ import {
 } from 'react-native';
 import { MaterialDesignIcons } from '@react-native-vector-icons/material-design-icons/static';
 import { Colors, FontSize, Spacing, Radius } from '../../../constants/theme';
+import { REPORT_TYPE_ICON, REPORT_TYPE_COLOR, REPORT_TYPE_BG, REPORT_TYPE_LABEL } from '../../../constants/reportType';
 import { useMyReports } from './useMyReports';
 import type { Report, ReportType } from '../../../types/useMyReports.types';
 
@@ -17,38 +18,6 @@ const FILTERS: { id: Filter; label: string }[] = [
   { id: 'VISIT_NOTE',     label: 'Visit Notes' },
   { id: 'PROGRESS_IMAGE', label: 'Progress Images' },
 ];
-
-const TYPE_ICON: Record<ReportType, string> = {
-  LAB_RESULT:     'flask',
-  PRESCRIPTION:   'pill',
-  VISIT_NOTE:     'clipboard-text',
-  PROGRESS_IMAGE: 'image',
-  OTHER:          'file-document',
-};
-
-const TYPE_COLOR: Record<ReportType, string> = {
-  LAB_RESULT:     Colors.info,
-  PRESCRIPTION:   Colors.primary,
-  VISIT_NOTE:     Colors.success,
-  PROGRESS_IMAGE: '#8b5cf6',
-  OTHER:          Colors.neutral,
-};
-
-const TYPE_BG: Record<ReportType, string> = {
-  LAB_RESULT:     '#EFF6FF',
-  PRESCRIPTION:   Colors.primarySurface,
-  VISIT_NOTE:     '#F0FDF4',
-  PROGRESS_IMAGE: '#F5F3FF',
-  OTHER:          Colors.neutralLight,
-};
-
-const TYPE_LABEL: Record<ReportType, string> = {
-  LAB_RESULT:     'Lab Result',
-  PRESCRIPTION:   'Prescription',
-  VISIT_NOTE:     'Visit Note',
-  PROGRESS_IMAGE: 'Progress Image',
-  OTHER:          'Other',
-};
 
 export function MyReports(): JSX.Element {
   const [activeFilter, setActiveFilter] = useState<Filter>('ALL');
@@ -117,9 +86,9 @@ export function MyReports(): JSX.Element {
 }
 
 function ReportCard({ report }: { report: Report }) {
-  const color = TYPE_COLOR[report.reportType];
-  const bg    = TYPE_BG[report.reportType];
-  const icon  = TYPE_ICON[report.reportType];
+  const color = REPORT_TYPE_COLOR[report.reportType];
+  const bg    = REPORT_TYPE_BG[report.reportType];
+  const icon  = REPORT_TYPE_ICON[report.reportType];
 
   return (
     <View style={styles.card}>
@@ -132,7 +101,7 @@ function ReportCard({ report }: { report: Report }) {
         <View style={styles.cardTitleRow}>
           <Text style={styles.cardTitle} numberOfLines={2}>{report.title}</Text>
           <View style={[styles.typeBadge, { backgroundColor: bg }]}>
-            <Text style={[styles.typeBadgeText, { color }]}>{TYPE_LABEL[report.reportType]}</Text>
+            <Text style={[styles.typeBadgeText, { color }]}>{REPORT_TYPE_LABEL[report.reportType]}</Text>
           </View>
         </View>
 
