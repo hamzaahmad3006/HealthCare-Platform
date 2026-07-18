@@ -20,6 +20,7 @@ export type CustomerStackParamList = {
   BookingDetail: { id: string };
   MyPatients: undefined;
   NewBooking: { serviceTypeId?: string } | undefined;
+  Notifications: undefined;
 };
 
 export type StaffTabParamList = {
@@ -33,6 +34,7 @@ export type StaffStackParamList = {
   Tabs: undefined;
   VisitDetail: { id: string };
   StaffPatients: undefined;
+  Notifications: undefined;
 };
 
 export type RootStackParamList = {

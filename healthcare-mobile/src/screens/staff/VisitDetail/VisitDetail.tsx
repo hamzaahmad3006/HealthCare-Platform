@@ -9,11 +9,19 @@ import {
   StatusBar,
   SafeAreaView,
 } from 'react-native';
+import { useNavigation } from '@react-navigation/native';
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { MaterialDesignIcons } from '@react-native-vector-icons/material-design-icons/static';
 import type { DocFieldProps } from '../../../types/VisitDetail.types';
+import type { StaffStackParamList } from '../../../navigation/types';
 import { Colors, FontSize, Spacing, Radius } from '../../../constants/theme';
+import { useUnreadBadge } from '../../shared/Notifications/useUnreadBadge';
+
+type Nav = NativeStackNavigationProp<StaffStackParamList>;
 
 export function VisitDetail(): JSX.Element {
+  const navigation = useNavigation<Nav>();
+  const unreadCount = useUnreadBadge();
   const [beforeCondition, setBeforeCondition] = useState('');
   const [afterCondition, setAfterCondition]   = useState('');
   const [visitNotes, setVisitNotes]           = useState('');
@@ -32,8 +40,13 @@ export function VisitDetail(): JSX.Element {
             <Text style={styles.headerTitle}>HomeHealth Pakistan</Text>
           </TouchableOpacity>
         </View>
-        <TouchableOpacity style={styles.notifBtn} activeOpacity={0.7}>
+        <TouchableOpacity style={styles.notifBtn} activeOpacity={0.7} onPress={() => navigation.navigate('Notifications')}>
           <MaterialDesignIcons name="bell-outline" size={24} color={Colors.white} />
+          {unreadCount > 0 && (
+            <View style={styles.notifBadge}>
+              <Text style={styles.notifBadgeText}>{unreadCount > 9 ? '9+' : unreadCount}</Text>
+            </View>
+          )}
         </TouchableOpacity>
       </View>
 
@@ -183,6 +196,25 @@ const styles = StyleSheet.create({
     height: 40,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  notifBadge: {
+    position: 'absolute',
+    top: 4,
+    right: 4,
+    minWidth: 16,
+    height: 16,
+    paddingHorizontal: 3,
+    borderRadius: 8,
+    backgroundColor: Colors.danger,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1.5,
+    borderColor: Colors.primary,
+  },
+  notifBadgeText: {
+    fontSize: 9,
+    fontWeight: '700',
+    color: Colors.white,
   },
 
   /* Scroll */
