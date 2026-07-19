@@ -93,9 +93,9 @@ export function useStaffProfile() {
         data: { accessToken: string; refreshToken?: string };
       }>(API.AUTH.CHANGE_PASSWORD, { oldPassword: oldPwd, newPassword: newPwd });
       // The backend rotates the token pair on password change — persist the new ones.
-      const writes: [string, string][] = [[STORAGE_KEYS.ACCESS_TOKEN, data.data.accessToken]];
-      if (data.data.refreshToken) writes.push([STORAGE_KEYS.REFRESH_TOKEN, data.data.refreshToken]);
-      await AsyncStorage.multiSet(writes);
+      const writes: Record<string, string> = { [STORAGE_KEYS.ACCESS_TOKEN]: data.data.accessToken };
+      if (data.data.refreshToken) writes[STORAGE_KEYS.REFRESH_TOKEN] = data.data.refreshToken;
+      await AsyncStorage.setMany(writes);
       setPasswordModalVisible(false);
       Alert.alert('Updated', 'Your password has been changed.');
     } catch (err) {

@@ -71,11 +71,11 @@ async function refreshAccessToken(): Promise<string | null> {
       const newToken = data.data.accessToken;
       // The backend rotates the refresh token on every refresh — persist the new
       // one so the next refresh doesn't send a revoked token.
-      const writes: [string, string][] = [[STORAGE_KEYS.ACCESS_TOKEN, newToken]];
+      const writes: Record<string, string> = { [STORAGE_KEYS.ACCESS_TOKEN]: newToken };
       if (data.data.refreshToken) {
-        writes.push([STORAGE_KEYS.REFRESH_TOKEN, data.data.refreshToken]);
+        writes[STORAGE_KEYS.REFRESH_TOKEN] = data.data.refreshToken;
       }
-      await AsyncStorage.multiSet(writes);
+      await AsyncStorage.setMany(writes);
       return newToken;
     } catch {
       return null;
