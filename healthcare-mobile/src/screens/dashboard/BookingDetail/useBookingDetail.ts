@@ -18,6 +18,8 @@ export function useBookingDetail(
   const [booking, setBooking] = useState<BookingDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [cancelling, setCancelling] = useState(false);
+  const [cancelModalVisible, setCancelModalVisible] = useState(false);
+  const [cancelReason, setCancelReason] = useState('');
 
   const fetchBooking = useCallback(async (): Promise<void> => {
     try {
@@ -35,25 +37,29 @@ export function useBookingDetail(
 
   useEffect(() => { fetchBooking(); }, [fetchBooking]);
 
-  const handleCancel = () => {
-    Alert.alert('Cancel booking', 'Are you sure you want to cancel?', [
-      { text: 'No', style: 'cancel' },
-      {
-        text: 'Yes, cancel',
-        style: 'destructive',
-        onPress: async () => {
-          setCancelling(true);
-          try {
-            await api.patch(API.BOOKINGS.CANCEL(id));
-            await fetchBooking();
-          } catch (err) {
-            Alert.alert('Error', extractApiError(err));
-          } finally {
-            setCancelling(false);
-          }
-        },
-      },
-    ]);
+  const openCancelModal = (): void => {
+    setCancelReason('');
+    setCancelModalVisible(true);
+  };
+  const closeCancelModal = (): void => setCancelModalVisible(false);
+
+  // Backend requires a non-empty cancellation reason (booking.controller.ts's
+  // cancel handler: z.object({ reason: z.string().min(1) })).
+  const confirmCancel = async (): Promise<void> => {
+    if (!cancelReason.trim()) {
+      Alert.alert('Required', 'Please enter a reason for cancelling.');
+      return;
+    }
+    setCancelling(true);
+    try {
+      await api.patch(API.BOOKINGS.CANCEL(id), { reason: cancelReason.trim() });
+      setCancelModalVisible(false);
+      await fetchBooking();
+    } catch (err) {
+      Alert.alert('Error', extractApiError(err));
+    } finally {
+      setCancelling(false);
+    }
   };
 
   const canCancel = booking
@@ -65,6 +71,11 @@ export function useBookingDetail(
     loading,
     cancelling,
     canCancel,
-    handleCancel,
+    cancelModalVisible,
+    cancelReason,
+    setCancelReason,
+    openCancelModal,
+    closeCancelModal,
+    confirmCancel,
   };
 }

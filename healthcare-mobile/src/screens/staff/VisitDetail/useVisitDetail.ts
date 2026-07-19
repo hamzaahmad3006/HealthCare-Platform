@@ -245,8 +245,8 @@ export function useVisitDetail() {
 
   const patientName = booking?.patient?.fullName ?? visit?.booking.bookingNumber ?? '—';
   const serviceLabel = visit ? serviceLabelFromCode(visit.booking.serviceType.code) : '—';
-  const addressLine = booking?.address ? `${booking.address.street}, ${booking.address.area}` : null;
-  const addressCity = booking?.address?.city.name ?? null;
+  const addressLine = booking?.address ? `${booking.address.line1}, ${booking.address.area}` : null;
+  const addressCity = booking?.city?.name ?? null;
 
   return {
     visit,

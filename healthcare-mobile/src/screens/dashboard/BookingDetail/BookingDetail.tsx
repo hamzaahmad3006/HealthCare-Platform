@@ -3,8 +3,12 @@ import {
   Text,
   ScrollView,
   TouchableOpacity,
+  TextInput,
   StyleSheet,
   ActivityIndicator,
+  Modal,
+  KeyboardAvoidingView,
+  Platform,
 } from 'react-native';
 import { Colors, FontSize, Spacing, Radius } from '../../../constants/theme';
 import { useBookingDetail } from './useBookingDetail';
@@ -27,8 +31,11 @@ const STATUS_COLORS: Record<BookingStatus, string> = {
 };
 
 export function BookingDetail({ navigation, route }: Props): JSX.Element {
-  const { booking, loading, cancelling, canCancel, handleCancel } =
-    useBookingDetail(navigation, route);
+  const {
+    booking, loading, cancelling, canCancel,
+    cancelModalVisible, cancelReason, setCancelReason,
+    openCancelModal, closeCancelModal, confirmCancel,
+  } = useBookingDetail(navigation, route);
 
   if (loading) {
     return (
@@ -59,7 +66,7 @@ export function BookingDetail({ navigation, route }: Props): JSX.Element {
         <View style={[styles.badge, { backgroundColor: color + '22' }]}>
           <Text style={[styles.badgeText, { color }]}>{booking.status}</Text>
         </View>
-        <Text style={styles.price}>Rs {booking.package.price.toLocaleString()}</Text>
+        <Text style={styles.price}>{booking.currency} {Number(booking.totalPrice).toLocaleString()}</Text>
       </View>
 
       {/* Service */}
@@ -78,8 +85,8 @@ export function BookingDetail({ navigation, route }: Props): JSX.Element {
       {/* Address */}
       {booking.address && (
         <Section title="Service Address">
-          <Text style={styles.value}>{booking.address.street}</Text>
-          <Text style={styles.sub}>{booking.address.area}, {booking.address.city.name}</Text>
+          <Text style={styles.value}>{booking.address.line1}</Text>
+          <Text style={styles.sub}>{booking.address.area}{booking.city ? `, ${booking.city.name}` : ''}</Text>
           <Text style={styles.sub}>{booking.address.contactPhone}</Text>
         </Section>
       )}
@@ -91,7 +98,7 @@ export function BookingDetail({ navigation, route }: Props): JSX.Element {
             dateStyle: 'medium', timeStyle: 'short',
           })}
         </Text>
-        <Text style={styles.sub}>Urgency: {booking.urgency.toLowerCase()}</Text>
+        <Text style={styles.sub}>Urgency: {booking.urgencyLevel.toLowerCase()}</Text>
       </Section>
 
       {/* Visits */}
@@ -109,18 +116,61 @@ export function BookingDetail({ navigation, route }: Props): JSX.Element {
       {/* Cancel button */}
       {canCancel && (
         <TouchableOpacity
-          style={[styles.cancelBtn, cancelling && styles.cancelBtnDisabled]}
-          onPress={handleCancel}
-          disabled={cancelling}
+          style={styles.cancelBtn}
+          onPress={openCancelModal}
           activeOpacity={0.8}
         >
-          {cancelling ? (
-            <ActivityIndicator color={Colors.danger} />
-          ) : (
-            <Text style={styles.cancelText}>Cancel Booking</Text>
-          )}
+          <Text style={styles.cancelText}>Cancel Booking</Text>
         </TouchableOpacity>
       )}
+
+      <Modal
+        visible={cancelModalVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={closeCancelModal}
+      >
+        <KeyboardAvoidingView
+          style={styles.modalOverlay}
+          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        >
+          <View style={styles.modalCard}>
+            <Text style={styles.modalTitle}>Cancel Booking</Text>
+            <Text style={styles.modalSub}>Please tell us why you're cancelling.</Text>
+            <TextInput
+              style={styles.reasonInput}
+              placeholder="Reason for cancelling"
+              placeholderTextColor={Colors.textMuted}
+              value={cancelReason}
+              onChangeText={setCancelReason}
+              multiline
+              editable={!cancelling}
+            />
+            <View style={styles.modalActions}>
+              <TouchableOpacity
+                style={styles.modalDismissBtn}
+                onPress={closeCancelModal}
+                disabled={cancelling}
+                activeOpacity={0.8}
+              >
+                <Text style={styles.modalDismissText}>Keep Booking</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.modalConfirmBtn, cancelling && styles.cancelBtnDisabled]}
+                onPress={confirmCancel}
+                disabled={cancelling}
+                activeOpacity={0.8}
+              >
+                {cancelling ? (
+                  <ActivityIndicator color={Colors.white} />
+                ) : (
+                  <Text style={styles.modalConfirmText}>Yes, Cancel</Text>
+                )}
+              </TouchableOpacity>
+            </View>
+          </View>
+        </KeyboardAvoidingView>
+      </Modal>
     </ScrollView>
   );
 }
@@ -237,6 +287,68 @@ const styles = StyleSheet.create({
   },
   cancelText: {
     color: Colors.danger,
+    fontSize: FontSize.md,
+    fontWeight: '700',
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'flex-end',
+  },
+  modalCard: {
+    backgroundColor: Colors.white,
+    borderTopLeftRadius: Radius.lg,
+    borderTopRightRadius: Radius.lg,
+    padding: Spacing.xl,
+    gap: Spacing.sm,
+  },
+  modalTitle: {
+    fontSize: FontSize.lg,
+    fontWeight: '700',
+    color: Colors.textPrimary,
+  },
+  modalSub: {
+    fontSize: FontSize.sm,
+    color: Colors.textMuted,
+    marginBottom: Spacing.sm,
+  },
+  reasonInput: {
+    borderWidth: 1,
+    borderColor: Colors.neutralBorder,
+    borderRadius: Radius.md,
+    padding: Spacing.md,
+    fontSize: FontSize.md,
+    color: Colors.textPrimary,
+    minHeight: 80,
+    textAlignVertical: 'top',
+  },
+  modalActions: {
+    flexDirection: 'row',
+    gap: Spacing.sm,
+    marginTop: Spacing.md,
+  },
+  modalDismissBtn: {
+    flex: 1,
+    borderWidth: 1.5,
+    borderColor: Colors.neutralBorder,
+    borderRadius: Radius.md,
+    paddingVertical: 14,
+    alignItems: 'center',
+  },
+  modalDismissText: {
+    color: Colors.textSecondary,
+    fontSize: FontSize.md,
+    fontWeight: '600',
+  },
+  modalConfirmBtn: {
+    flex: 1,
+    backgroundColor: Colors.danger,
+    borderRadius: Radius.md,
+    paddingVertical: 14,
+    alignItems: 'center',
+  },
+  modalConfirmText: {
+    color: Colors.white,
     fontSize: FontSize.md,
     fontWeight: '700',
   },

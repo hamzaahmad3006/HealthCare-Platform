@@ -85,7 +85,7 @@ function BookingCard({ booking, onPress }: { booking: Booking; onPress: () => vo
           })}
         </Text>
         <Text style={[styles.price, { color: Colors.primary }]}>
-          Rs {booking.package.price.toLocaleString()}
+          {booking.currency} {Number(booking.totalPrice).toLocaleString()}
         </Text>
       </View>
     </TouchableOpacity>

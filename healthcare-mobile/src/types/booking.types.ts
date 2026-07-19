@@ -14,24 +14,31 @@ export interface Booking {
   bookingNumber: string;
   status: BookingStatus;
   serviceType: { name: string };
-  package: { name: string; price: number };
+  package: { name: string };
   patient: { id: string; fullName: string } | null;
   requestedStartAt: string;
-  urgency: string;
+  urgencyLevel: string;
+  // Prisma serialises Decimal as a string on some endpoints (GET /bookings/:id)
+  // and as a number on others (GET /bookings) — accept both, convert at render time.
+  totalPrice: string | number;
+  currency: string;
   createdAt: string;
 }
 
 export interface BookingDetail extends Booking {
+  // Address has no nested city — city is a sibling field on the booking itself
+  // (backend includes both `address` and `city` at the top level; see
+  // booking.controller.ts's getById `include`).
   address: {
-    street: string;
+    line1: string;
     area: string;
-    city: { name: string };
     contactPhone: string;
   } | null;
+  city: { name: string } | null;
   visits: Array<{
     id: string;
-    scheduledAt: string;
+    scheduledStartAt: string;
     status: string;
-    staff: { user: { fullName: string } } | null;
+    assignedStaff: { user: { fullName: string } } | null;
   }>;
 }

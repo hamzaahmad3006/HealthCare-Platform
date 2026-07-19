@@ -80,8 +80,10 @@ export function useStaffHome() {
             API.BOOKINGS.DETAIL(head.bookingId),
           );
           if (bookingRes.data.address) {
-            addressLine = bookingRes.data.address.street;
-            addressCity = `${bookingRes.data.address.area}, ${bookingRes.data.address.city.name}`;
+            addressLine = bookingRes.data.address.line1;
+            addressCity = bookingRes.data.city
+              ? `${bookingRes.data.address.area}, ${bookingRes.data.city.name}`
+              : bookingRes.data.address.area;
           }
         } catch {
           // Non-critical — card just omits the address.
