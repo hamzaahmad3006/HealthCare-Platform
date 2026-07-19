@@ -14,13 +14,14 @@ const initialState: AuthState = {
 };
 
 export const hydrateAuth = createAsyncThunk('auth/hydrate', async () => {
-  const [token, userJson] = await AsyncStorage.multiGet([
+  const stored = await AsyncStorage.getMany([
     STORAGE_KEYS.ACCESS_TOKEN,
     STORAGE_KEYS.USER,
   ]);
+  const userJson = stored[STORAGE_KEYS.USER];
   return {
-    accessToken: token[1],
-    user: userJson[1] ? (JSON.parse(userJson[1]) as AuthUser) : null,
+    accessToken: stored[STORAGE_KEYS.ACCESS_TOKEN],
+    user: userJson ? (JSON.parse(userJson) as AuthUser) : null,
   };
 });
 
@@ -38,11 +39,11 @@ export const login = createAsyncThunk(
         { phone, password: payload.password },
       );
       const { accessToken, refreshToken, user } = data.data;
-      await AsyncStorage.multiSet([
-        [STORAGE_KEYS.ACCESS_TOKEN, accessToken],
-        [STORAGE_KEYS.REFRESH_TOKEN, refreshToken],
-        [STORAGE_KEYS.USER, JSON.stringify(user)],
-      ]);
+      await AsyncStorage.setMany({
+        [STORAGE_KEYS.ACCESS_TOKEN]: accessToken,
+        [STORAGE_KEYS.REFRESH_TOKEN]: refreshToken,
+        [STORAGE_KEYS.USER]: JSON.stringify(user),
+      });
       return { accessToken, user };
     } catch (err) {
       return rejectWithValue(extractApiError(err));
@@ -68,11 +69,11 @@ export const register = createAsyncThunk(
 
       const { data } = await api.post<{ success: true; data: AuthResponse }>(API.AUTH.REGISTER, body);
       const { accessToken, refreshToken, user } = data.data;
-      await AsyncStorage.multiSet([
-        [STORAGE_KEYS.ACCESS_TOKEN, accessToken],
-        [STORAGE_KEYS.REFRESH_TOKEN, refreshToken],
-        [STORAGE_KEYS.USER, JSON.stringify(user)],
-      ]);
+      await AsyncStorage.setMany({
+        [STORAGE_KEYS.ACCESS_TOKEN]: accessToken,
+        [STORAGE_KEYS.REFRESH_TOKEN]: refreshToken,
+        [STORAGE_KEYS.USER]: JSON.stringify(user),
+      });
       return { accessToken, user };
     } catch (err) {
       return rejectWithValue(extractApiError(err));
