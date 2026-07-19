@@ -56,18 +56,21 @@ async function sendVisitReminders(): Promise<void> {
 
     const staffName = visit.assignedStaff?.user.fullName ?? 'Your healthcare professional';
 
-    const rendered = renderTemplate('VISIT_REMINDER', {
+    const templateData = {
       bookingNumber: visit.booking.bookingNumber,
       staffName,
-    });
+    };
+    const rendered = renderTemplate('VISIT_REMINDER', templateData);
 
     const notifLog = await prisma.notificationLog.create({
       data: {
+        userId: visit.booking.customerUserId,
         bookingId: visit.bookingId,
         bookingVisitId: visit.id,
         templateCode: 'VISIT_REMINDER',
         recipient: whatsappNumber,
         renderedContent: rendered,
+        templateData,
         status: 'PENDING',
       },
     });
@@ -124,15 +127,18 @@ async function sendPackageRenewalAlerts(): Promise<void> {
     const whatsappNumber = booking.customer.customerProfile?.whatsappNumber ?? null;
     if (!whatsappNumber) continue;
 
+    const templateData = {
+      packageName: booking.package.name,
+      bookingNumber: booking.bookingNumber,
+    };
     const notifLog = await prisma.notificationLog.create({
       data: {
+        userId: booking.customerUserId,
         bookingId: booking.id,
         templateCode: 'PACKAGE_RENEWAL',
         recipient: whatsappNumber,
-        renderedContent: renderTemplate('PACKAGE_RENEWAL', {
-          packageName: booking.package.name,
-          bookingNumber: booking.bookingNumber,
-        }),
+        renderedContent: renderTemplate('PACKAGE_RENEWAL', templateData),
+        templateData,
         status: 'PENDING',
       },
     });

@@ -113,17 +113,20 @@ export const bookingController = {
         await tx.bookingVisit.createMany({ data: visits });
 
         const recipient = data.whatsappNumber ?? address.contactPhone;
-        const rendered = renderTemplate('BOOKING_RECEIVED', {
+        const templateData = {
           bookingNumber: newBooking.bookingNumber,
           serviceName: pkg.name,
-        });
+        };
+        const rendered = renderTemplate('BOOKING_RECEIVED', templateData);
 
         const notifLog = await tx.notificationLog.create({
           data: {
+            userId: customerId,
             bookingId: newBooking.id,
             templateCode: 'BOOKING_RECEIVED',
             recipient,
             renderedContent: rendered,
+            templateData,
             status: 'PENDING',
           },
         });
@@ -239,15 +242,18 @@ export const bookingController = {
           data: { status: 'CONFIRMED', confirmedAt: new Date(), confirmedByUserId: adminId },
         });
 
+        const templateData = {
+          bookingNumber: booking.bookingNumber,
+          scheduledDate: booking.requestedStartAt.toISOString(),
+        };
         const notifLog = await tx.notificationLog.create({
           data: {
+            userId: booking.customerUserId,
             bookingId: booking.id,
             templateCode: 'BOOKING_CONFIRMED',
             recipient,
-            renderedContent: renderTemplate('BOOKING_CONFIRMED', {
-              bookingNumber: booking.bookingNumber,
-              scheduledDate: booking.requestedStartAt.toISOString(),
-            }),
+            renderedContent: renderTemplate('BOOKING_CONFIRMED', templateData),
+            templateData,
             status: 'PENDING',
           },
         });
@@ -342,15 +348,18 @@ export const bookingController = {
         await tx.bookingVisit.createMany({ data: visits });
 
         const recipient = booking.address.contactPhone ?? booking.customer.phone;
+        const templateData = {
+          bookingNumber: booking.bookingNumber,
+          newDate: newStartDate.toISOString(),
+        };
         const notifLog = await tx.notificationLog.create({
           data: {
+            userId: booking.customerUserId,
             bookingId: booking.id,
             templateCode: 'BOOKING_RESCHEDULED',
             recipient,
-            renderedContent: renderTemplate('BOOKING_RESCHEDULED', {
-              bookingNumber: booking.bookingNumber,
-              newDate: newStartDate.toISOString(),
-            }),
+            renderedContent: renderTemplate('BOOKING_RESCHEDULED', templateData),
+            templateData,
             status: 'PENDING',
           },
         });
@@ -436,16 +445,19 @@ export const bookingController = {
           });
 
           // NotificationLog created inside the same transaction — atomic with the assignment write.
+          const templateData = {
+            staffName: staffUser.fullName,
+            bookingNumber: visit.bookingId,
+          };
           const notifLog = await tx.notificationLog.create({
             data: {
+              userId: staffUserId,
               bookingId: visit.bookingId,
               bookingVisitId: visitId,
               templateCode: 'STAFF_ASSIGNED',
               recipient: staffUser.phone,
-              renderedContent: renderTemplate('STAFF_ASSIGNED', {
-                staffName: staffUser.fullName,
-                bookingNumber: visit.bookingId,
-              }),
+              renderedContent: renderTemplate('STAFF_ASSIGNED', templateData),
+              templateData,
               status: 'PENDING',
             },
           });

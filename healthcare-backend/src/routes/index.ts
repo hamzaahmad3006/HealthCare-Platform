@@ -14,6 +14,7 @@ import reviewRoutes from './review.routes';
 import adminRoutes from './admin.routes';
 import paymentRoutes from './payment.routes';
 import notificationRoutes from './notification.routes';
+import deviceTokenRoutes from './deviceToken.routes';
 
 const router = Router();
 
@@ -71,5 +72,6 @@ router.use('/reviews', reviewRoutes);
 router.use('/admin', adminRoutes);
 router.use('/payments', paymentRoutes);
 router.use('/notifications', notificationRoutes);
+router.use('/device-tokens', deviceTokenRoutes);
 
 export default router;

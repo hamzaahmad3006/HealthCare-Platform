@@ -97,6 +97,7 @@ export const visitController = {
           booking: {
             select: {
               bookingNumber: true,
+              customerUserId: true,
               address: { select: { contactPhone: true } },
               customer: { select: { phone: true } },
             },
@@ -120,18 +121,21 @@ export const visitController = {
       // NotificationLog.recipient is VarChar(20) — must be a phone, never a
       // UUID. Same fix as booking confirm/assign paths.
       const recipient = visit.booking.address.contactPhone ?? visit.booking.customer.phone;
+      const templateData = {
+        staffName: visit.assignedStaff?.user.fullName ?? 'Your healthcare professional',
+        bookingNumber: visit.booking.bookingNumber,
+        eta: '20',
+      };
 
       const notifLog = await prisma.notificationLog.create({
         data: {
+          userId: visit.booking.customerUserId,
           bookingId: visit.bookingId,
           bookingVisitId: visit.id,
           templateCode: 'STAFF_EN_ROUTE',
           recipient,
-          renderedContent: renderTemplate('STAFF_EN_ROUTE', {
-            staffName: visit.assignedStaff?.user.fullName ?? 'Your healthcare professional',
-            bookingNumber: visit.booking.bookingNumber,
-            eta: '20',
-          }),
+          renderedContent: renderTemplate('STAFF_EN_ROUTE', templateData),
+          templateData,
           status: 'PENDING',
         },
       });
@@ -237,6 +241,7 @@ export const visitController = {
           booking: {
             select: {
               bookingNumber: true,
+              customerUserId: true,
               address: { select: { contactPhone: true } },
               customer: { select: { phone: true } },
             },
@@ -270,17 +275,20 @@ export const visitController = {
       });
 
       const recipient = visit.booking.address.contactPhone ?? visit.booking.customer.phone;
+      const templateData = {
+        bookingNumber: visit.booking.bookingNumber,
+        visitNotes: visit.visitNotes ?? undefined,
+      };
 
       const notifLog = await prisma.notificationLog.create({
         data: {
+          userId: visit.booking.customerUserId,
           bookingId: visit.bookingId,
           bookingVisitId: visit.id,
           templateCode: 'VISIT_COMPLETED',
           recipient,
-          renderedContent: renderTemplate('VISIT_COMPLETED', {
-            bookingNumber: visit.booking.bookingNumber,
-            visitNotes: visit.visitNotes ?? undefined,
-          }),
+          renderedContent: renderTemplate('VISIT_COMPLETED', templateData),
+          templateData,
           status: 'PENDING',
         },
       });

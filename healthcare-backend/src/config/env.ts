@@ -38,6 +38,15 @@ const envSchema = z.object({
   BREVO_SENDER_NAME: z.string().default('HomeHealth'),
   STAFF_LOGIN_URL: z.string().default('http://localhost:5173/login'),
 
+  // Optional (Firebase Cloud Messaging service account). When any of the three
+  // is unset, `pushEnabled` is false and push dispatch silently no-ops — WhatsApp
+  // delivery is unaffected. Sourced from the service-account JSON downloaded at
+  // Firebase console > Project Settings > Service Accounts. FIREBASE_PRIVATE_KEY
+  // holds a PEM with literal "\n" escapes (unescaped at init in config/firebase.ts).
+  FIREBASE_PROJECT_ID: z.string().optional(),
+  FIREBASE_CLIENT_EMAIL: z.string().optional(),
+  FIREBASE_PRIVATE_KEY: z.string().optional(),
+
   CORS_ORIGINS: z.string().default('http://localhost:5173'),
 });
 

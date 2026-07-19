@@ -76,6 +76,13 @@ enum ReportType {
 
 enum NotifChannel {
   WHATSAPP
+  PUSH
+}
+
+enum DevicePlatform {
+  ANDROID
+  IOS
+  WEB
 }
 
 enum NotifStatus {
@@ -179,6 +186,7 @@ model User {
 
   refreshTokens       RefreshToken[]
   passwordResetTokens PasswordResetToken[]
+  deviceTokens        DeviceToken[]
   customerProfile CustomerProfile?
   staffProfile    StaffProfile?
   patients        Patient[]
@@ -205,6 +213,24 @@ model RefreshToken {
   @@index([userId])
   @@index([expiresAt])
   @@map("refresh_tokens")
+}
+
+model DeviceToken {
+  id        String         @id @default(uuid())
+  userId    String
+  user      User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  // Role snapshot at registration time so push dispatch can filter by role
+  // without joining User; refreshed on each token registration/login.
+  role      Role
+  platform  DevicePlatform
+  fcmToken  String         @unique @db.VarChar(255)
+  deviceId  String         @db.VarChar(255)
+  createdAt DateTime       @default(now())
+  updatedAt DateTime       @updatedAt
+
+  @@unique([userId, deviceId])
+  @@index([userId])
+  @@map("device_tokens")
 }
 
 model PasswordResetToken {
@@ -585,6 +611,10 @@ model NotificationLog {
   templateCode      String        @db.VarChar(50)
   recipient         String        @db.VarChar(20)
   renderedContent   String
+  // Raw template data ({bookingNumber, staffName, ...}) captured at creation
+  // so the push renderer can build a structured {title, body} independently of
+  // renderedContent (which is the WhatsApp-formatted string).
+  templateData      Json?
   externalMessageId String?       @db.VarChar(100)
   status            NotifStatus   @default(PENDING)
   providerError     String?

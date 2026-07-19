@@ -207,15 +207,18 @@ export const reportController = {
       });
 
       if (report.isVisibleToCustomer) {
+        const templateData = {
+          patientName: report.patient.fullName,
+          bookingNumber: report.booking.bookingNumber,
+        };
         const notifLog = await prisma.notificationLog.create({
           data: {
+            userId: report.booking.customerUserId,
             bookingId: report.bookingId,
             templateCode: 'REPORT_AVAILABLE',
             recipient: report.booking.address.contactPhone ?? report.booking.customer.phone,
-            renderedContent: renderTemplate('REPORT_AVAILABLE', {
-              patientName: report.patient.fullName,
-              bookingNumber: report.booking.bookingNumber,
-            }),
+            renderedContent: renderTemplate('REPORT_AVAILABLE', templateData),
+            templateData,
             status: 'PENDING',
           },
         });
