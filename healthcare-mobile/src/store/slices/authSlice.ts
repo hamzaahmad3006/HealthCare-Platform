@@ -13,15 +13,30 @@ const initialState: AuthState = {
   hydrated: false,
 };
 
+// The mobile app has no Admin experience — only Customer and Staff navigators exist.
+// Admin accounts must be blocked here rather than falling through to CustomerNavigator,
+// which would otherwise expose every customer's bookings/addresses/reports (the backend
+// intentionally skips the customerUserId scope for ADMIN, correct for the web admin panel
+// but not something the mobile client is equipped to present safely).
+export const ADMIN_BLOCKED_MESSAGE =
+  'Admin accounts cannot sign in from the mobile app. Please use the web admin panel.';
+
 export const hydrateAuth = createAsyncThunk('auth/hydrate', async () => {
   const stored = await AsyncStorage.getMany([
     STORAGE_KEYS.ACCESS_TOKEN,
     STORAGE_KEYS.USER,
   ]);
   const userJson = stored[STORAGE_KEYS.USER];
+  const user = userJson ? (JSON.parse(userJson) as AuthUser) : null;
+
+  if (user?.role === 'ADMIN') {
+    await clearTokens();
+    return { accessToken: null, user: null };
+  }
+
   return {
     accessToken: stored[STORAGE_KEYS.ACCESS_TOKEN],
-    user: userJson ? (JSON.parse(userJson) as AuthUser) : null,
+    user,
   };
 });
 
@@ -39,6 +54,11 @@ export const login = createAsyncThunk(
         { phone, password: payload.password },
       );
       const { accessToken, refreshToken, user } = data.data;
+
+      if (user.role === 'ADMIN') {
+        return rejectWithValue(ADMIN_BLOCKED_MESSAGE);
+      }
+
       await AsyncStorage.setMany({
         [STORAGE_KEYS.ACCESS_TOKEN]: accessToken,
         [STORAGE_KEYS.REFRESH_TOKEN]: refreshToken,
