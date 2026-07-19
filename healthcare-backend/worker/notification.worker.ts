@@ -3,7 +3,9 @@ import { Worker, Queue } from 'bullmq';
 import type Redis from 'ioredis';
 import { prisma } from '../src/config/database';
 import { redis, usingRedis } from '../src/config/redis';
+import { pushEnabled } from '../src/config/firebase';
 import { sendWhatsAppMessage } from '../src/helper/axios';
+import { dispatchPush } from '../src/services/notification/pushDispatch';
 import { logger } from '../src/utils/logger';
 
 // Core notification dispatch. Shared by the BullMQ worker (when Redis is
@@ -20,6 +22,20 @@ async function processNotification(notificationLogId: string): Promise<void> {
     return;
   }
 
+  // Push runs alongside WhatsApp as a best-effort delivery channel. It never
+  // throws into the BullMQ job and never touches NotificationLog.status (which
+  // tracks WhatsApp per every reader's assumption). Fired only at WhatsApp
+  // terminal states (success or permanent 4xx) so it goes exactly once and does
+  // not re-fire on 5xx retries. No-ops when push is disabled or the row has no
+  // userId (older rows / STAFF_INVITE / PASSWORD_RESET).
+  const firePush = (): void => {
+    if (log.userId && pushEnabled) {
+      void dispatchPush(log).catch((err: Error) =>
+        logger.error('Push dispatch failed', { notificationLogId, err: err.message }),
+      );
+    }
+  };
+
   try {
     const result = await sendWhatsAppMessage(log.recipient, log.renderedContent);
 
@@ -33,6 +49,7 @@ async function processNotification(notificationLogId: string): Promise<void> {
     });
 
     logger.info('Notification sent', { notificationLogId, messageId: result.messageId });
+    firePush();
   } catch (err: unknown) {
     const status = (err as { response?: { status?: number } }).response?.status;
     const message = err instanceof Error ? err.message : 'Unknown error';
@@ -49,6 +66,7 @@ async function processNotification(notificationLogId: string): Promise<void> {
         data: { status: 'FAILED' },
       });
       logger.error('Notification permanently failed (4xx)', { notificationLogId, status, message });
+      firePush();
       return;
     }
 

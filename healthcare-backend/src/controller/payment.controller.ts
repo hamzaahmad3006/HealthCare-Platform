@@ -160,17 +160,26 @@ async function handlePaymentSucceeded(pi: Stripe.PaymentIntent): Promise<void> {
     const booking = await tx.booking.update({
       where: { id: bookingId },
       data: { status: 'CONFIRMED', confirmedAt: new Date() },
+      include: {
+        address: { select: { contactPhone: true } },
+        customer: { select: { phone: true } },
+      },
     });
 
+    // recipient is VarChar(20) — must be a phone number, never a UUID.
+    const recipient = booking.address?.contactPhone ?? booking.customer.phone;
+    const templateData = {
+      bookingNumber: booking.bookingNumber,
+      scheduledDate: booking.requestedStartAt.toISOString(),
+    };
     const log = await tx.notificationLog.create({
       data: {
+        userId: booking.customerUserId,
         bookingId: booking.id,
         templateCode: 'BOOKING_CONFIRMED',
-        recipient: booking.customerUserId,
-        renderedContent: renderTemplate('BOOKING_CONFIRMED', {
-          bookingNumber: booking.bookingNumber,
-          scheduledDate: booking.requestedStartAt.toISOString(),
-        }),
+        recipient,
+        renderedContent: renderTemplate('BOOKING_CONFIRMED', templateData),
+        templateData,
         status: 'PENDING',
       },
     });

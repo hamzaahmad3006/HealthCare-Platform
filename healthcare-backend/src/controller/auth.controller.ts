@@ -350,6 +350,17 @@ export const authController = {
           .catch(() => null);
       }
 
+      // Remove this device's push token so it stops receiving notifications
+      // after sign-out. Best-effort — never blocks logout. deviceId is optional
+      // (older clients / web-before-push won't send it); this route runs behind
+      // authenticateToken so req.user.sub is available.
+      const deviceId = (req.body as { deviceId?: string } | undefined)?.deviceId;
+      if (deviceId && req.user) {
+        await prisma.deviceToken
+          .deleteMany({ where: { userId: req.user.sub, deviceId } })
+          .catch(() => null);
+      }
+
       res.clearCookie('refresh_token', { path: '/' });
       success(res, { message: 'Logged out successfully' });
     } catch (err) {
