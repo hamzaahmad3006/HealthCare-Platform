@@ -32,15 +32,15 @@ export type StaffTabParamList = {
 };
 
 export type StaffStackParamList = {
-  Tabs: undefined;
+  Tabs: NavigatorScreenParams<StaffTabParamList> | undefined;
   VisitDetail: { id: string };
   Notifications: undefined;
 };
 
 export type RootStackParamList = {
   Auth: undefined;
-  Customer: undefined;
-  Staff: undefined;
+  Customer: NavigatorScreenParams<CustomerStackParamList> | undefined;
+  Staff: NavigatorScreenParams<StaffStackParamList> | undefined;
 };
 
 export type LoginScreenProps = NativeStackScreenProps<AuthStackParamList, 'Login'>;
