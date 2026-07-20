@@ -6,6 +6,7 @@ import { AppRoutes } from './pages/Routes';
 import { COLOR } from './constant/colors';
 import { ErrorBoundary } from './component/common/ErrorBoundary';
 import { AuthBootstrap } from './component/common/AuthBootstrap';
+import { PushManager } from './component/common/PushManager';
 
 const WHITE = '#FFFFFF';
 
@@ -15,6 +16,7 @@ export function App(): JSX.Element {
       <Provider store={store}>
         <BrowserRouter>
           <AuthBootstrap>
+            <PushManager />
             <AppRoutes />
           </AuthBootstrap>
         </BrowserRouter>

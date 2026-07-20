@@ -1,14 +1,12 @@
 import { useState, useRef, useEffect } from 'react';
-import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { useSelector, useDispatch } from 'react-redux';
+import { Link, useLocation } from 'react-router-dom';
+import { useSelector } from 'react-redux';
 import { Menu, X, LogOut, User as UserIcon, Calendar, Settings, ChevronDown, FileText, Users } from 'lucide-react';
 import clsx from 'clsx';
 import { Button } from '../../constant/Button';
 import { NotificationBell } from './NotificationBell';
 import type { RootState } from '../../redux/store';
-import { clearAuth } from '../../redux/slices/authSlice';
-import { api } from '../../helper/axios';
-import { API } from '../../constant/apiUrls';
+import { useLogout } from '../../hooks/useLogout';
 
 interface NavLinkSpec {
   to: string;
@@ -34,9 +32,8 @@ interface TopNavProps {
 
 export function TopNav({ variant = 'solid' }: TopNavProps): JSX.Element {
   const [mobileOpen, setMobileOpen] = useState(false);
-  const dispatch = useDispatch();
-  const navigate = useNavigate();
   const location = useLocation();
+  const logout = useLogout();
   const { accessToken, user } = useSelector((state: RootState) => state.auth);
 
   const isLoggedIn = Boolean(accessToken);
@@ -44,14 +41,8 @@ export function TopNav({ variant = 'solid' }: TopNavProps): JSX.Element {
   const links = isLoggedIn ? AUTH_LINKS : PUBLIC_LINKS;
 
   const handleLogout = async (): Promise<void> => {
-    try {
-      await api.post(API.AUTH.LOGOUT);
-    } catch {
-      // ignore — local sign-out is what matters
-    }
-    dispatch(clearAuth());
     setMobileOpen(false);
-    navigate('/');
+    await logout('/');
   };
 
   const wrapperClass = clsx(
