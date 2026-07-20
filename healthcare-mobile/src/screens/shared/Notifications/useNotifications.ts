@@ -13,7 +13,7 @@ export function useNotifications() {
   const fetchNotifications = useCallback(async (): Promise<void> => {
     try {
       const previousCutoff = await getLastViewedAt();
-      const { data } = await api.get<{ success: true; data: AppNotification[] }>(API.NOTIFICATIONS);
+      const { data } = await api.get<{ success: true; data: AppNotification[] }>(API.NOTIFICATIONS.LIST);
       const items: NotificationItem[] = data.data
         .map((n) => ({ ...n, isUnread: new Date(n.createdAt).getTime() > previousCutoff }))
         .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());

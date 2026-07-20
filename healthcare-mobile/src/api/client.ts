@@ -13,6 +13,9 @@ export const STORAGE_KEYS = {
   ACCESS_TOKEN: '@hh_access_token',
   REFRESH_TOKEN: '@hh_refresh_token',
   USER: '@hh_user',
+  // Stable per-install identifier for push device-token registration. Generated
+  // once, persisted; survives FCM token rotation and is sent on logout cleanup.
+  DEVICE_ID: '@hh_device_id',
 };
 
 let refreshInFlight: Promise<string | null> | null = null;

@@ -443,11 +443,15 @@ export const bookingController = {
             where: { id: staffUserId },
             select: { phone: true, fullName: true },
           });
+          const bookingRow = await tx.booking.findUniqueOrThrow({
+            where: { id: visit.bookingId },
+            select: { bookingNumber: true },
+          });
 
           // NotificationLog created inside the same transaction — atomic with the assignment write.
           const templateData = {
             staffName: staffUser.fullName,
-            bookingNumber: visit.bookingId,
+            bookingNumber: bookingRow.bookingNumber,
           };
           const notifLog = await tx.notificationLog.create({
             data: {

@@ -65,5 +65,9 @@ export const API = {
     FILES_PRESIGN: (id: string) => `/reports/${id}/files/presign`,
     FILES_CONFIRM: (id: string) => `/reports/${id}/files/confirm`,
   },
-  NOTIFICATIONS: '/notifications',
+  NOTIFICATIONS: {
+    LIST: '/notifications',
+    REGISTER_DEVICE: '/device-tokens',
+    UNREGISTER_DEVICE: (id: string) => `/device-tokens/${id}`,
+  },
 };

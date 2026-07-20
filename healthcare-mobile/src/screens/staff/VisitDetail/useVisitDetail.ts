@@ -244,7 +244,15 @@ export function useVisitDetail() {
   };
 
   const patientName = booking?.patient?.fullName ?? visit?.booking.bookingNumber ?? '—';
-  const serviceLabel = visit ? serviceLabelFromCode(visit.booking.serviceType.code) : '—';
+  // The visit-detail endpoint (GET /visits/:id) omits booking.serviceType (only
+  // serviceTypeId), so reading .code there throws. Prefer the booking-detail
+  // state's serviceType.name (reliably present), falling back to the visit's
+  // code label if it ever is included, else a dash.
+  const serviceLabel =
+    booking?.serviceType?.name ??
+    (visit?.booking?.serviceType?.code
+      ? serviceLabelFromCode(visit.booking.serviceType.code)
+      : '—');
   const addressLine = booking?.address ? `${booking.address.line1}, ${booking.address.area}` : null;
   const addressCity = booking?.city?.name ?? null;
 

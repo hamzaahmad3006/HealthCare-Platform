@@ -2,6 +2,7 @@ import { createSlice, createAsyncThunk, type PayloadAction } from '@reduxjs/tool
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { api, STORAGE_KEYS, clearTokens, extractApiError } from '../../api/client';
 import { API } from '../../api/endpoints';
+import { getDeviceId } from '../../utils/deviceId';
 import type { AuthUser, LoginPayload, RegisterPayload, AuthResponse } from '../../types/auth.types';
 import type { AuthState } from '../../types/authSlice.types';
 
@@ -103,7 +104,10 @@ export const register = createAsyncThunk(
 
 export const logout = createAsyncThunk('auth/logout', async () => {
   try {
-    await api.post(API.AUTH.LOGOUT);
+    // Pass deviceId so the backend removes this device's push token on sign-out
+    // (best-effort — logout proceeds regardless).
+    const deviceId = await getDeviceId();
+    await api.post(API.AUTH.LOGOUT, { deviceId });
   } catch {
     // ignore — clear locally regardless
   }

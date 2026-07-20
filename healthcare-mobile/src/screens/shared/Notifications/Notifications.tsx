@@ -1,10 +1,12 @@
 import {
-  View, Text, FlatList, StyleSheet,
+  View, Text, FlatList, StyleSheet, Pressable,
   StatusBar, SafeAreaView, ActivityIndicator, RefreshControl,
 } from 'react-native';
 import { MaterialDesignIcons } from '@react-native-vector-icons/material-design-icons/static';
 import { Colors, FontSize, Spacing, Radius } from '../../../constants/theme';
 import { useNotifications } from './useNotifications';
+import { useAppSelector } from '../../../store';
+import { navigateToNotification } from '../../../utils/notificationNavigation';
 import type { NotificationItem } from '../../../types/notification.types';
 
 function iconForTemplate(code: string): string {
@@ -24,6 +26,7 @@ function formatWhen(iso: string): string {
 
 export function Notifications(): JSX.Element {
   const { notifications, loading, refreshing, onRefresh } = useNotifications();
+  const role = useAppSelector((s) => s.auth.user?.role);
 
   return (
     <SafeAreaView style={styles.root}>
@@ -53,16 +56,32 @@ export function Notifications(): JSX.Element {
               <Text style={styles.emptyHint}>Updates about your bookings will show up here.</Text>
             </View>
           }
-          renderItem={({ item }) => <NotificationRow item={item} />}
+          renderItem={({ item }) => (
+            <NotificationRow
+              item={item}
+              onPress={() => {
+                if (role) {
+                  navigateToNotification(role, {
+                    templateCode: item.templateCode,
+                    bookingId: item.bookingId,
+                    bookingVisitId: item.bookingVisitId,
+                  });
+                }
+              }}
+            />
+          )}
         />
       )}
     </SafeAreaView>
   );
 }
 
-function NotificationRow({ item }: { item: NotificationItem }) {
+function NotificationRow({ item, onPress }: { item: NotificationItem; onPress: () => void }) {
   return (
-    <View style={[styles.row, item.isUnread && styles.rowUnread]}>
+    <Pressable
+      style={({ pressed }) => [styles.row, item.isUnread && styles.rowUnread, pressed && styles.rowPressed]}
+      onPress={onPress}
+    >
       <View style={[styles.iconBox, item.isUnread && styles.iconBoxUnread]}>
         <MaterialDesignIcons
           name={iconForTemplate(item.templateCode)}
@@ -75,7 +94,7 @@ function NotificationRow({ item }: { item: NotificationItem }) {
         <Text style={styles.rowTime}>{formatWhen(item.createdAt)}</Text>
       </View>
       {item.isUnread && <View style={styles.unreadDot} />}
-    </View>
+    </Pressable>
   );
 }
 
@@ -99,6 +118,7 @@ const styles = StyleSheet.create({
     shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 8, elevation: 2,
   },
   rowUnread: { borderWidth: 1, borderColor: Colors.primaryLight },
+  rowPressed: { opacity: 0.7 },
   iconBox: {
     width: 40, height: 40, borderRadius: Radius.sm, backgroundColor: Colors.neutralLight,
     alignItems: 'center', justifyContent: 'center',

@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "166016922144",
+    "project_id": "health-home-a09b2",
+    "storage_bucket": "health-home-a09b2.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:166016922144:android:4d2c2dca5b7cef44168245",
+        "android_client_info": {
+          "package_name": "com.healthcareprovider"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyA8Rv4zH1c1oZi1uhEV6HIvWx9dELRfOdk"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

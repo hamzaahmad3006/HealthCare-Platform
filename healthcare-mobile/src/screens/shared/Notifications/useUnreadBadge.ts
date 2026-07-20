@@ -13,7 +13,7 @@ export function useUnreadBadge(): number {
   const refresh = useCallback(async (): Promise<void> => {
     try {
       const [{ data }, cutoff] = await Promise.all([
-        api.get<{ success: true; data: AppNotification[] }>(API.NOTIFICATIONS),
+        api.get<{ success: true; data: AppNotification[] }>(API.NOTIFICATIONS.LIST),
         getLastViewedAt(),
       ]);
       setCount(data.data.filter((n) => new Date(n.createdAt).getTime() > cutoff).length);
