@@ -68,7 +68,11 @@ export const API = {
     DELETE_FILE: (id: string, fileId: string): string => `/reports/${id}/files/${fileId}`,
   },
   REVIEWS: '/reviews',
-  NOTIFICATIONS: '/notifications',
+  NOTIFICATIONS: {
+    LIST: '/notifications',
+    REGISTER_DEVICE: '/device-tokens',
+    UNREGISTER_DEVICE: (id: string): string => `/device-tokens/${id}`,
+  },
   ADMIN: {
     DASHBOARD: '/admin/dashboard/summary',
     ANALYTICS: '/admin/dashboard/analytics',

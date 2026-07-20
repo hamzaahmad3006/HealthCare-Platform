@@ -16,7 +16,7 @@ export async function dispatchPush(log: NotificationLog): Promise<void> {
 
   const devices = await prisma.deviceToken.findMany({
     where: { userId: log.userId },
-    select: { fcmToken: true },
+    select: { fcmToken: true, role: true },
   });
   if (devices.length === 0) return;
 
@@ -33,6 +33,9 @@ export async function dispatchPush(log: NotificationLog): Promise<void> {
       templateCode: log.templateCode,
       bookingId: log.bookingId ?? '',
       bookingVisitId: log.bookingVisitId ?? '',
+      // Recipient role — the web service worker uses it to build the deep-link
+      // (it has no app/redux context). All of a user's tokens share one role.
+      role: devices[0]?.role ?? '',
     },
   };
 

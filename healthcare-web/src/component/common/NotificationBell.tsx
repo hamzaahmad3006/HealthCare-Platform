@@ -14,6 +14,7 @@ import { useAppSelector } from '../../redux/store';
 import { api } from '../../helper/axios';
 import { API } from '../../constant/apiUrls';
 import { formatDateTime } from '../../helper/format';
+import { buildNotificationLink } from '../../helper/notificationLink';
 
 type TemplateCode =
   | 'BOOKING_RECEIVED'
@@ -50,16 +51,6 @@ function saveLastRead(): void {
   localStorage.setItem(LAST_READ_KEY, String(Date.now()));
 }
 
-function buildLink(role: string | undefined, templateCode: string, bookingId: string | null): string | null {
-  if (!bookingId) return null;
-  if (role === 'CUSTOMER') {
-    return templateCode === 'REPORT_AVAILABLE' ? '/my-reports' : `/my-bookings/${bookingId}`;
-  }
-  if (role === 'ADMIN') return `/admin/bookings/${bookingId}`;
-  if (role === 'STAFF') return '/staff/visits';
-  return null;
-}
-
 export function NotificationBell(): JSX.Element {
   const role = useAppSelector((s) => s.auth.user?.role);
   const [open, setOpen] = useState(false);
@@ -80,7 +71,7 @@ export function NotificationBell(): JSX.Element {
     if (!open) return;
     setLoading(true);
     api
-      .get<{ success: true; data: NotifItem[] }>(API.NOTIFICATIONS)
+      .get<{ success: true; data: NotifItem[] }>(API.NOTIFICATIONS.LIST)
       .then(({ data }) => setNotifs(data.data))
       .catch(() => null)
       .finally(() => setLoading(false));
@@ -137,7 +128,7 @@ export function NotificationBell(): JSX.Element {
                 const isUnread = new Date(n.createdAt).getTime() > lastRead;
                 const Icon = meta?.Icon ?? Bell;
                 const color = meta?.color ?? 'text-ink-400';
-                const href = buildLink(role, n.templateCode, n.bookingId);
+                const href = buildNotificationLink(role, n.templateCode, n.bookingId);
 
                 const inner = (
                   <>

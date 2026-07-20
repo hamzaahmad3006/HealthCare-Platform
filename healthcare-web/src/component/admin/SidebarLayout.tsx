@@ -1,5 +1,5 @@
 import { ReactNode, useState } from 'react';
-import { NavLink, useNavigate } from 'react-router-dom';
+import { NavLink } from 'react-router-dom';
 import {
   LayoutDashboard,
   CalendarClock,
@@ -22,10 +22,8 @@ import {
   Bell,
 } from 'lucide-react';
 import clsx from 'clsx';
-import { useAppDispatch, useAppSelector } from '../../redux/store';
-import { clearAuth } from '../../redux/slices/authSlice';
-import { api } from '../../helper/axios';
-import { API } from '../../constant/apiUrls';
+import { useAppSelector } from '../../redux/store';
+import { useLogout } from '../../hooks/useLogout';
 import { NotificationBell } from '../common/NotificationBell';
 
 interface SidebarLayoutProps {
@@ -62,14 +60,9 @@ const STAFF_NAV_ITEMS = [
 export function SidebarLayout({ children, title, description, actions }: SidebarLayoutProps): JSX.Element {
   const [mobileOpen, setMobileOpen] = useState(false);
   const user = useAppSelector((s) => s.auth.user);
-  const dispatch = useAppDispatch();
-  const navigate = useNavigate();
+  const logout = useLogout();
 
-  const handleLogout = async (): Promise<void> => {
-    await api.post(API.AUTH.LOGOUT).catch(() => null);
-    dispatch(clearAuth());
-    navigate('/auth/login', { replace: true });
-  };
+  const handleLogout = (): Promise<void> => logout('/auth/login');
 
   const isStaff = user?.role === 'STAFF';
 
