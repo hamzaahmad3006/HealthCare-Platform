@@ -10,7 +10,6 @@ import { getDeviceId } from '../utils/deviceId';
 import { ensureNotificationPermission } from '../utils/notificationPermission';
 import { navigateToNotification, type NotificationRouteData } from '../utils/notificationNavigation';
 import { showForegroundBanner } from '../utils/foregroundBanner';
-import type { UserRole } from '../types/auth.types';
 
 function toRouteData(msg: FirebaseMessagingTypes.RemoteMessage): NotificationRouteData {
   const data = (msg.data ?? {}) as Record<string, string | undefined>;
@@ -21,7 +20,7 @@ function toRouteData(msg: FirebaseMessagingTypes.RemoteMessage): NotificationRou
   };
 }
 
-async function registerToken(role: UserRole): Promise<void> {
+async function registerToken(): Promise<void> {
   try {
     await ensureNotificationPermission();
     // Register the token even if permission was denied — the token is still
@@ -52,9 +51,9 @@ export function usePushRegistration(): void {
   // Register + keep token fresh while signed in.
   useEffect(() => {
     if (!role) return;
-    registerToken(role);
+    registerToken();
     const unsubscribeRefresh = messaging().onTokenRefresh(() => {
-      registerToken(role);
+      registerToken();
     });
     return unsubscribeRefresh;
   }, [role]);

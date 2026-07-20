@@ -34,12 +34,6 @@ export function NotificationBanner(): JSX.Element | null {
   useEffect(() => {
     setForegroundBannerListener((next) => {
       setPayload(next);
-      translateY.setValue(-200);
-      Animated.timing(translateY, {
-        toValue: 0,
-        duration: 250,
-        useNativeDriver: true,
-      }).start();
       if (timer.current) clearTimeout(timer.current);
       timer.current = setTimeout(() => hide(), AUTO_DISMISS_MS);
     });
@@ -47,7 +41,21 @@ export function NotificationBanner(): JSX.Element | null {
       setForegroundBannerListener(null);
       if (timer.current) clearTimeout(timer.current);
     };
-  }, [translateY, hide]);
+  }, [hide]);
+
+  // Slide in AFTER the payload is set and the view has mounted. Starting the
+  // native-driver animation inside the listener raced the conditional mount —
+  // the animation had no mounted view to attach to, so it never played and the
+  // banner stayed off-screen at translateY -200.
+  useEffect(() => {
+    if (!payload) return;
+    translateY.setValue(-200);
+    Animated.timing(translateY, {
+      toValue: 0,
+      duration: 250,
+      useNativeDriver: true,
+    }).start();
+  }, [payload, translateY]);
 
   if (!payload) return null;
 
