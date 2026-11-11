@@ -114,7 +114,7 @@ export const visitController = {
       assertVisitTransition(visit.status, 'EN_ROUTE');
 
       const updated = await prisma.bookingVisit.update({
-        where: { id: visit.id },
+        where: { id: visit.id, status: visit.status, ...(req.user.role === 'STAFF' && { assignedStaffUserId: req.user.sub }) },
         data: { status: 'EN_ROUTE' },
       });
 
@@ -143,7 +143,10 @@ export const visitController = {
       await notificationQueue.add('send', { notificationLogId: notifLog.id }).catch(() => null);
 
       success(res, updated);
-    } catch (err) { next(err); }
+    } catch (err) {
+      next(err instanceof Prisma.PrismaClientKnownRequestError && err.code === 'P2025'
+        ? new ConflictError('VISIT_CHANGED', 'The visit changed. Refresh before trying again.') : err);
+    }
   },
 
   async checkIn(req: Request, res: Response, next: NextFunction): Promise<void> {
@@ -170,7 +173,7 @@ export const visitController = {
       }
 
       const updated = await prisma.bookingVisit.update({
-        where: { id: visit.id },
+        where: { id: visit.id, status: visit.status, ...(req.user.role === 'STAFF' && { assignedStaffUserId: req.user.sub }) },
         data: {
           status: 'CHECKED_IN',
           checkInAt: new Date(),
@@ -187,7 +190,10 @@ export const visitController = {
       }).catch(() => null);
 
       success(res, updated);
-    } catch (err) { next(err); }
+    } catch (err) {
+      next(err instanceof Prisma.PrismaClientKnownRequestError && err.code === 'P2025'
+        ? new ConflictError('VISIT_CHANGED', 'The visit changed. Refresh before trying again.') : err);
+    }
   },
 
   async checkOut(req: Request, res: Response, next: NextFunction): Promise<void> {

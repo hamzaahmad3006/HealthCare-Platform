@@ -5,11 +5,13 @@ import request from 'supertest';
 
 jest.mock('../../src/config/database', () => ({ prisma: {
   booking: { findFirst: jest.fn(), findUnique: jest.fn(), findMany: jest.fn(), count: jest.fn(), updateMany: jest.fn(), findUniqueOrThrow: jest.fn() },
-  bookingVisit: { findMany: jest.fn(), findUnique: jest.fn(), update: jest.fn(), count: jest.fn() },
+  bookingVisit: { findMany: jest.fn(), findUnique: jest.fn(), update: jest.fn(), updateMany: jest.fn(), count: jest.fn() },
+  bookingAssignment: { updateMany: jest.fn() },
+  notificationLog: { updateMany: jest.fn() },
   patient: { findMany: jest.fn(), count: jest.fn(), findUnique: jest.fn(), findFirst: jest.fn(), update: jest.fn() },
   report: { create: jest.fn(), findUnique: jest.fn(), update: jest.fn(), findMany: jest.fn(), count: jest.fn() },
   reportFile: { create: jest.fn() },
-  $transaction: jest.fn((queries: Promise<unknown>[]) => Promise.all(queries)),
+  $transaction: jest.fn(),
 } }));
 jest.mock('../../worker/notification.worker', () => ({ notificationQueue: { add: jest.fn() } }));
 jest.mock('../../src/helper/cloudinary.helper', () => ({ getPresignedUploadUrl: jest.fn(), signDeliveryUrl: jest.fn((url: string) => url) }));
@@ -74,6 +76,7 @@ app.use((err: AppError, _req: Request, res: Response, _next: NextFunction) => {
 
 beforeEach(() => {
   jest.clearAllMocks();
+  (prisma.$transaction as jest.Mock).mockImplementation((arg: unknown) => typeof arg === 'function' ? arg(prisma) : Promise.all(arg as Promise<unknown>[]));
   booking.status = 'ASSIGNED';
   const all = [booking, { ...booking, id: otherId, customerUserId: 'other-customer', preferredDoctorUserId: null, visits: [] }];
   db.booking.findFirst.mockImplementation(async ({ where }: { where: Row }) => all.find(b => matches(b, where)) ?? null);

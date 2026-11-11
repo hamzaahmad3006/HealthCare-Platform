@@ -22,6 +22,7 @@ const TABS: { id: BookingStatus | 'ALL'; label: string }[] = [
   { id: 'PENDING_DOCTOR', label: 'Doctor' },
   { id: 'PENDING', label: 'Pending' },
   { id: 'CONFIRMED', label: 'Confirmed' },
+  { id: 'RESCHEDULED', label: 'Rescheduled' },
   { id: 'ASSIGNED', label: 'Assigned' },
   { id: 'IN_PROGRESS', label: 'In Progress' },
   { id: 'COMPLETED', label: 'Completed' },
@@ -85,7 +86,7 @@ export function Bookings(): JSX.Element {
       align: 'right',
       render: (row) => (
         <div className="flex justify-end gap-2" onClick={(e) => e.stopPropagation()}>
-          {row.status === 'PENDING' ? (
+          {['PENDING', 'RESCHEDULED'].includes(row.status) ? (
             <Button
               size="sm"
               onClick={() => void b.handleConfirm(row.id)}

@@ -161,6 +161,7 @@ export interface BookingPayment {
 }
 
 export interface BookingWithRelations extends Booking {
+  canReschedule?: boolean;
   patient: Patient;
   serviceType: ServiceType;
   package: Package;

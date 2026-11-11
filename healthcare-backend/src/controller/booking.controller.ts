@@ -16,6 +16,9 @@ import {
 import { notificationQueue } from '../../worker/notification.worker';
 import { pickParam } from '../helper/request.helper';
 import { bookingAccessWhere, doctorRequestWhere, assertBookingAccess, bookingVisitAccessWhere } from '../helper/bookingAccess.helper';
+import { rescheduleBooking, canRescheduleBooking, cancelPlannedVisits } from '../helper/reschedule.helper';
+
+const FutureStartSchema = z.string().datetime({ offset: true }).refine(value => new Date(value).getTime() > Date.now(), 'Choose a future date and time');
 
 const CreateBookingSchema = z.object({
   patientId: z.string().uuid(),
@@ -188,6 +191,7 @@ export const bookingController = {
       const booking = await prisma.booking.findUnique({
         where: { id: pickParam(req, 'id') },
         include: {
+          _count: { select: { reports: true } },
           patient: true,
           serviceType: true,
           package: true,
@@ -197,6 +201,7 @@ export const bookingController = {
             where: bookingVisitAccessWhere(req.user),
             orderBy: { sequenceNo: 'asc' },
             include: {
+              _count: { select: { reports: true, reviews: true } },
               assignedStaff: {
                 include: { user: { select: { fullName: true, phone: true } } },
               },
@@ -213,7 +218,7 @@ export const bookingController = {
         throw new ForbiddenError('FORBIDDEN');
       }
 
-      success(res, booking);
+      success(res, { ...booking, canReschedule: req.user.role !== 'STAFF' && canRescheduleBooking(booking) });
     } catch (err) { next(err); }
   },
 
@@ -222,22 +227,21 @@ export const bookingController = {
       if (!req.user) throw new UnauthorizedError('UNAUTHENTICATED');
       const adminId = req.user.sub;
 
-      const booking = await prisma.booking.findUnique({
-        where: { id: pickParam(req, 'id') },
-        include: { address: { select: { contactPhone: true } }, customer: { select: { phone: true } } },
-      });
-      if (!booking) throw new NotFoundError('BOOKING_NOT_FOUND');
-
-      assertBookingTransition(booking.status, 'CONFIRMED');
-
-      // NotificationLog.recipient is VarChar(20) — must be a phone number,
-      // never a UUID. Prefer the address contact, fall back to the customer.
-      const recipient = booking.address.contactPhone ?? booking.customer.phone;
-
-      // SRS §11 — NotificationLog must be created atomically with the status change.
       const { updated, notifLogId } = await prisma.$transaction(async (tx) => {
+        const booking = await tx.booking.findUnique({
+          where: { id: pickParam(req, 'id') },
+          include: { address: { select: { contactPhone: true } }, customer: { select: { phone: true } } },
+        });
+        if (!booking) throw new NotFoundError('BOOKING_NOT_FOUND');
+
+        assertBookingTransition(booking.status, 'CONFIRMED');
+
+        // NotificationLog.recipient is VarChar(20) — must be a phone number,
+        // never a UUID. Prefer the address contact, fall back to the customer.
+        const recipient = booking.address.contactPhone ?? booking.customer.phone;
+
         const updated = await tx.booking.update({
-          where: { id: booking.id },
+          where: { id: booking.id, status: booking.status },
           data: { status: 'CONFIRMED', confirmedAt: new Date(), confirmedByUserId: adminId },
         });
 
@@ -272,7 +276,7 @@ export const bookingController = {
         }
 
         return { updated, notifLogId: notifLog.id };
-      });
+      }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
 
       await notificationQueue.add('send', { notificationLogId: notifLogId }).catch(() => null);
 
@@ -284,6 +288,7 @@ export const bookingController = {
     try {
       if (!req.user) throw new UnauthorizedError('UNAUTHENTICATED');
 
+      const user = req.user;
       const { reason } = z.object({ reason: z.string().min(1) }).parse(req.body);
       const bookingId = pickParam(req, 'id');
       if (!bookingId) throw new NotFoundError('BOOKING_NOT_FOUND');
@@ -293,29 +298,32 @@ export const bookingController = {
 
       const allowedStatuses: BookingStatus[] =
         req.user.role === 'CUSTOMER'
-          ? [BookingStatus.PENDING, BookingStatus.CONFIRMED, 'PENDING_DOCTOR' as BookingStatus, 'TIME_PROPOSED' as BookingStatus]
-          : [BookingStatus.PENDING, BookingStatus.CONFIRMED, BookingStatus.ASSIGNED, BookingStatus.IN_PROGRESS, 'PENDING_DOCTOR' as BookingStatus, 'TIME_PROPOSED' as BookingStatus];
+          ? [BookingStatus.PENDING, BookingStatus.CONFIRMED, BookingStatus.RESCHEDULED, 'PENDING_DOCTOR' as BookingStatus, 'TIME_PROPOSED' as BookingStatus]
+          : [BookingStatus.PENDING, BookingStatus.CONFIRMED, BookingStatus.RESCHEDULED, BookingStatus.ASSIGNED, BookingStatus.IN_PROGRESS, 'PENDING_DOCTOR' as BookingStatus, 'TIME_PROPOSED' as BookingStatus];
 
       // Atomic UPDATE with WHERE guard — Prisma compiles to a single SQL statement.
       // If 0 rows match, another writer already changed the status.
-      const result = await prisma.booking.updateMany({
-        where: { id: bookingId, AND: [bookingAccessWhere(req.user)], status: { in: allowedStatuses } },
-        data: {
-          status: BookingStatus.CANCELLED,
-          cancelledAt: new Date(),
-          cancelledByUserId: req.user.sub,
-          cancellationReason: reason,
-        },
-      });
+      const updated = await prisma.$transaction(async tx => {
+        const result = await tx.booking.updateMany({
+          where: { id: bookingId, AND: [bookingAccessWhere(user)], status: { in: allowedStatuses } },
+          data: {
+            status: BookingStatus.CANCELLED,
+            cancelledAt: new Date(),
+            cancelledByUserId: user.sub,
+            cancellationReason: reason,
+          },
+        });
 
-      if (result.count === 0) {
-        throw new ConflictError(
-          'BOOKING_CANNOT_BE_CANCELLED',
-          'Booking is already cancelled or cannot be cancelled in its current state',
-        );
-      }
+        if (result.count === 0) {
+          throw new ConflictError(
+            'BOOKING_CANNOT_BE_CANCELLED',
+            'Booking is already cancelled or cannot be cancelled in its current state',
+          );
+        }
 
-      const updated = await prisma.booking.findUniqueOrThrow({ where: { id: bookingId } });
+        await cancelPlannedVisits(tx, bookingId);
+        return tx.booking.findUniqueOrThrow({ where: { id: bookingId } });
+      }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
       success(res, updated);
     } catch (err) { next(err); }
   },
@@ -324,53 +332,9 @@ export const bookingController = {
     try {
       if (!req.user) throw new UnauthorizedError('UNAUTHENTICATED');
 
-      const { requestedStartAt } = z.object({ requestedStartAt: z.string().datetime() }).parse(req.body);
-
-      const booking = await prisma.booking.findUnique({
-        where: { id: pickParam(req, 'id') },
-        include: {
-          package: true,
-          address: { select: { contactPhone: true } },
-          customer: { select: { phone: true } },
-        },
-      });
-      if (!booking) throw new NotFoundError('BOOKING_NOT_FOUND');
-
-      assertBookingTransition(booking.status, 'RESCHEDULED');
-
-      const newStartDate = new Date(requestedStartAt);
-      const visits = generateVisitSchedule(booking.id, booking.package, newStartDate);
-
-      const { notifLogId } = await prisma.$transaction(async (tx) => {
-        await tx.booking.update({
-          where: { id: booking.id },
-          data: { status: 'RESCHEDULED', requestedStartAt: newStartDate },
-        });
-        await tx.bookingVisit.deleteMany({ where: { bookingId: booking.id, status: 'SCHEDULED' } });
-        await tx.bookingVisit.createMany({ data: visits });
-
-        const recipient = booking.address.contactPhone ?? booking.customer.phone;
-        const templateData = {
-          bookingNumber: booking.bookingNumber,
-          newDate: newStartDate.toISOString(),
-        };
-        const notifLog = await tx.notificationLog.create({
-          data: {
-            userId: booking.customerUserId,
-            bookingId: booking.id,
-            templateCode: 'BOOKING_RESCHEDULED',
-            recipient,
-            renderedContent: renderTemplate('BOOKING_RESCHEDULED', templateData),
-            templateData,
-            status: 'PENDING',
-          },
-        });
-        return { notifLogId: notifLog.id };
-      });
-
+      const { requestedStartAt } = z.object({ requestedStartAt: FutureStartSchema }).parse(req.body);
+      const { updated, notifLogId } = await rescheduleBooking(req.user, pickParam(req, 'id'), new Date(requestedStartAt));
       await notificationQueue.add('send', { notificationLogId: notifLogId }).catch(() => null);
-
-      const updated = await prisma.booking.findUnique({ where: { id: booking.id } });
       success(res, updated);
     } catch (err) { next(err); }
   },
@@ -384,6 +348,9 @@ export const bookingController = {
 
       const result = await prisma.$transaction(
         async (tx) => {
+          const booking = await tx.booking.findUnique({ where: { id: pickParam(req, 'id') } });
+          if (!booking) throw new NotFoundError('BOOKING_NOT_FOUND');
+          if (!['CONFIRMED', 'ASSIGNED', 'IN_PROGRESS'].includes(booking.status)) throw new ConflictError('BOOKING_NOT_CONFIRMED');
           const visits = await tx.$queryRaw<{ id: string; bookingId: string; status: string; scheduledStartAt: Date; scheduledEndAt: Date | null }[]>`
             SELECT id, "bookingId", status, "scheduledStartAt", "scheduledEndAt"
             FROM booking_visits
@@ -392,7 +359,7 @@ export const bookingController = {
           `;
 
           const visit = visits[0];
-          if (!visit) throw new NotFoundError('VISIT_NOT_FOUND');
+          if (!visit || visit.bookingId !== booking.id) throw new NotFoundError('VISIT_NOT_FOUND');
           if (!['SCHEDULED', 'ASSIGNED'].includes(visit.status)) {
             throw new ConflictError('VISIT_ALREADY_IN_PROGRESS');
           }
@@ -429,6 +396,8 @@ export const bookingController = {
             where: { id: visitId },
             data: { assignedStaffUserId: staffUserId, status: 'ASSIGNED' },
           });
+
+          await tx.booking.updateMany({ where: { id: booking.id, status: 'CONFIRMED' }, data: { status: 'ASSIGNED' } });
 
           await tx.bookingAssignment.create({
             data: {

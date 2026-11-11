@@ -11,7 +11,7 @@ router.get('/', authenticateToken, bookingController.list);
 router.get('/:id', authenticateToken, bookingController.getById);
 router.patch('/:id/confirm', authenticateToken, adminOnly, bookingController.confirm);
 router.patch('/:id/cancel', authenticateToken, adminOrCustomer, bookingController.cancel);
-router.patch('/:id/reschedule', authenticateToken, adminOnly, bookingController.reschedule);
+router.patch('/:id/reschedule', authenticateToken, adminOrCustomer, bookingController.reschedule);
 router.post('/:id/assignments', authenticateToken, adminOnly, bookingController.assignStaff);
 router.get('/:id/visits', authenticateToken, bookingController.getVisits);
 
