@@ -10,12 +10,14 @@ import { logger } from '../src/utils/logger';
 
 // Core notification dispatch. Shared by the BullMQ worker (when Redis is
 // available) and by the in-process inline path (when it isn't).
-async function processNotification(notificationLogId: string): Promise<void> {
+export async function processNotification(notificationLogId: string): Promise<void> {
   const log = await prisma.notificationLog.findUnique({ where: { id: notificationLogId } });
   if (!log) {
     logger.warn('NotificationLog not found', { notificationLogId });
     return;
   }
+
+  if (log.providerError === 'VISIT_SUPERSEDED') return;
 
   if (log.status === 'SENT') {
     logger.debug('Notification already sent — skipping', { notificationLogId });

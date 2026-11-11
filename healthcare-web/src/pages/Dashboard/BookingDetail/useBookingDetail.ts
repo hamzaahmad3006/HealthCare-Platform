@@ -19,7 +19,7 @@ interface UseAdminBookingDetailReturn {
   handleCancel: (reason: string) => Promise<void>;
 
   isRescheduling: boolean;
-  handleReschedule: (newStartAt: string) => Promise<void>;
+  handleReschedule: (newStartAt: string) => Promise<boolean>;
 
   isMarkingPaid: boolean;
   handleMarkPaid: () => Promise<void>;
@@ -111,15 +111,17 @@ export function useAdminBookingDetail(): UseAdminBookingDetailReturn {
   );
 
   const handleReschedule = useCallback(
-    async (newStartAt: string): Promise<void> => {
-      if (!id) return;
+    async (newStartAt: string): Promise<boolean> => {
+      if (!id) return false;
       setIsRescheduling(true);
       try {
         await api.patch(API.BOOKINGS.RESCHEDULE(id), { requestedStartAt: newStartAt });
-        toast.success('Booking rescheduled');
+        toast.success('New schedule saved. Reconfirm before assigning staff.');
         setReloadFlag((f) => f + 1);
+        return true;
       } catch (err) {
         toast.error(extractApiError(err).message);
+        return false;
       } finally {
         setIsRescheduling(false);
       }

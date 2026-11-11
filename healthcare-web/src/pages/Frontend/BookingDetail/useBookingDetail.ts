@@ -20,7 +20,7 @@ interface UseBookingDetailReturn {
   handleCancel: (reason: string) => Promise<void>;
   isRescheduling: boolean;
   canReschedule: boolean;
-  handleReschedule: (newStartAt: string) => Promise<void>;
+  handleReschedule: (newStartAt: string) => Promise<boolean>;
   isActingOnTime: boolean;
   handleAcceptTime: () => Promise<void>;
   handleDeclineTime: () => Promise<void>;
@@ -64,9 +64,9 @@ export function useBookingDetail(): UseBookingDetailReturn {
   }, [id, reloadFlag]);
 
   const canCancel = Boolean(
-    booking && ['PENDING', 'CONFIRMED', 'PENDING_DOCTOR', 'TIME_PROPOSED'].includes(booking.status),
+    booking && ['PENDING', 'CONFIRMED', 'RESCHEDULED', 'PENDING_DOCTOR', 'TIME_PROPOSED'].includes(booking.status),
   );
-  const canReschedule = Boolean(booking && ['CONFIRMED'].includes(booking.status));
+  const canReschedule = Boolean(booking?.canReschedule);
 
   const handleCancel = useCallback(
     async (reason: string): Promise<void> => {
@@ -86,15 +86,17 @@ export function useBookingDetail(): UseBookingDetailReturn {
   );
 
   const handleReschedule = useCallback(
-    async (newStartAt: string): Promise<void> => {
-      if (!id) return;
+    async (newStartAt: string): Promise<boolean> => {
+      if (!id) return false;
       setIsRescheduling(true);
       try {
         await api.patch(API.BOOKINGS.RESCHEDULE(id), { requestedStartAt: newStartAt });
-        toast.success('Booking rescheduled.');
+        toast.success('New schedule submitted for admin confirmation.');
         setReloadFlag((f) => f + 1);
+        return true;
       } catch (err) {
         toast.error(extractApiError(err).message);
+        return false;
       } finally {
         setIsRescheduling(false);
       }
