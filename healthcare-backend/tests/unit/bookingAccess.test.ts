@@ -27,6 +27,7 @@ import reportRoutes from '../../src/routes/report.routes';
 import userRoutes from '../../src/routes/user.routes';
 import visitRoutes from '../../src/routes/visit.routes';
 import { prisma } from '../../src/config/database';
+import { getPresignedUploadUrl } from '../../src/helper/cloudinary.helper';
 import { AppError } from '../../src/utils/stateMachine';
 
 const db = prisma as unknown as {
@@ -198,8 +199,14 @@ it('rejects a visit belonging to a different booking even for admin', async () =
 });
 
 it('does not allow report updates to retarget an unrelated booking or patient', async () => {
-  for (const data of [{ bookingId: otherId }, { patientId: otherId }, { bookingVisitId: otherId }]) {
-    expect((await request(app).patch(`/reports/${reportId}`).send(data)).status).toBeGreaterThanOrEqual(400);
+  for (const [data, status, code] of [
+    [{ bookingId: otherId }, 403, 'FORBIDDEN'],
+    [{ patientId: otherId }, 422, 'REPORT_PATIENT_MISMATCH'],
+    [{ bookingVisitId: otherId }, 403, 'FORBIDDEN'],
+  ] as const) {
+    const res = await request(app).patch(`/reports/${reportId}`).send(data);
+    expect(res.status).toBe(status);
+    expect(res.body.error.code).toBe(code);
   }
   expect(db.report.update).not.toHaveBeenCalled();
 });
@@ -264,4 +271,35 @@ it.each([
   ['ADMIN', 'admin', otherId, 200],
 ] as const)('enforces report detail permissions %#', async (role, user, id, status) => {
   expect((await request(app).get(`/reports/${id}`).set('x-role', role).set('x-user', user)).status).toBe(status);
+});
+
+it.each([
+  ['web', 'STAFF', webApi.REPORTS.PRESIGN, webApi.REPORTS.CONFIRM],
+  ['web', 'ADMIN', webApi.REPORTS.PRESIGN, webApi.REPORTS.CONFIRM],
+  ['mobile', 'STAFF', mobileApi.REPORTS.FILES_PRESIGN, mobileApi.REPORTS.FILES_CONFIRM],
+  ['mobile', 'ADMIN', mobileApi.REPORTS.FILES_PRESIGN, mobileApi.REPORTS.FILES_CONFIRM],
+] as const)('preserves the %s report file upload flow for %s', async (_client, role, presign, confirm) => {
+  const signedUpload = {
+    uploadUrl: 'https://api.cloudinary.com/v1_1/test/image/upload',
+    fileKey: `reports/${otherId}/image`,
+    expiresIn: 3600,
+    uploadParams: { api_key: 'test', timestamp: 1, signature: 'test', public_id: 'image', resource_type: 'image' },
+  };
+  jest.mocked(getPresignedUploadUrl).mockResolvedValue(signedUpload);
+  db.reportFile.create.mockImplementation(async ({ data }: { data: Row }) => ({ id: 'file', ...data }));
+
+  // This fixture is hidden from customers, so upload confirmation does not send
+  // an external notification. Authorization still requires the report's booking
+  // and visit, even though the client supplies only its report ID.
+  const signed = await request(app).post(presign(otherId)).set('x-role', role).send({ mimeType: 'image/png', fileSizeBytes: 100 });
+  expect(signed.status).toBe(200);
+  expect(signed.body).toMatchObject({ success: true, data: signedUpload });
+  expect(getPresignedUploadUrl).toHaveBeenCalledWith(`reports/${otherId}`, 'image/png', 100);
+
+  const confirmed = await request(app).post(confirm(otherId)).set('x-role', role).send({
+    fileKey: signed.body.data.fileKey, fileUrl: 'https://res.cloudinary.com/test/image/upload/image.png',
+    mimeType: 'image/png', fileSizeBytes: 100,
+  });
+  expect(confirmed.status).toBe(201);
+  expect(confirmed.body).toMatchObject({ success: true, data: { reportId: otherId, fileSizeBytes: '100' } });
 });
