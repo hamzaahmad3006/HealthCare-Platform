@@ -3,11 +3,15 @@
   "version": "0.0.1",
   "private": true,
   "scripts": {
-    "android": "node scripts/get-ip.js && react-native run-android",
-    "ios": "react-native run-ios",
+    "android": "npm run config:dev && react-native run-android",
+    "ios": "npm run config:dev && react-native run-ios",
     "lint": "eslint .",
-    "start": "react-native start",
-    "test": "jest"
+    "start": "npm run config:dev && react-native start",
+    "test": "jest",
+    "postinstall": "node scripts/configure-api.js",
+    "config:dev": "node scripts/configure-api.js",
+    "config:production": "node scripts/configure-api.js --production",
+    "typecheck": "npm run config:dev && tsc --noEmit"
   },
   "dependencies": {
     "@react-native-async-storage/async-storage": "^3.1.1",

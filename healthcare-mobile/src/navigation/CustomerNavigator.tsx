@@ -1,3 +1,4 @@
+import type { JSX } from 'react';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { CustomerTabs } from './CustomerTabs';
 import { BookingDetail } from '../screens/dashboard/BookingDetail/BookingDetail';

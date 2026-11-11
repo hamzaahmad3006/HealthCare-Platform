@@ -3,13 +3,12 @@ import { Alert } from 'react-native';
 import { api, extractApiError } from '../../../api/client';
 import { API } from '../../../api/endpoints';
 import { useNavigation } from '@react-navigation/native';
-import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import type { CustomerStackParamList } from '../../../navigation/types';
+import type { CustomerTabNavigationProp } from '../../../navigation/types';
 import type { Booking } from '../../../types/booking.types';
 
-type RootNavProp = NativeStackNavigationProp<CustomerStackParamList>;
+type RootNavProp = CustomerTabNavigationProp<'Bookings'>;
 
-export function useMyBookings(_navigation?: unknown) {
+export function useMyBookings() {
   const navigation = useNavigation<RootNavProp>();
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [loading, setLoading] = useState(true);

@@ -1,3 +1,5 @@
+import type { MaterialIconName } from '../../../types/icons.types';
+import type { JSX } from 'react';
 import {
   View, Text, FlatList, StyleSheet, Pressable,
   StatusBar, SafeAreaView, ActivityIndicator, RefreshControl,
@@ -9,7 +11,7 @@ import { useAppSelector } from '../../../store';
 import { navigateToNotification } from '../../../utils/notificationNavigation';
 import type { NotificationItem } from '../../../types/notification.types';
 
-function iconForTemplate(code: string): string {
+function iconForTemplate(code: string): MaterialIconName {
   if (code.includes('REPORT')) return 'file-document-outline';
   if (code.includes('CANCEL')) return 'close-circle-outline';
   if (code.includes('CONFIRM') || code.includes('ACCEPT')) return 'check-circle-outline';

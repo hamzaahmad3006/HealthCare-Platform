@@ -66,8 +66,9 @@ yarn-error.log
 # testing
 /coverage
 
-# Auto-generated dev config (machine-specific IP)
+# Generated API configuration (environment-specific)
 src/api/host.ts
+src/api/host.ts.*.tmp
 
 # Yarn
 .yarn/*

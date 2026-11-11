@@ -1,3 +1,4 @@
+import type { JSX } from 'react';
 import { usePushRegistration } from '../hooks/usePushRegistration';
 import { NotificationBanner } from './NotificationBanner';
 

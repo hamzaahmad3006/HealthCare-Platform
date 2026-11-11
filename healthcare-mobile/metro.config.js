@@ -1,3 +1,8 @@
+const { generateApiConfig } = require('./scripts/configure-api');
+
+// Also covers direct native/IDE builds that do not run npm lifecycle scripts.
+generateApiConfig({ production: process.env.NODE_ENV === 'production' });
+
 const { getDefaultConfig, mergeConfig } = require('@react-native/metro-config');
 
 /**

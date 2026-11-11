@@ -1,3 +1,4 @@
+import type { JSX } from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { MaterialDesignIcons } from '@react-native-vector-icons/material-design-icons/static';
 import { Home } from '../screens/dashboard/Home/Home';

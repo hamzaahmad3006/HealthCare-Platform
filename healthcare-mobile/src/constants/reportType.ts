@@ -1,7 +1,8 @@
+import type { MaterialIconName } from '../types/icons.types';
 import { Colors } from './theme';
 import type { ReportType } from '../types/report.types';
 
-export const REPORT_TYPE_ICON: Record<ReportType, string> = {
+export const REPORT_TYPE_ICON: Record<ReportType, MaterialIconName> = {
   LAB_RESULT:     'flask',
   PRESCRIPTION:   'pill',
   VISIT_NOTE:     'clipboard-text',

@@ -1,3 +1,4 @@
+import type { JSX } from 'react';
 import { useEffect } from 'react';
 import { View, Text, StyleSheet, StatusBar } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
