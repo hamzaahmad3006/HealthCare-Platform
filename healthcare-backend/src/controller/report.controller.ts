@@ -8,6 +8,7 @@ import { success, paginated } from '../helper/response.helper';
 import { NotFoundError, UnauthorizedError, ForbiddenError } from '../utils/stateMachine';
 import { notificationQueue } from '../../worker/notification.worker';
 import { pickParam } from '../helper/request.helper';
+import { assertReportTargetAccess, bookingAccessWhere } from '../helper/bookingAccess.helper';
 
 const CreateReportSchema = z.object({
   bookingId: z.string().uuid(),
@@ -57,6 +58,7 @@ export const reportController = {
       if (!req.user) throw new UnauthorizedError('UNAUTHENTICATED');
 
       const data = CreateReportSchema.parse(req.body);
+      await assertReportTargetAccess(req.user, data);
       const report = await prisma.report.create({
         data: { ...data, uploadedByUserId: req.user.sub },
       });
@@ -72,7 +74,14 @@ export const reportController = {
       const { patientId, bookingId, reportType, page, limit } = ReportListQuerySchema.parse(req.query);
 
       const where: Prisma.ReportWhereInput = {
-        ...(req.user.role === 'STAFF' && { uploadedByUserId: req.user.sub }),
+        ...(req.user.role === 'STAFF' && {
+          uploadedByUserId: req.user.sub,
+          booking: bookingAccessWhere(req.user, false),
+          OR: [
+            { bookingVisitId: null },
+            { bookingVisit: { assignedStaffUserId: req.user.sub } },
+          ],
+        }),
         ...(req.user.role === 'CUSTOMER' && {
           isVisibleToCustomer: true,
           booking: { customerUserId: req.user.sub },
@@ -123,6 +132,8 @@ export const reportController = {
         throw new ForbiddenError('FORBIDDEN');
       }
 
+      if (req.user.role === 'STAFF') await assertReportTargetAccess(req.user, report);
+
       const signed = {
         ...report,
         files: report.files.map((f) => ({
@@ -146,7 +157,9 @@ export const reportController = {
         throw new ForbiddenError('FORBIDDEN');
       }
 
+      await assertReportTargetAccess(req.user, report);
       const data = CreateReportSchema.partial().parse(req.body);
+      await assertReportTargetAccess(req.user, { ...report, ...data });
       const updated = await prisma.report.update({ where: { id: report.id }, data });
       success(res, updated);
     } catch (err) { next(err); }
@@ -163,6 +176,7 @@ export const reportController = {
         throw new ForbiddenError('FORBIDDEN');
       }
 
+      await assertReportTargetAccess(req.user, report);
       const { mimeType, fileSizeBytes } = PresignSchema.parse(req.body);
       const result = await getPresignedUploadUrl(`reports/${report.id}`, mimeType, fileSizeBytes);
       success(res, result);
@@ -193,6 +207,7 @@ export const reportController = {
         throw new ForbiddenError('FORBIDDEN');
       }
 
+      await assertReportTargetAccess(req.user, report);
       const data = ConfirmFileSchema.parse(req.body);
       const file = await prisma.reportFile.create({
         data: {
