@@ -15,6 +15,7 @@ import {
 } from '../utils/stateMachine';
 import { notificationQueue } from '../../worker/notification.worker';
 import { pickParam } from '../helper/request.helper';
+import { bookingAccessWhere, doctorRequestWhere, assertBookingAccess, bookingVisitAccessWhere } from '../helper/bookingAccess.helper';
 
 const CreateBookingSchema = z.object({
   patientId: z.string().uuid(),
@@ -150,12 +151,7 @@ export const bookingController = {
         BookingListQuerySchema.parse(req.query);
 
       const where: Prisma.BookingWhereInput = {
-        ...(req.user.role === 'CUSTOMER' && { customerUserId: req.user.sub }),
-        // Doctor mode: staff sees only bookings where they are the preferred doctor
-        ...(doctorRequestsOnly && req.user.role === 'STAFF' && {
-          preferredDoctorUserId: req.user.sub,
-          status: { in: ['PENDING_DOCTOR', 'TIME_PROPOSED'] as const },
-        }),
+        AND: [bookingAccessWhere(req.user), ...(doctorRequestsOnly && req.user.role === 'STAFF' ? [doctorRequestWhere(req.user.sub)] : [])],
         ...(status && !doctorRequestsOnly && { status }),
         ...(cityId && { cityId }),
         ...(serviceTypeId && { serviceTypeId }),
@@ -187,6 +183,8 @@ export const bookingController = {
     try {
       if (!req.user) throw new UnauthorizedError('UNAUTHENTICATED');
 
+      await assertBookingAccess(req.user, pickParam(req, 'id'));
+
       const booking = await prisma.booking.findUnique({
         where: { id: pickParam(req, 'id') },
         include: {
@@ -196,6 +194,7 @@ export const bookingController = {
           address: true,
           city: true,
           visits: {
+            where: bookingVisitAccessWhere(req.user),
             orderBy: { sequenceNo: 'asc' },
             include: {
               assignedStaff: {
@@ -289,6 +288,9 @@ export const bookingController = {
       const bookingId = pickParam(req, 'id');
       if (!bookingId) throw new NotFoundError('BOOKING_NOT_FOUND');
 
+      if (req.user.role !== 'ADMIN' && req.user.role !== 'CUSTOMER') throw new ForbiddenError('FORBIDDEN');
+      await assertBookingAccess(req.user, bookingId);
+
       const allowedStatuses: BookingStatus[] =
         req.user.role === 'CUSTOMER'
           ? [BookingStatus.PENDING, BookingStatus.CONFIRMED, 'PENDING_DOCTOR' as BookingStatus, 'TIME_PROPOSED' as BookingStatus]
@@ -297,7 +299,7 @@ export const bookingController = {
       // Atomic UPDATE with WHERE guard — Prisma compiles to a single SQL statement.
       // If 0 rows match, another writer already changed the status.
       const result = await prisma.booking.updateMany({
-        where: { id: bookingId, status: { in: allowedStatuses } },
+        where: { id: bookingId, AND: [bookingAccessWhere(req.user)], status: { in: allowedStatuses } },
         data: {
           status: BookingStatus.CANCELLED,
           cancelledAt: new Date(),
@@ -481,6 +483,7 @@ export const bookingController = {
     try {
       if (!req.user) throw new UnauthorizedError('UNAUTHENTICATED');
 
+      await assertBookingAccess(req.user, pickParam(req, 'id'));
       const booking = await prisma.booking.findUnique({ where: { id: pickParam(req, 'id') } });
       if (!booking) throw new NotFoundError('BOOKING_NOT_FOUND');
 
@@ -489,7 +492,7 @@ export const bookingController = {
       }
 
       const visits = await prisma.bookingVisit.findMany({
-        where: { bookingId: pickParam(req, 'id') },
+        where: { bookingId: pickParam(req, 'id'), AND: [bookingVisitAccessWhere(req.user)] },
         orderBy: { sequenceNo: 'asc' },
       });
 
