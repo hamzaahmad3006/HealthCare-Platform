@@ -109,6 +109,10 @@ export function Login({ navigation }: Props): JSX.Element {
           </TouchableOpacity>
         </View>
 
+        <TouchableOpacity accessibilityRole="button" disabled={loading} onPress={() => navigation.navigate('ForgotPassword')}>
+          <Text style={styles.footerLink}>Forgot password?</Text>
+        </TouchableOpacity>
+
         {/* Error */}
         {error ? (
           <View style={styles.errorBox}>

@@ -102,6 +102,24 @@ export const register = createAsyncThunk(
   },
 );
 
+// Recovery returns the same token pair as login; keep role handling identical.
+export const resetPassword = createAsyncThunk(
+  'auth/resetPassword',
+  async (payload: { phone: string; otp: string; newPassword: string }, { rejectWithValue }) => {
+    try {
+      const { data } = await api.post<{ success: true; data: AuthResponse }>(API.AUTH.RESET_PASSWORD, payload);
+      const { user, accessToken, refreshToken } = data.data;
+      if (user.role === 'ADMIN') return rejectWithValue(ADMIN_BLOCKED_MESSAGE);
+      await AsyncStorage.setMany({
+        [STORAGE_KEYS.ACCESS_TOKEN]: accessToken,
+        [STORAGE_KEYS.REFRESH_TOKEN]: refreshToken,
+        [STORAGE_KEYS.USER]: JSON.stringify(user),
+      });
+      return { accessToken, user };
+    } catch (err) { return rejectWithValue(extractApiError(err)); }
+  },
+);
+
 export const logout = createAsyncThunk('auth/logout', async () => {
   try {
     // Pass deviceId so the backend removes this device's push token on sign-out
@@ -161,6 +179,14 @@ const authSlice = createSlice({
     builder.addCase(register.rejected, (state, { payload }) => {
       state.loading = false;
       state.error = payload as string;
+    });
+
+    builder.addCase(resetPassword.pending, (state) => { state.loading = true; state.error = null; });
+    builder.addCase(resetPassword.fulfilled, (state, { payload }) => {
+      state.loading = false; state.user = payload.user; state.accessToken = payload.accessToken;
+    });
+    builder.addCase(resetPassword.rejected, (state, { payload }) => {
+      state.loading = false; state.error = payload as string;
     });
 
     // logout

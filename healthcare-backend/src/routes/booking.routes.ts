@@ -3,6 +3,7 @@ import { bookingController } from '../controller/booking.controller';
 import { authenticateToken } from '../middleware/auth.middleware';
 import { adminOnly, adminOrCustomer, staffOnly, customerOnly } from '../middleware/role.middleware';
 import { idempotencyMiddleware } from '../middleware/idempotency.middleware';
+import { verifiedStaff } from '../middleware/verifiedStaff.middleware';
 
 const router = Router();
 
@@ -16,8 +17,8 @@ router.post('/:id/assignments', authenticateToken, adminOnly, bookingController.
 router.get('/:id/visits', authenticateToken, bookingController.getVisits);
 
 // Doctor booking flow
-router.patch('/:id/doctor-accept', authenticateToken, staffOnly, bookingController.doctorAccept);
-router.patch('/:id/doctor-propose-time', authenticateToken, staffOnly, bookingController.doctorProposeTime);
+router.patch('/:id/doctor-accept', authenticateToken, staffOnly, verifiedStaff, bookingController.doctorAccept);
+router.patch('/:id/doctor-propose-time', authenticateToken, staffOnly, verifiedStaff, bookingController.doctorProposeTime);
 router.patch('/:id/customer-accept-time', authenticateToken, customerOnly, bookingController.customerAcceptTime);
 router.patch('/:id/customer-decline-time', authenticateToken, customerOnly, bookingController.customerDeclineTime);
 

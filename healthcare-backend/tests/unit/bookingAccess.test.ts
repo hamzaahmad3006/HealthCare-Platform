@@ -78,7 +78,7 @@ app.use((err: AppError, _req: Request, res: Response, _next: NextFunction) => {
 beforeEach(() => {
   jest.clearAllMocks();
   (prisma.$transaction as jest.Mock).mockImplementation((arg: unknown) => typeof arg === 'function' ? arg(prisma) : Promise.all(arg as Promise<unknown>[]));
-  db.staffProfile.findFirst.mockImplementation(async ({ where }: { where: Row }) => where.userId === 'doctor' ? { userId: 'doctor', user: { phone: '+923000000001' } } : null);
+  db.staffProfile.findFirst.mockImplementation(async ({ where }: { where: Row }) => !where.serviceTypes || where.userId === 'doctor' ? { userId: where.userId, user: { phone: '+923000000001' } } : null);
   booking.status = 'ASSIGNED';
   const all = [booking, { ...booking, id: otherId, customerUserId: 'other-customer', preferredDoctorUserId: null, visits: [] }];
   db.booking.findFirst.mockImplementation(async ({ where }: { where: Row }) => all.find(b => matches(b, where)) ?? null);

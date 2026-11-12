@@ -12,7 +12,9 @@ import { renderTemplate } from '../helper/template.helper';
 import { success, paginated } from '../helper/response.helper';
 import { logger } from '../utils/logger';
 import { NotFoundError, UnauthorizedError, ForbiddenError, AppError } from '../utils/stateMachine';
-import { VerifStatus } from '@prisma/client';
+import { VerifStatus, Prisma } from '@prisma/client';
+import { assertVerifiedStaff } from '../middleware/verifiedStaff.middleware';
+import { MAX_FILE_SIZE_BYTES } from '../utils/constants';
 import { pickParam } from '../helper/request.helper';
 
 // Self-onboarding flow: admin invite only needs identity (name + how to reach
@@ -36,10 +38,11 @@ const CompleteProfileSchema = z.object({
     .string()
     .min(13)
     .max(25)
-    .regex(/^[0-9-]+$/, 'CNIC must be digits and dashes only'),
-  dateOfBirth: z.string().optional(),
+    .regex(/^[0-9-]+$/, 'CNIC must be digits and dashes only')
+    .refine(value => value.replace(/-/g, '').length === 13, 'CNIC must contain 13 digits'),
+  dateOfBirth: z.string().date().refine(value => new Date(value).getTime() < Date.now(), 'Date of birth must be in the past').optional(),
   experienceYears: z.number().int().min(0).max(60).default(0),
-  serviceTypeIds: z.array(z.string().uuid()).min(1),
+  serviceTypeIds: z.array(z.string().uuid()).min(1).refine(ids => new Set(ids).size === ids.length, 'Duplicate services'),
   // Required only when AMBULANCE service is selected (enforced below by
   // looking up service codes for the submitted IDs). Format kept loose to
   // handle PK plate variants like "FSD-1234", "LE-ABC-123", or numeric-only.
@@ -62,18 +65,20 @@ const StaffListQuerySchema = z.object({
   limit: z.coerce.number().min(1).max(100).default(20),
 });
 
+const DocumentTypeSchema = z.enum(['CNIC', 'DEGREE', 'LICENSE', 'EXPERIENCE_LETTER', 'OTHER']);
+
 const PresignDocSchema = z.object({
-  documentType: z.string().min(1),
+  documentType: z.union([DocumentTypeSchema, z.literal('AVATAR')]),
   mimeType: z.enum(['application/pdf', 'image/jpeg', 'image/png']),
-  fileSizeBytes: z.number().int().positive(),
+  fileSizeBytes: z.number().int().positive().max(MAX_FILE_SIZE_BYTES),
 });
 
 const ConfirmDocSchema = z.object({
-  documentType: z.string().min(1),
+  documentType: DocumentTypeSchema,
   fileKey: z.string().min(1),
   fileUrl: z.string().url(),
-  mimeType: z.string().min(1),
-  fileSizeBytes: z.number().int().positive(),
+  mimeType: z.enum(['application/pdf', 'image/jpeg', 'image/png']),
+  fileSizeBytes: z.number().int().positive().max(MAX_FILE_SIZE_BYTES),
 });
 
 function generateStaffCode(): string {
@@ -317,6 +322,7 @@ export const staffController = {
       const staff = await prisma.staffProfile.findUnique({ where: { userId } });
       if (!staff) throw new NotFoundError('STAFF_NOT_FOUND');
 
+      if (req.user.role === 'STAFF' && !staff.isAvailable) await assertVerifiedStaff(req.user);
       const updated = await prisma.staffProfile.update({
         where: { userId },
         data: { isAvailable: !staff.isAvailable },
@@ -354,18 +360,36 @@ export const staffController = {
 
       const data = ConfirmDocSchema.parse(req.body);
 
-      const doc = await prisma.staffDocument.create({
-        data: {
-          staffUserId: userId,
-          documentType: data.documentType,
-          fileProvider: 'CLOUDINARY',
-          fileKey: data.fileKey,
-          fileUrl: data.fileUrl,
-          mimeType: data.mimeType,
-          fileSizeBytes: BigInt(data.fileSizeBytes),
-        },
-      });
+      if (!data.fileKey.startsWith(`staff/${userId}/${data.documentType}/`)) throw new ForbiddenError('FILE_NOT_OWNED');
+      const suffix = data.fileKey.slice(`staff/${userId}/${data.documentType}/`.length);
+      const url = new URL(data.fileUrl);
+      const resource = data.mimeType.startsWith('image/') ? 'image' : 'raw';
+      const prefix = `/${env.CLOUDINARY_CLOUD_NAME}/${resource}/upload/`;
+      const asset = url.pathname.slice(prefix.length).replace(/^v\d+\//, '');
+      if (!/^[A-Za-z0-9_-]+$/.test(suffix) || url.protocol !== 'https:' || url.hostname !== 'res.cloudinary.com'
+        || !url.pathname.startsWith(prefix) || ![data.fileKey, ...['pdf', 'png', 'jpg', 'jpeg'].map(ext => `${data.fileKey}.${ext}`)].includes(asset)) {
+        throw new AppError(400, 'INVALID_DOCUMENT_FILE', 'Use the file returned by the signed document upload');
+      }
+      const doc = await prisma.$transaction(async tx => {
+        const created = await tx.staffDocument.create({
+          data: {
+            staffUserId: userId,
+            documentType: data.documentType,
+            fileProvider: 'CLOUDINARY',
+            fileKey: data.fileKey,
+            fileUrl: data.fileUrl,
+            mimeType: data.mimeType,
+            fileSizeBytes: BigInt(data.fileSizeBytes),
+          },
+        });
 
+        // Resubmission keeps rejected evidence for the admin's audit trail.
+        await tx.staffProfile.updateMany({
+          where: { userId, verificationStatus: 'REJECTED' },
+          data: { verificationStatus: 'PENDING', verifiedAt: null, verifiedByUserId: null, isAvailable: false },
+        });
+        return created;
+      });
       success(res, { ...doc, fileSizeBytes: doc.fileSizeBytes.toString() }, 201);
     } catch (err) { next(err); }
   },
@@ -503,32 +527,46 @@ export const staffController = {
       const data = CompleteProfileSchema.parse(req.body);
       const userId = req.user.sub;
 
-      // Look up the codes for the chosen services so we can enforce the
-      // conditional "AMBULANCE service requires ambulanceNumber" rule on the
-      // server (frontend validation is a hint; this is the authority).
-      const chosenServices = await prisma.serviceType.findMany({
-        where: { id: { in: data.serviceTypeIds } },
-        select: { id: true, code: true },
-      });
-      if (chosenServices.length !== data.serviceTypeIds.length) {
-        throw new NotFoundError('SERVICE_TYPE_NOT_FOUND');
-      }
-      const needsAmbulanceNumber = chosenServices.some((s) => s.code === 'AMBULANCE');
-      if (needsAmbulanceNumber && !data.ambulanceNumber) {
-        throw new AppError(
-          400,
-          'AMBULANCE_NUMBER_REQUIRED',
-          'Ambulance number is required when offering ambulance service',
-        );
-      }
-
       const updated = await prisma.$transaction(async (tx) => {
+        // Look up the codes for the chosen services so we can enforce the
+        // conditional "AMBULANCE service requires ambulanceNumber" rule on the
+        // server (frontend validation is a hint; this is the authority).
+        const chosenServices = await tx.serviceType.findMany({
+          where: { id: { in: data.serviceTypeIds }, isActive: true },
+          select: { id: true, code: true },
+        });
+        if (chosenServices.length !== data.serviceTypeIds.length) {
+          throw new NotFoundError('SERVICE_TYPE_NOT_FOUND');
+        }
+        const needsAmbulanceNumber = chosenServices.some((s) => s.code === 'AMBULANCE');
+        if (needsAmbulanceNumber && !data.ambulanceNumber) {
+          throw new AppError(
+            400,
+            'AMBULANCE_NUMBER_REQUIRED',
+            'Ambulance number is required when offering ambulance service',
+          );
+        }
+
+        const city = await tx.city.findFirst({ where: { id: data.cityId, isActive: true }, select: { id: true } });
+        if (!city) throw new NotFoundError('CITY_NOT_FOUND');
+        if (data.zoneId && !await tx.zone.findFirst({ where: { id: data.zoneId, cityId: data.cityId, isActive: true }, select: { id: true } })) {
+          throw new AppError(400, 'ZONE_CITY_MISMATCH', 'Select a zone belonging to your city');
+        }
+        const current = await tx.staffProfile.findUnique({ where: { userId }, include: { serviceTypes: true } });
+        if (!current) throw new NotFoundError('PROFILE_NOT_FOUND');
+        const changed = current.cityId !== data.cityId || current.zoneId !== (data.zoneId ?? null)
+          || current.gender !== (data.gender ?? null) || current.cnic !== data.cnic
+          || (current.dateOfBirth?.toISOString().slice(0, 10) ?? null) !== (data.dateOfBirth ?? null)
+          || current.experienceYears !== data.experienceYears
+          || current.ambulanceNumber !== (needsAmbulanceNumber ? data.ambulanceNumber : null)
+          || current.serviceTypes.map(s => s.serviceTypeId).sort().join(',') !== [...data.serviceTypeIds].sort().join(',');
+        const needsReview = changed || current.verificationStatus === 'REJECTED';
         const profile = await tx.staffProfile.update({
           where: { userId },
           data: {
             cityId: data.cityId,
-            zoneId: data.zoneId,
-            gender: data.gender,
+            zoneId: data.zoneId ?? null,
+            gender: data.gender ?? null,
             cnic: data.cnic,
             dateOfBirth: data.dateOfBirth ? new Date(data.dateOfBirth) : null,
             experienceYears: data.experienceYears,
@@ -536,6 +574,7 @@ export const staffController = {
             // the service. If they remove the service later we clear it.
             ambulanceNumber: needsAmbulanceNumber ? data.ambulanceNumber : null,
             profileCompletedAt: new Date(),
+            ...(needsReview ? { verificationStatus: 'PENDING', verifiedAt: null, verifiedByUserId: null, isAvailable: false } : {}),
           },
         });
 
@@ -551,7 +590,7 @@ export const staffController = {
         });
 
         return profile;
-      });
+      }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
 
       logger.info('Staff profile completed', { userId, staffCode: updated.staffCode });
       success(res, updated);

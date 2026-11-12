@@ -104,6 +104,11 @@ export function StaffProfile(): JSX.Element {
           )}
         </View>
 
+        <TouchableOpacity accessibilityRole="button" style={styles.settingRow} onPress={() => navigation.navigate('StaffSetup')}>
+          <Text style={styles.settingLabel}>Profile and verification documents</Text>
+          <MaterialDesignIcons name="chevron-right" size={22} color={Colors.primary} />
+        </TouchableOpacity>
+
         {/* ── Specializations ── */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Specializations</Text>

@@ -2,7 +2,7 @@ export type UserRole = 'CUSTOMER' | 'STAFF' | 'ADMIN';
 
 export type StaffVerificationStatus =
   | 'PENDING'
-  | 'APPROVED'
+  | 'VERIFIED'
   | 'REJECTED'
   | null;
 

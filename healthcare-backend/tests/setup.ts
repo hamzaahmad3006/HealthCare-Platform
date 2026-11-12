@@ -6,8 +6,8 @@ process.env['DATABASE_URL'] = 'postgresql://test:test@localhost:5432/test';
 // REDIS_URL intentionally omitted — tests exercise the in-memory cache shim.
 process.env['JWT_PRIVATE_KEY'] = 'test-private-key';
 process.env['JWT_PUBLIC_KEY'] = 'test-public-key';
-process.env['JWT_ACCESS_TTL'] = '15m';
-process.env['JWT_REFRESH_TTL'] = '7d';
+process.env['JWT_ACCESS_TTL'] = '900';
+process.env['JWT_REFRESH_TTL'] = '604800';
 process.env['CLOUDINARY_CLOUD_NAME'] = 'test-cloud';
 process.env['CLOUDINARY_API_KEY'] = 'test-api-key';
 process.env['CLOUDINARY_API_SECRET'] = 'test-api-secret';

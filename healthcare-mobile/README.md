@@ -116,3 +116,31 @@ and cold-start notification taps. Doctor notifications open Doctor Requests;
 customer notifications open booking detail and refetch its state. Pull to refresh
 or revisit bookings to pick up changes from another device. Native push delivery
 requires your configured Firebase credentials and a running backend.
+
+## Password recovery and staff verification
+
+Use **Forgot password?** on Login to request the existing 15-minute reset code.
+The app always shows a generic delivery message. Reset accepts the newest
+6-digit code, a new password and its confirmation, then stores the returned
+session exactly like login. Admin accounts continue to use the web panel.
+Passwords and codes stay in form memory; they are not placed in navigation
+parameters or persistent storage.
+
+Invited staff can complete their profile, select city/zone and services, and
+upload PDF/JPEG/PNG verification documents up to 10 MB. Ambulance service
+requires a registration number. Pending or rejected staff see verification
+status, correction/upload actions, refresh, notifications and logout. Work
+screens require a completed, verified profile fetched from the server; status
+refreshes on app resume and work-screen focus. Backend work mutations enforce
+verification independently of the app.
+
+Profile corrections return changed verification details to pending review.
+Rejected staff can submit replacement documents; previous evidence remains in
+the admin audit trail. Documents and overall staff verification are separate
+admin decisions. Uploading documents does not automatically verify staff.
+
+Before release, verify real reset delivery, code expiry, token refresh/logout
+after recovery, Android/iOS document-picker permissions and uploads, admin
+review/resubmission, notification navigation, app resume and verification
+revocation on devices. Automated tests mock message delivery, storage-provider
+requests and native services; they never send real reset messages.
