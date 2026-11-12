@@ -1,3 +1,9 @@
+import { useCallback, useState } from 'react';
+import { useFocusEffect, useNavigation } from '@react-navigation/native';
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import type { StaffStackParamList } from '../../../navigation/types';
+import { api } from '../../../api/client';
+import { API } from '../../../api/endpoints';
 import type { JSX } from 'react';
 import {
   View,
@@ -35,6 +41,14 @@ export function StaffHome(): JSX.Element {
     available, togglingDuty, toggleDuty, staffCode, fullName,
   } = useStaffHome();
   const onDuty = available;
+  const navigation = useNavigation<NativeStackNavigationProp<StaffStackParamList>>();
+  const [doctorEligible, setDoctorEligible] = useState(false);
+  const [doctorError, setDoctorError] = useState(false);
+  const loadDoctorAccess = useCallback(async () => {
+    try { const { data } = await api.get<{ data: { canManageDoctorRequests: boolean } }>(API.STAFF.ME); setDoctorEligible(data.data.canManageDoctorRequests); setDoctorError(false); }
+    catch { setDoctorEligible(false); setDoctorError(true); }
+  }, []);
+  useFocusEffect(useCallback(() => { void loadDoctorAccess(); }, [loadDoctorAccess]));
 
   return (
     <SafeAreaView style={styles.root}>
@@ -69,6 +83,7 @@ export function StaffHome(): JSX.Element {
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
+        {doctorEligible ? <TouchableOpacity accessibilityRole="button" onPress={() => navigation.navigate('DoctorRequests')}><Text style={styles.greetingTitle}>Doctor requests</Text></TouchableOpacity> : doctorError ? <TouchableOpacity accessibilityRole="button" onPress={() => void loadDoctorAccess()}><Text>Retry doctor request access</Text></TouchableOpacity> : null}
         {/* ── Greeting ── */}
         <View style={styles.greeting}>
           <Text style={styles.greetingTitle}>Hello, {fullName.trim().split(/\s+/)[0]}</Text>

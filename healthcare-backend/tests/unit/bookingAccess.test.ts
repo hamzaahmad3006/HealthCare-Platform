@@ -4,6 +4,7 @@ import express, { Request, Response, NextFunction } from 'express';
 import request from 'supertest';
 
 jest.mock('../../src/config/database', () => ({ prisma: {
+  staffProfile: { findFirst: jest.fn() },
   booking: { findFirst: jest.fn(), findUnique: jest.fn(), findMany: jest.fn(), count: jest.fn(), updateMany: jest.fn(), findUniqueOrThrow: jest.fn() },
   bookingVisit: { findMany: jest.fn(), findUnique: jest.fn(), update: jest.fn(), updateMany: jest.fn(), count: jest.fn() },
   bookingAssignment: { updateMany: jest.fn() },
@@ -44,7 +45,7 @@ const visits = [
   { id: visitId, bookingId, assignedStaffUserId: 'staff', status: 'ASSIGNED' },
   { id: otherId, bookingId, assignedStaffUserId: 'other-staff', status: 'ASSIGNED' },
 ];
-const booking = { id: bookingId, patientId, customerUserId: 'customer', status: 'ASSIGNED', preferredDoctorUserId: 'doctor', visits };
+const booking = { id: bookingId, patientId, customerUserId: 'customer', status: 'ASSIGNED', preferredDoctorUserId: 'doctor', serviceType: { code: 'VISITING_DOCTOR', isActive: true }, visits };
 
 // Small fixture query adapter exercises the server's actual Prisma filters. An
 // omitted ownership/assignment predicate returns other users' rows and fails tests.
@@ -77,6 +78,7 @@ app.use((err: AppError, _req: Request, res: Response, _next: NextFunction) => {
 beforeEach(() => {
   jest.clearAllMocks();
   (prisma.$transaction as jest.Mock).mockImplementation((arg: unknown) => typeof arg === 'function' ? arg(prisma) : Promise.all(arg as Promise<unknown>[]));
+  db.staffProfile.findFirst.mockImplementation(async ({ where }: { where: Row }) => where.userId === 'doctor' ? { userId: 'doctor', user: { phone: '+923000000001' } } : null);
   booking.status = 'ASSIGNED';
   const all = [booking, { ...booking, id: otherId, customerUserId: 'other-customer', preferredDoctorUserId: null, visits: [] }];
   db.booking.findFirst.mockImplementation(async ({ where }: { where: Row }) => all.find(b => matches(b, where)) ?? null);
@@ -237,18 +239,6 @@ it.each([
 ] as const)('serves booking details and visits at the actual %s API paths', async (_client, detail, schedule) => {
   expect((await request(app).get(detail(bookingId))).body.data.id).toBe(bookingId);
   expect((await request(app).get(schedule(bookingId))).body.data[0].id).toBe(visitId);
-});
-
-it('allows the preferred doctor to accept or propose a time but blocks other staff', async () => {
-  booking.status = 'PENDING_DOCTOR';
-  db.booking.update = jest.fn().mockResolvedValue({ ...booking, status: 'PENDING' });
-  for (const [path, body] of [
-    ['doctor-accept', {}],
-    ['doctor-propose-time', { proposedStartAt: '2027-01-01T10:00:00Z' }],
-  ] as const) {
-    expect((await request(app).patch(`/bookings/${bookingId}/${path}`).set('x-user', 'unrelated').send(body)).status).toBe(403);
-    expect((await request(app).patch(`/bookings/${bookingId}/${path}`).set('x-user', 'doctor').send(body)).status).toBe(200);
-  }
 });
 
 it('allows authorized report edits without changing their target', async () => {

@@ -1,6 +1,9 @@
 import type { JSX } from 'react';
 import { useEffect, useState } from 'react';
-import { Alert } from 'react-native';
+import { Alert, View, Text, Pressable } from 'react-native';
+import { DoctorPicker } from '../../../components/DoctorPicker';
+import { Colors, Spacing } from '../../../constants/theme';
+import { localDateValue } from '../../../utils/doctorBooking';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RouteProp } from '@react-navigation/native';
@@ -15,17 +18,18 @@ import type { CustomerStackParamList } from '../../../navigation/types';
 type Nav = NativeStackNavigationProp<CustomerStackParamList, 'NewBooking'>;
 type NewBookingRouteProp = RouteProp<CustomerStackParamList, 'NewBooking'>;
 
-const todayISO = (): string => new Date().toISOString().slice(0, 10);
+const todayISO = (): string => localDateValue();
 
 export function NewBookingWizard(): JSX.Element {
   const navigation = useNavigation<Nav>();
   const route = useRoute<NewBookingRouteProp>();
   const preselectedServiceTypeId = route.params?.serviceTypeId;
-  const { packages, patients, addresses, loading, submitting, reload, createBooking } = useNewBooking();
+  const { packages, patients, addresses, loading, error, submitting, reload, createBooking } = useNewBooking();
 
   const [step, setStep] = useState(1);
   const [draft, setDraft] = useState<BookingDraft>({
     packageId: null, serviceTypeId: preselectedServiceTypeId ?? null, patientId: null, addressId: null, cityId: null,
+    preferredDoctorUserId: null, preferredDoctorName: '',
     date: todayISO(), time: '10:00', urgency: 'NORMAL', gender: '', instructions: '',
   });
 
@@ -55,13 +59,15 @@ export function NewBookingWizard(): JSX.Element {
     }
   };
 
+  if (error) return <View style={{ flex: 1, padding: Spacing.xl, backgroundColor: Colors.white }}><Text style={{ color: Colors.danger }} accessibilityRole="alert">{error}</Text><Pressable accessibilityRole="button" onPress={() => void reload()}><Text>Retry booking options</Text></Pressable></View>;
+
   if (step === 1) {
     return (
       <SelectPackage
         packages={visiblePackages}
         loading={loading}
         selectedId={draft.packageId}
-        onSelect={(pkg) => patch({ packageId: pkg.id, serviceTypeId: pkg.serviceTypeId })}
+        onSelect={(pkg) => patch({ packageId: pkg.id, serviceTypeId: pkg.serviceTypeId, preferredDoctorUserId: null, preferredDoctorName: '' })}
         onBack={() => navigation.goBack()}
         onNext={() => setStep(2)}
       />
@@ -77,7 +83,7 @@ export function NewBookingWizard(): JSX.Element {
         patientId={draft.patientId}
         addressId={draft.addressId}
         onSelectPatient={(id) => patch({ patientId: id })}
-        onSelectAddress={(a) => patch({ addressId: a.id, cityId: a.cityId })}
+        onSelectAddress={(a) => patch({ addressId: a.id, cityId: a.cityId, preferredDoctorUserId: null, preferredDoctorName: '' })}
         onAddPatient={() => navigation.navigate('MyPatients')}
         onAddAddress={() => navigation.navigate('Tabs', { screen: 'Account' })}
         onBack={() => setStep(1)}
@@ -89,6 +95,7 @@ export function NewBookingWizard(): JSX.Element {
   if (step === 3) {
     return (
       <Step3DateTime
+        doctorPicker={selectedPackage?.serviceTypeCode === 'VISITING_DOCTOR' && draft.cityId ? <DoctorPicker key={draft.cityId} cityId={draft.cityId} selectedId={draft.preferredDoctorUserId} onSelect={doctor => patch({ preferredDoctorUserId: doctor?.userId ?? null, preferredDoctorName: doctor?.user.fullName ?? '' })} /> : undefined}
         date={draft.date}
         time={draft.time}
         urgency={draft.urgency}
@@ -111,6 +118,7 @@ export function NewBookingWizard(): JSX.Element {
       onBack={() => setStep(3)}
       onConfirm={handleConfirm}
       summary={{
+        doctor: selectedPackage?.serviceTypeCode === 'VISITING_DOCTOR' ? draft.preferredDoctorName || 'Admin will assign a doctor' : undefined,
         service: selectedPackage?.serviceTypeName ?? '—',
         package: selectedPackage
           ? `${selectedPackage.name} · ${selectedPackage.visitCount} visits / ${selectedPackage.durationDays} days`

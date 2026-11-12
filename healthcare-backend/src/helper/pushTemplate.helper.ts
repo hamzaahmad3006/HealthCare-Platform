@@ -15,6 +15,11 @@ export interface PushContent {
 type TemplateData = Record<string, string | number | undefined>;
 
 const PUSH_TEMPLATES: Record<TemplateCode, (data: TemplateData) => PushContent> = {
+  DOCTOR_BOOKING_REQUESTED: d => ({ title: 'New doctor request', body: `Booking #${d['bookingNumber']} is waiting for your response.` }),
+  DOCTOR_ACCEPTED: d => ({ title: 'Doctor accepted', body: `Booking #${d['bookingNumber']} is awaiting admin confirmation.` }),
+  DOCTOR_TIME_PROPOSED: d => ({ title: 'New time proposed', body: `Your doctor proposed ${d['proposedDate']}. Tap to respond.` }),
+  DOCTOR_TIME_ACCEPTED: d => ({ title: 'Time proposal accepted', body: `Booking #${d['bookingNumber']} is awaiting admin confirmation.` }),
+  DOCTOR_TIME_DECLINED: d => ({ title: 'Time proposal declined', body: `Booking #${d['bookingNumber']} was cancelled by the customer.` }),
   BOOKING_RECEIVED: (d) => ({
     title: 'Booking received',
     body: `We received your booking #${d['bookingNumber']}. We'll confirm it shortly.`,

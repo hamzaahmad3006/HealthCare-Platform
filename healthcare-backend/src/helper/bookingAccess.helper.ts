@@ -1,29 +1,35 @@
 import { Prisma } from '@prisma/client';
+import { findEligibleDoctor } from './doctorEligibility.helper';
 import { prisma } from '../config/database';
 import { ForbiddenError, NotFoundError, BusinessError } from '../utils/stateMachine';
 
 export interface AccessUser { sub: string; role: string }
 
 // Visit assignments are authoritative; assignment history may include replaced staff.
-export function bookingAccessWhere(user: AccessUser, allowDoctorRequest = true): Prisma.BookingWhereInput {
+export function bookingAccessWhere(user: AccessUser, allowDoctorRequest = true, cityId?: string): Prisma.BookingWhereInput {
   if (user.role === 'ADMIN') return {};
   if (user.role === 'CUSTOMER') return { customerUserId: user.sub };
   if (user.role === 'STAFF') return {
     OR: [
       { visits: { some: { assignedStaffUserId: user.sub } } },
-      ...(allowDoctorRequest ? [doctorRequestWhere(user.sub)] : []),
+      ...(allowDoctorRequest ? [doctorRequestWhere(user.sub, cityId)] : []),
     ],
   };
   throw new ForbiddenError('FORBIDDEN');
 }
 
-export function doctorRequestWhere(userId: string): Prisma.BookingWhereInput {
-  return { preferredDoctorUserId: userId, status: { in: ['PENDING_DOCTOR', 'TIME_PROPOSED'] } };
+export function doctorRequestWhere(userId: string, cityId?: string): Prisma.BookingWhereInput {
+  return { ...(cityId ? { cityId } : {}), serviceType: { code: 'VISITING_DOCTOR', isActive: true }, preferredDoctorUserId: userId, status: { in: ['PENDING_DOCTOR', 'TIME_PROPOSED'] } };
+}
+
+export async function authorizedBookingWhere(user: AccessUser, allowDoctorRequest = true): Promise<Prisma.BookingWhereInput> {
+  const doctor = user.role === 'STAFF' && allowDoctorRequest ? await findEligibleDoctor(prisma, user.sub) : null;
+  return bookingAccessWhere(user, Boolean(doctor), doctor?.cityId ?? undefined);
 }
 
 export async function assertBookingAccess(user: AccessUser, bookingId: string, allowDoctorRequest = true): Promise<void> {
   const booking = await prisma.booking.findFirst({
-    where: { id: bookingId, AND: [bookingAccessWhere(user, allowDoctorRequest)] },
+    where: { id: bookingId, AND: [await authorizedBookingWhere(user, allowDoctorRequest)] },
     select: { id: true },
   });
   if (!booking) throw new ForbiddenError('FORBIDDEN');
@@ -31,11 +37,11 @@ export async function assertBookingAccess(user: AccessUser, bookingId: string, a
 
 // Preferred doctors may read the request schedule before assignment. Otherwise
 // staff may read only their own visits, even when another visit shares a booking.
-export function bookingVisitAccessWhere(user: AccessUser): Prisma.BookingVisitWhereInput {
+export function bookingVisitAccessWhere(user: AccessUser, allowDoctorRequest = true, cityId?: string): Prisma.BookingVisitWhereInput {
   if (user.role !== 'STAFF') return {};
   return { OR: [
     { assignedStaffUserId: user.sub },
-    { booking: doctorRequestWhere(user.sub) },
+    ...(allowDoctorRequest ? [{ booking: doctorRequestWhere(user.sub, cityId) }] : []),
   ] };
 }
 

@@ -19,6 +19,8 @@ import { pickParam } from '../helper/request.helper';
 // them). Staff fills the rest themselves via PATCH /staff/me/profile after
 // first login. Email is required because the invite is the only handoff the
 // admin makes; WhatsApp is best-effort fallback.
+import { eligibleDoctorWhere, findEligibleDoctor } from '../helper/doctorEligibility.helper';
+
 const CreateStaffSchema = z.object({
   fullName: z.string().min(2).max(150),
   phone: z.string().min(10).max(20),
@@ -486,7 +488,7 @@ export const staffController = {
         },
       });
       if (!profile) throw new NotFoundError('PROFILE_NOT_FOUND');
-      success(res, profile);
+      success(res, { ...profile, canManageDoctorRequests: Boolean(await findEligibleDoctor(prisma, req.user.sub)) });
     } catch (err) { next(err); }
   },
 
@@ -562,16 +564,7 @@ export const staffController = {
       const { cityId } = z.object({ cityId: z.string().uuid().optional() }).parse(req.query);
 
       const doctors = await prisma.staffProfile.findMany({
-        where: {
-          verificationStatus: 'VERIFIED',
-          isAvailable: true,
-          ...(cityId ? { cityId } : {}),
-          serviceTypes: {
-            some: {
-              serviceType: { code: 'VISITING_DOCTOR' },
-            },
-          },
-        },
+        where: eligibleDoctorWhere(cityId, true),
         select: {
           userId: true,
           staffCode: true,

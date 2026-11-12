@@ -1,8 +1,10 @@
 import type { JSX } from 'react';
 import {
   View,
+  Alert,
   Text,
   ScrollView,
+  RefreshControl,
   TouchableOpacity,
   TextInput,
   StyleSheet,
@@ -33,7 +35,7 @@ const STATUS_COLORS: Record<BookingStatus, string> = {
 
 export function BookingDetail({ navigation, route }: Props): JSX.Element {
   const {
-    booking, loading, cancelling, canCancel,
+    booking, loading, error, reload, actingTime, handleTimeResponse, cancelling, canCancel,
     cancelModalVisible, cancelReason, setCancelReason,
     openCancelModal, closeCancelModal, confirmCancel,
   } = useBookingDetail(navigation, route);
@@ -46,10 +48,10 @@ export function BookingDetail({ navigation, route }: Props): JSX.Element {
     );
   }
 
-  if (!booking) {
+  if (error || !booking) {
     return (
       <View style={styles.centered}>
-        <Text style={styles.notFound}>Booking not found.</Text>
+        <Text style={styles.notFound}>{error || 'Booking not found.'}</Text><TouchableOpacity accessibilityRole="button" onPress={() => void reload()}><Text>Retry booking</Text></TouchableOpacity>
       </View>
     );
   }
@@ -57,7 +59,7 @@ export function BookingDetail({ navigation, route }: Props): JSX.Element {
   const color = STATUS_COLORS[booking.status];
 
   return (
-    <ScrollView
+    <ScrollView refreshControl={<RefreshControl refreshing={loading} onRefresh={() => void reload()} />}
       style={styles.scroll}
       contentContainerStyle={styles.content}
       showsVerticalScrollIndicator={false}
@@ -69,6 +71,14 @@ export function BookingDetail({ navigation, route }: Props): JSX.Element {
         </View>
         <Text style={styles.price}>{booking.currency} {Number(booking.totalPrice).toLocaleString()}</Text>
       </View>
+
+      {booking.status === 'PENDING_DOCTOR' ? <Section title="Waiting for your doctor"><Text style={styles.sub}>Your selected doctor will accept this request or propose another time. Admin confirmation follows.</Text></Section> : null}
+      {booking.status === 'PENDING' && booking.preferredDoctorUserId ? <Section title="Awaiting admin confirmation"><Text style={styles.sub}>The agreed time is waiting for admin confirmation. Staff assignment follows confirmation.</Text></Section> : null}
+      {booking.status === 'TIME_PROPOSED' && booking.proposedStartAt ? <Section title="Doctor proposed another time">
+        <Text style={styles.value}>{new Date(booking.proposedStartAt).toLocaleString()}</Text>
+        <TouchableOpacity accessibilityRole="button" style={styles.cancelBtn} disabled={actingTime || cancelling || new Date(booking.proposedStartAt).getTime() <= Date.now()} onPress={() => void handleTimeResponse(true)}><Text>{actingTime ? 'Saving…' : 'Accept proposed time'}</Text></TouchableOpacity>
+        <TouchableOpacity accessibilityRole="button" style={styles.cancelBtn} disabled={actingTime || cancelling} onPress={() => Alert.alert('Decline proposed time?', 'This will cancel the booking.', [{ text: 'Keep booking', style: 'cancel' }, { text: 'Decline and cancel', style: 'destructive', onPress: () => void handleTimeResponse(false) }])}><Text>Decline proposed time</Text></TouchableOpacity>
+      </Section> : null}
 
       {/* Service */}
       <Section title="Service">
@@ -118,6 +128,7 @@ export function BookingDetail({ navigation, route }: Props): JSX.Element {
       {canCancel && (
         <TouchableOpacity
           style={styles.cancelBtn}
+          disabled={actingTime || cancelling}
           onPress={openCancelModal}
           activeOpacity={0.8}
         >

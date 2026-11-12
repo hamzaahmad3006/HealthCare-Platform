@@ -1,4 +1,5 @@
 export interface BookingSummary {
+  doctor?: string;
   service: string;
   package: string;
   price: string;

@@ -10,16 +10,24 @@ export interface NotificationRouteData {
   bookingVisitId?: string | null;
 }
 
+let pending: { role: UserRole; data: NotificationRouteData } | null = null;
+
+export function flushPendingNotification(role: UserRole | undefined): void {
+  const next = pending; pending = null;
+  if (next && next.role === role) navigateToNotification(next.role, next.data);
+}
+
 // Resolves a notification to a destination and navigates there via the root
 // navigation ref. Safe to call from outside the React tree (push tap in
 // background/terminated) and from inside a screen (in-app row tap). No-ops if
-// navigation isn't ready yet or the role has no sensible target.
+// the role has no sensible target; cold-start taps wait for navigation readiness.
 //
 // Mobile can route to a specific VisitDetail (a screen that exists here but not
 // on web, where staff notifications only reach the /staff/visits list) — this
 // table is intentionally richer than the web buildLink() equivalent.
 export function navigateToNotification(role: UserRole, data: NotificationRouteData): void {
-  if (!navigationRef.isReady()) return;
+  if (role !== 'CUSTOMER' && role !== 'STAFF') return;
+  if (!navigationRef.isReady()) { pending = { role, data }; return; }
 
   const bookingId = data.bookingId || undefined;
   const bookingVisitId = data.bookingVisitId || undefined;
@@ -30,7 +38,7 @@ export function navigateToNotification(role: UserRole, data: NotificationRouteDa
       return;
     }
     if (bookingId) {
-      navigationRef.navigate('Customer', { screen: 'BookingDetail', params: { id: bookingId } });
+      navigationRef.navigate('Customer', { screen: 'BookingDetail', params: { id: bookingId, refreshKey: Date.now() } });
       return;
     }
     navigationRef.navigate('Customer', { screen: 'Tabs', params: { screen: 'Bookings' } });
@@ -38,6 +46,10 @@ export function navigateToNotification(role: UserRole, data: NotificationRouteDa
   }
 
   if (role === 'STAFF') {
+    if (data.templateCode.startsWith('DOCTOR_')) {
+      navigationRef.navigate('Staff', { screen: 'DoctorRequests', params: { refreshKey: Date.now() } });
+      return;
+    }
     if (bookingVisitId) {
       navigationRef.navigate('Staff', { screen: 'VisitDetail', params: { id: bookingVisitId } });
       return;

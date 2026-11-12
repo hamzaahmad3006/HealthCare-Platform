@@ -94,3 +94,25 @@ area and push messaging. Its App test renders the real providers/navigators;
 these mocks do not establish that native services work on a device. Verify
 customer/staff navigation, API connectivity, uploads, location and push on the
 target devices before a release.
+
+## Doctor bookings
+
+For a Visiting Doctor package, select the patient and service address first.
+The optional doctor picker then lists available, verified doctors in that city.
+Skipping the picker retains the existing admin-assignment flow. Selecting a
+doctor creates `PENDING_DOCTOR`; a verified visiting doctor can open **Doctor
+requests** from the staff Home screen and accept or propose a future local time.
+
+A proposal becomes `TIME_PROPOSED`. The owning customer can accept it in booking
+detail, moving the booking to `PENDING` for admin confirmation, or decline and
+cancel it. Doctor acceptance also goes to `PENDING`, not directly to confirmed.
+The backend enforces eligibility, ownership and state transitions independently
+of these screens. Accepted proposals replace only an unstarted, undocumented
+schedule; clinical records cannot be overwritten by doctor replies.
+
+On a device, verify selection, doctor acceptance, proposal acceptance/decline,
+repeated taps, expired proposals, retry after network failure and both foreground
+and cold-start notification taps. Doctor notifications open Doctor Requests;
+customer notifications open booking detail and refetch its state. Pull to refresh
+or revisit bookings to pick up changes from another device. Native push delivery
+requires your configured Firebase credentials and a running backend.

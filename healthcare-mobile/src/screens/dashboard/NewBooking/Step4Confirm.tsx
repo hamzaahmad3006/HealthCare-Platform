@@ -37,6 +37,7 @@ export function Step4Confirm({ summary, onBack, onConfirm, submitting = false }:
         <View style={styles.summaryCard}>
           <SummaryRow label="Service"      value={summary.service} />
           <SummaryRow label="Package"      value={summary.package} />
+          {summary.doctor ? <SummaryRow label="Doctor" value={summary.doctor} /> : null}
           <SummaryRow label="Patient"      value={summary.patient} />
           <SummaryRow label="Address"      value={summary.address} />
           <SummaryRow label="Date"         value={summary.date} />

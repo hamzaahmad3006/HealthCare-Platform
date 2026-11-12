@@ -34,7 +34,7 @@ function buildNotificationLink(role, templateCode, bookingId) {
     return templateCode === 'REPORT_AVAILABLE' ? '/my-reports' : '/my-bookings/' + bookingId;
   }
   if (role === 'ADMIN') return '/admin/bookings/' + bookingId;
-  if (role === 'STAFF') return '/staff/visits';
+  if (role === 'STAFF') return templateCode.startsWith('DOCTOR_') ? '/staff/doctor-requests' : '/staff/visits';
   return null;
 }
 

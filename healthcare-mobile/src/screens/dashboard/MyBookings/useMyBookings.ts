@@ -1,8 +1,8 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useState } from 'react';
 import { Alert } from 'react-native';
 import { api, extractApiError } from '../../../api/client';
 import { API } from '../../../api/endpoints';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import type { CustomerTabNavigationProp } from '../../../navigation/types';
 import type { Booking } from '../../../types/booking.types';
 
@@ -26,7 +26,7 @@ export function useMyBookings() {
     }
   }, []);
 
-  useEffect(() => { fetchBookings(); }, [fetchBookings]);
+  useFocusEffect(useCallback(() => { void fetchBookings(); }, [fetchBookings]));
 
   const onRefresh = () => {
     setRefreshing(true);
