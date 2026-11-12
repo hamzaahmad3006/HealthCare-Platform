@@ -1,22 +1,22 @@
+import type { MaterialIconName } from '../../../types/icons.types';
 import { useCallback, useEffect, useState } from 'react';
 import { useNavigation } from '@react-navigation/native';
-import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { api } from '../../../api/client';
 import { API } from '../../../api/endpoints';
 import { useAppSelector } from '../../../store';
-import type { CustomerStackParamList } from '../../../navigation/types';
+import type { CustomerTabNavigationProp } from '../../../navigation/types';
 import type { Booking } from '../../../types/booking.types';
 import type { ApiServiceType } from '../../../types/useNewBooking.types';
 
-type HomeNavProp = NativeStackNavigationProp<CustomerStackParamList>;
+type HomeNavProp = CustomerTabNavigationProp<'Home'>;
 
 const UPCOMING_STATUSES = ['PENDING', 'CONFIRMED', 'ASSIGNED', 'IN_PROGRESS', 'TIME_PROPOSED', 'PENDING_DOCTOR'];
 
 // Backend seeds these fixed codes (prisma/seed.ts) — map each to an icon since
 // the ServiceType model itself has no icon field.
-const SERVICE_ICON_BY_CODE: Record<string, string> = {
+const SERVICE_ICON_BY_CODE: Record<string, MaterialIconName> = {
   NURSING: 'bandage',
-  CAREGIVER: 'human-handshelp',
+  CAREGIVER: 'hand-heart',
   LAB_SAMPLING: 'flask',
   VISITING_DOCTOR: 'stethoscope',
   PHYSIOTHERAPY: 'human-wheelchair',
@@ -27,7 +27,7 @@ const DEFAULT_SERVICE_ICON = 'medical-bag';
 export interface ServiceOption {
   id: string;
   name: string;
-  icon: string;
+  icon: MaterialIconName;
 }
 
 function greetingFor(hour: number): string {

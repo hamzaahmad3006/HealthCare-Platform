@@ -1,3 +1,4 @@
+import type { JSX } from 'react';
 import {
   View, Text, ScrollView, TouchableOpacity, TextInput,
   StyleSheet, StatusBar, SafeAreaView,

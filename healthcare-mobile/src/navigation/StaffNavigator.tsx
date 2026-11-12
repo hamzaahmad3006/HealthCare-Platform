@@ -1,3 +1,4 @@
+import type { JSX } from 'react';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { StaffTabs } from './StaffTabs';
 import { VisitDetail } from '../screens/staff/VisitDetail/VisitDetail';

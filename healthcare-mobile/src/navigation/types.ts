@@ -1,5 +1,7 @@
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
-import type { NavigatorScreenParams } from '@react-navigation/native';
+import type { BottomTabScreenProps, BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import type { CompositeScreenProps, CompositeNavigationProp, NavigatorScreenParams } from '@react-navigation/native';
 
 export type AuthStackParamList = {
   Splash: undefined;
@@ -44,5 +46,12 @@ export type RootStackParamList = {
 };
 
 export type LoginScreenProps = NativeStackScreenProps<AuthStackParamList, 'Login'>;
-export type MyBookingsScreenProps = NativeStackScreenProps<CustomerStackParamList, 'MyBookings'>;
+export type CustomerTabNavigationProp<Route extends keyof CustomerTabParamList> = CompositeNavigationProp<
+  BottomTabNavigationProp<CustomerTabParamList, Route>,
+  NativeStackNavigationProp<CustomerStackParamList, 'Tabs'>
+>;
+export type MyBookingsScreenProps = CompositeScreenProps<
+  BottomTabScreenProps<CustomerTabParamList, 'Bookings'>,
+  NativeStackScreenProps<CustomerStackParamList, 'Tabs'>
+>;
 export type BookingDetailScreenProps = NativeStackScreenProps<CustomerStackParamList, 'BookingDetail'>;

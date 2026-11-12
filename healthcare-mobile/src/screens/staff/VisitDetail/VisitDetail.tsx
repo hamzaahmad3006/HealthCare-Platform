@@ -1,3 +1,5 @@
+import type { MaterialIconName } from '../../../types/icons.types';
+import type { JSX } from 'react';
 import {
   View,
   Text,
@@ -236,7 +238,7 @@ function PrimaryAction({
   onCheckOut: () => void;
   onComplete: () => void;
 }) {
-  let icon = 'car';
+  let icon: MaterialIconName = 'car';
   let label = 'Mark En Route';
   let onPress = onEnRoute;
 

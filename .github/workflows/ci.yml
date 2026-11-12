@@ -59,3 +59,28 @@ jobs:
 
       - name: Build
         run: npm run build
+
+  mobile:
+    name: Mobile (typecheck + tests)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./healthcare-mobile
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: healthcare-mobile/package-lock.json
+
+      - name: Install (generates safe development API configuration)
+        run: npm ci
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Unit tests
+        run: npm test -- --ci --runInBand

@@ -1,97 +1,96 @@
-This is a new [**React Native**](https://reactnative.dev) project, bootstrapped using [`@react-native-community/cli`](https://github.com/react-native-community/cli).
+# HomeHealth mobile
 
-# Getting Started
+React Native 0.85 / React 19 customer and staff app. Run commands below from
+`healthcare-mobile/` in the existing checkout.
 
-> **Note**: Make sure you have completed the [Set Up Your Environment](https://reactnative.dev/docs/set-up-your-environment) guide before proceeding.
+## Fresh checkout
 
-## Step 1: Start Metro
-
-First, you will need to run **Metro**, the JavaScript build tool for React Native.
-
-To start the Metro dev server, run the following command from the root of your React Native project:
+Use Node **22.11 or newer** and npm (the repository includes `package-lock.json`).
 
 ```sh
-# Using npm
+npm ci
+npm run typecheck
+npm test -- --ci --runInBand
 npm start
-
-# OR using Yarn
-yarn start
 ```
 
-## Step 2: Build and run your app
+`npm ci` generates the ignored `src/api/host.ts` using the postinstall script.
+Typechecking, Metro, Android and iOS also regenerate it, so a missing generated
+file does not require building Android first. `npm run config:dev` refreshes it
+explicitly. Generation is deterministic and does not scan network interfaces.
+Do not commit generated configuration or edit it by hand.
 
-With Metro running, open a new terminal window/pane from the root of your React Native project, and use one of the following commands to build and run your Android or iOS app:
+The CI mobile job runs a frozen install, configuration generation, TypeScript
+and Jest on Node 22. It does not build or test a native application.
 
-### Android
+## Development API
+
+The backend uses `/api/v1` on port 3000. Defaults are:
+
+- Android emulator: `http://10.0.2.2:3000/api/v1` (emulator alias for the host).
+- iOS simulator: `http://localhost:3000/api/v1`.
+
+For a physical device or remote backend, set **MOBILE_DEV_API_URL** to the full
+reachable API base URL, including `/api/v1`, in the shell running Metro and the
+build. For example, with a backend on your local network:
 
 ```sh
-# Using npm
+MOBILE_DEV_API_URL=http://192.168.1.10:3000/api/v1 npm start -- --reset-cache
+```
+
+Use your backend machine's actual address. A physical device's `localhost` is
+the device itself. After changing environment variables, restart Metro with
+`--reset-cache`; a previously bundled app keeps the old configuration.
+Environment variables come from the process/build environment; `.env` files
+are not loaded automatically. URLs cannot contain embedded credentials, query
+parameters or fragments. Do not put tokens in these values.
+
+## Production API
+
+Set **MOBILE_API_URL** in the release build environment to your real deployed
+**HTTPS API base URL**, including the API path. There is deliberately no
+production default. This repository does not supply a production hostname.
+
+```sh
+# MOBILE_API_URL must already be exported by your shell or build system.
+npm run config:production
+```
+
+Metro/Babel generate configuration for direct native/IDE builds too. Release
+Babel transforms fail when `MOBILE_API_URL` is missing or invalid; runtime
+configuration also guards against a missing production URL. Production never
+falls back to an emulator/development address. Keep the variable exported for
+the entire release build; generation alone does not export it to later commands.
+
+## Native development and verification
+
+Android requires **JDK 17**, Android SDK **36**, Build Tools **36.0.0**, NDK
+**27.1.12297006**, and a device/emulator. Set `JAVA_HOME` and `ANDROID_HOME`
+(or use an ignored `android/local.properties` for the SDK). Firebase's native
+configuration must match your application; supply it through your normal local
+or secure build configuration, without committing credentials.
+
+```sh
 npm run android
-
-# OR using Yarn
-yarn android
+# Build a debug APK without requiring an attached device:
+cd android
+./gradlew :app:assembleDebug --no-daemon --max-workers=2
 ```
 
-### iOS
+On macOS, install Xcode and CocoaPods, run `bundle install` followed by
+`cd ios && bundle exec pod install`, then `npm run ios` from the mobile root.
+Simulator and physical-device verification are separate from TypeScript/Jest.
 
-For iOS, remember to install CocoaPods dependencies (this only needs to be run on first clone or after updating native deps).
-
-The first time you create a new project, run the Ruby bundler to install CocoaPods itself:
+To check JavaScript and asset bundling without an Android SDK:
 
 ```sh
-bundle install
+npx react-native bundle --platform android --dev true --entry-file index.js \
+  --bundle-output /tmp/homehealth-mobile/index.android.bundle \
+  --assets-dest /tmp/homehealth-mobile/assets --max-workers 2
 ```
 
-Then, and every time you update your native dependencies, run:
-
-```sh
-bundle exec pod install
-```
-
-For more information, please visit [CocoaPods Getting Started guide](https://guides.cocoapods.org/using/getting-started.html).
-
-```sh
-# Using npm
-npm run ios
-
-# OR using Yarn
-yarn ios
-```
-
-If everything is set up correctly, you should see your new app running in the Android Emulator, iOS Simulator, or your connected device.
-
-This is one way to run your app — you can also build it directly from Android Studio or Xcode.
-
-## Step 3: Modify your app
-
-Now that you have successfully run the app, let's make changes!
-
-Open `App.tsx` in your text editor of choice and make some changes. When you save, your app will automatically update and reflect these changes — this is powered by [Fast Refresh](https://reactnative.dev/docs/fast-refresh).
-
-When you want to forcefully reload, for example to reset the state of your app, you can perform a full reload:
-
-- **Android**: Press the <kbd>R</kbd> key twice or select **"Reload"** from the **Dev Menu**, accessed via <kbd>Ctrl</kbd> + <kbd>M</kbd> (Windows/Linux) or <kbd>Cmd ⌘</kbd> + <kbd>M</kbd> (macOS).
-- **iOS**: Press <kbd>R</kbd> in iOS Simulator.
-
-## Congratulations! :tada:
-
-You've successfully run and modified your React Native App. :partying_face:
-
-### Now what?
-
-- If you want to add this new React Native code to an existing application, check out the [Integration guide](https://reactnative.dev/docs/integration-with-existing-apps).
-- If you're curious to learn more about React Native, check out the [docs](https://reactnative.dev/docs/getting-started).
-
-# Troubleshooting
-
-If you're having issues getting the above steps to work, see the [Troubleshooting](https://reactnative.dev/docs/troubleshooting) page.
-
-# Learn More
-
-To learn more about React Native, take a look at the following resources:
-
-- [React Native Website](https://reactnative.dev) - learn more about React Native.
-- [Getting Started](https://reactnative.dev/docs/environment-setup) - an **overview** of React Native and how setup your environment.
-- [Learn the Basics](https://reactnative.dev/docs/getting-started) - a **guided tour** of the React Native **basics**.
-- [Blog](https://reactnative.dev/blog) - read the latest official React Native **Blog** posts.
-- [`@facebook/react-native`](https://github.com/facebook/react-native) - the Open Source; GitHub **repository** for React Native.
+Jest uses native-service mocks for storage, document picking, location, safe
+area and push messaging. Its App test renders the real providers/navigators;
+these mocks do not establish that native services work on a device. Verify
+customer/staff navigation, API connectivity, uploads, location and push on the
+target devices before a release.
