@@ -5,6 +5,7 @@ export interface PackageOption {
   id: string;
   serviceTypeId: string;
   serviceTypeName: string;
+  serviceTypeCode: string;
   name: string;
   packageType: string;
   durationDays: number;
@@ -29,6 +30,8 @@ export interface AddressOption {
 }
 
 export interface BookingDraft {
+  preferredDoctorUserId?: string | null;
+  preferredDoctorName?: string;
   packageId: string | null;
   serviceTypeId: string | null;
   patientId: string | null;

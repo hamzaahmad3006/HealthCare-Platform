@@ -17,6 +17,8 @@ export interface Booking {
   package: { name: string };
   patient: { id: string; fullName: string } | null;
   requestedStartAt: string;
+  proposedStartAt: string | null;
+  preferredDoctorUserId: string | null;
   urgencyLevel: string;
   // Prisma serialises Decimal as a string on some endpoints (GET /bookings/:id)
   // and as a number on others (GET /bookings) — accept both, convert at render time.

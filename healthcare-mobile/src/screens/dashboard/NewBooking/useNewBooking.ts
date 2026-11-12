@@ -6,6 +6,8 @@ import type {
   ApiServiceType, ApiPackage, ApiPatient, ApiAddress,
 } from '../../../types/useNewBooking.types';
 
+import { newBookingPayload } from '../../../utils/doctorBooking';
+
 // Monotonic-ish unique key for idempotency (RN has no crypto.randomUUID guarantee).
 let seq = 0;
 function idempotencyKey(): string {
@@ -32,11 +34,13 @@ export function useNewBooking() {
         api.get<{ success: true; data: ApiAddress[] }>(API.ADDRESSES.LIST),
       ]);
 
+      const svcCodeById = new Map(svcRes.data.data.map(s => [s.id, s.code]));
       const svcNameById = new Map(svcRes.data.data.map((s) => [s.id, s.name]));
       setPackages(
         pkgRes.data.data.map((p) => ({
           id: p.id,
           serviceTypeId: p.serviceTypeId,
+          serviceTypeCode: svcCodeById.get(p.serviceTypeId) ?? '',
           serviceTypeName: svcNameById.get(p.serviceTypeId) ?? 'Service',
           name: p.name,
           packageType: p.packageType,
@@ -74,26 +78,8 @@ export function useNewBooking() {
 
   // Returns the new booking id, or throws with a user-facing message.
   const createBooking = async (draft: BookingDraft): Promise<string> => {
-    if (!draft.packageId || !draft.serviceTypeId || !draft.patientId || !draft.addressId || !draft.cityId) {
-      throw new Error('Please complete all steps before confirming.');
-    }
-    const startsAt = new Date(`${draft.date}T${draft.time}:00`);
-    if (Number.isNaN(startsAt.getTime())) {
-      throw new Error('Please enter a valid date and time.');
-    }
-
-    const payload: Record<string, unknown> = {
-      patientId: draft.patientId,
-      serviceTypeId: draft.serviceTypeId,
-      packageId: draft.packageId,
-      addressId: draft.addressId,
-      cityId: draft.cityId,
-      requestedStartAt: startsAt.toISOString(),
-      urgencyLevel: draft.urgency,
-      source: 'MOBILE',
-    };
-    if (draft.gender) payload.preferredStaffGender = draft.gender;
-    if (draft.instructions.trim()) payload.specialInstructions = draft.instructions.trim();
+    const pkg = packages.find(p => p.id === draft.packageId);
+    const payload = newBookingPayload(draft, pkg?.serviceTypeCode === 'VISITING_DOCTOR');
 
     setSubmitting(true);
     try {

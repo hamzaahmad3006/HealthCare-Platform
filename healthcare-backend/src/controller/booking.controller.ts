@@ -18,6 +18,9 @@ import { pickParam } from '../helper/request.helper';
 import { bookingAccessWhere, doctorRequestWhere, assertBookingAccess, bookingVisitAccessWhere } from '../helper/bookingAccess.helper';
 import { rescheduleBooking, canRescheduleBooking, cancelPlannedVisits } from '../helper/reschedule.helper';
 
+import { assertEligibleDoctor, findEligibleDoctor } from '../helper/doctorEligibility.helper';
+import { actOnDoctorBooking } from '../helper/doctorBooking.helper';
+
 const FutureStartSchema = z.string().datetime({ offset: true }).refine(value => new Date(value).getTime() > Date.now(), 'Choose a future date and time');
 
 const CreateBookingSchema = z.object({
@@ -56,6 +59,7 @@ export const bookingController = {
     try {
       if (!req.user) throw new UnauthorizedError('UNAUTHENTICATED');
 
+      if (!['CUSTOMER', 'ADMIN'].includes(req.user.role)) throw new ForbiddenError('FORBIDDEN');
       const data = CreateBookingSchema.parse(req.body);
       const customerId = req.user.sub;
 
@@ -71,6 +75,8 @@ export const bookingController = {
         if (!address || address.customerUserId !== customerId) {
           throw new ForbiddenError('ADDRESS_NOT_OWNED', 'Address does not belong to this customer');
         }
+
+        if (address.cityId !== data.cityId) throw new BusinessError('ADDRESS_CITY_MISMATCH');
 
         const pkg = await tx.package.findUniqueOrThrow({ where: { id: data.packageId } });
         if (!pkg.isActive) throw new BusinessError('PACKAGE_INACTIVE', 'This package is no longer available');
@@ -90,6 +96,10 @@ export const bookingController = {
         // Determine status: if a specific doctor is requested, await their acceptance
         const serviceType = await tx.serviceType.findUnique({ where: { id: data.serviceTypeId }, select: { code: true } });
         const isDoctorService = serviceType?.code === 'VISITING_DOCTOR' && Boolean(data.preferredDoctorUserId);
+
+        if (data.preferredDoctorUserId && !isDoctorService) throw new BusinessError('DOCTOR_SERVICE_REQUIRED');
+        if (isDoctorService && new Date(data.requestedStartAt).getTime() <= Date.now()) throw new BusinessError('START_DATE_NOT_FUTURE');
+        const selectedDoctor = isDoctorService ? await assertEligibleDoctor(tx, data.preferredDoctorUserId!, data.cityId, true) : null;
 
         const newBooking = await tx.booking.create({
           data: {
@@ -135,13 +145,23 @@ export const bookingController = {
           },
         });
 
-        return { booking: newBooking, notifLogId: notifLog.id };
+        let doctorNotifLogId: string | undefined;
+        if (selectedDoctor) {
+          const templateData = { bookingNumber: newBooking.bookingNumber };
+          const doctorLog = await tx.notificationLog.create({ data: {
+            userId: selectedDoctor.userId, bookingId: newBooking.id, templateCode: 'DOCTOR_BOOKING_REQUESTED',
+            recipient: selectedDoctor.user.phone, renderedContent: renderTemplate('DOCTOR_BOOKING_REQUESTED', templateData), templateData, status: 'PENDING',
+          } });
+          doctorNotifLogId = doctorLog.id;
+        }
+        return { booking: newBooking, notifLogId: notifLog.id, doctorNotifLogId };
       }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable, timeout: 8000 });
 
       await notificationQueue
         .add('send', { notificationLogId: booking.notifLogId })
         .catch(() => null);
 
+      if (booking.doctorNotifLogId) await notificationQueue.add('send', { notificationLogId: booking.doctorNotifLogId }).catch(() => null);
       success(res, booking.booking, 201);
     } catch (err) { next(err); }
   },
@@ -153,8 +173,11 @@ export const bookingController = {
       const { status, cityId, serviceTypeId, fromDate, toDate, doctorRequestsOnly, page, limit } =
         BookingListQuerySchema.parse(req.query);
 
+      const eligibleDoctor = req.user.role === 'STAFF' ? await findEligibleDoctor(prisma, req.user.sub) : null;
+      const doctorEligible = Boolean(eligibleDoctor);
+      if (doctorRequestsOnly && (!doctorEligible || req.user.role !== 'STAFF')) throw new ForbiddenError('DOCTOR_NOT_ELIGIBLE');
       const where: Prisma.BookingWhereInput = {
-        AND: [bookingAccessWhere(req.user), ...(doctorRequestsOnly && req.user.role === 'STAFF' ? [doctorRequestWhere(req.user.sub)] : [])],
+        AND: [bookingAccessWhere(req.user, doctorEligible, eligibleDoctor?.cityId ?? undefined), ...(doctorRequestsOnly && req.user.role === 'STAFF' ? [doctorRequestWhere(req.user.sub, eligibleDoctor?.cityId ?? undefined)] : [])],
         ...(status && !doctorRequestsOnly && { status }),
         ...(cityId && { cityId }),
         ...(serviceTypeId && { serviceTypeId }),
@@ -188,6 +211,7 @@ export const bookingController = {
 
       await assertBookingAccess(req.user, pickParam(req, 'id'));
 
+      const doctor = req.user.role === 'STAFF' ? await findEligibleDoctor(prisma, req.user.sub) : null;
       const booking = await prisma.booking.findUnique({
         where: { id: pickParam(req, 'id') },
         include: {
@@ -198,7 +222,7 @@ export const bookingController = {
           address: true,
           city: true,
           visits: {
-            where: bookingVisitAccessWhere(req.user),
+            where: bookingVisitAccessWhere(req.user, Boolean(doctor), doctor?.cityId ?? undefined),
             orderBy: { sequenceNo: 'asc' },
             include: {
               _count: { select: { reports: true, reviews: true } },
@@ -380,6 +404,9 @@ export const bookingController = {
             throw new ConflictError('STAFF_NOT_AVAILABLE', 'Staff is currently unavailable');
           }
 
+          const assignedService = await tx.serviceType.findUnique({ where: { id: booking.serviceTypeId }, select: { code: true } });
+          if (assignedService?.code === 'VISITING_DOCTOR') await assertEligibleDoctor(tx, staffUserId, booking.cityId, true);
+
           const endAt = visit.scheduledEndAt ?? visit.scheduledStartAt;
           const collision = await tx.bookingVisit.findFirst({
             where: {
@@ -423,6 +450,7 @@ export const bookingController = {
           const templateData = {
             staffName: staffUser.fullName,
             bookingNumber: bookingRow.bookingNumber,
+            scheduledDate: visit.scheduledStartAt.toISOString(),
           };
           const notifLog = await tx.notificationLog.create({
             data: {
@@ -460,8 +488,9 @@ export const bookingController = {
         throw new ForbiddenError('FORBIDDEN');
       }
 
+      const doctor = req.user.role === 'STAFF' ? await findEligibleDoctor(prisma, req.user.sub) : null;
       const visits = await prisma.bookingVisit.findMany({
-        where: { bookingId: pickParam(req, 'id'), AND: [bookingVisitAccessWhere(req.user)] },
+        where: { bookingId: pickParam(req, 'id'), AND: [bookingVisitAccessWhere(req.user, Boolean(doctor), doctor?.cityId ?? undefined)] },
         orderBy: { sequenceNo: 'asc' },
       });
 
@@ -473,22 +502,9 @@ export const bookingController = {
   async doctorAccept(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       if (!req.user) throw new UnauthorizedError('UNAUTHENTICATED');
-      if (req.user.role !== 'STAFF') throw new ForbiddenError('STAFF_ONLY');
-
-      const booking = await prisma.booking.findUnique({ where: { id: pickParam(req, 'id') } });
-      if (!booking) throw new NotFoundError('BOOKING_NOT_FOUND');
-      if (booking.preferredDoctorUserId !== req.user.sub) {
-        throw new ForbiddenError('NOT_YOUR_BOOKING', 'This booking is not assigned to you');
-      }
-
-      assertBookingTransition(booking.status, 'PENDING');
-
-      const updated = await prisma.booking.update({
-        where: { id: booking.id },
-        data: { status: 'PENDING' },
-      });
-
-      success(res, updated);
+      const result = await actOnDoctorBooking(req.user, pickParam(req, 'id'), 'doctor-accept');
+      await Promise.all(result.notificationIds.map(id => notificationQueue.add('send', { notificationLogId: id }).catch(() => null)));
+      success(res, result.updated);
     } catch (err) { next(err); }
   },
 
@@ -496,24 +512,10 @@ export const bookingController = {
   async doctorProposeTime(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       if (!req.user) throw new UnauthorizedError('UNAUTHENTICATED');
-      if (req.user.role !== 'STAFF') throw new ForbiddenError('STAFF_ONLY');
-
-      const { proposedStartAt } = z.object({ proposedStartAt: z.string().datetime() }).parse(req.body);
-
-      const booking = await prisma.booking.findUnique({ where: { id: pickParam(req, 'id') } });
-      if (!booking) throw new NotFoundError('BOOKING_NOT_FOUND');
-      if (booking.preferredDoctorUserId !== req.user.sub) {
-        throw new ForbiddenError('NOT_YOUR_BOOKING', 'This booking is not assigned to you');
-      }
-
-      assertBookingTransition(booking.status, 'TIME_PROPOSED');
-
-      const updated = await prisma.booking.update({
-        where: { id: booking.id },
-        data: { status: 'TIME_PROPOSED', proposedStartAt: new Date(proposedStartAt) },
-      });
-
-      success(res, updated);
+      const { proposedStartAt } = z.object({ proposedStartAt: FutureStartSchema }).parse(req.body);
+      const result = await actOnDoctorBooking(req.user, pickParam(req, 'id'), 'doctor-propose-time', new Date(proposedStartAt));
+      await Promise.all(result.notificationIds.map(id => notificationQueue.add('send', { notificationLogId: id }).catch(() => null)));
+      success(res, result.updated);
     } catch (err) { next(err); }
   },
 
@@ -521,24 +523,9 @@ export const bookingController = {
   async customerAcceptTime(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       if (!req.user) throw new UnauthorizedError('UNAUTHENTICATED');
-      if (req.user.role !== 'CUSTOMER') throw new ForbiddenError('CUSTOMER_ONLY');
-
-      const booking = await prisma.booking.findUnique({ where: { id: pickParam(req, 'id') } });
-      if (!booking) throw new NotFoundError('BOOKING_NOT_FOUND');
-      if (booking.customerUserId !== req.user.sub) throw new ForbiddenError('FORBIDDEN');
-      if (booking.status !== 'TIME_PROPOSED') {
-        throw new BusinessError('WRONG_STATUS', 'Booking is not in TIME_PROPOSED state');
-      }
-      if (!booking.proposedStartAt) {
-        throw new BusinessError('NO_PROPOSED_TIME', 'No proposed time found on this booking');
-      }
-
-      const updated = await prisma.booking.update({
-        where: { id: booking.id },
-        data: { status: 'PENDING', requestedStartAt: booking.proposedStartAt, proposedStartAt: null },
-      });
-
-      success(res, updated);
+      const result = await actOnDoctorBooking(req.user, pickParam(req, 'id'), 'customer-accept-time');
+      await Promise.all(result.notificationIds.map(id => notificationQueue.add('send', { notificationLogId: id }).catch(() => null)));
+      success(res, result.updated);
     } catch (err) { next(err); }
   },
 
@@ -546,26 +533,9 @@ export const bookingController = {
   async customerDeclineTime(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       if (!req.user) throw new UnauthorizedError('UNAUTHENTICATED');
-      if (req.user.role !== 'CUSTOMER') throw new ForbiddenError('CUSTOMER_ONLY');
-
-      const booking = await prisma.booking.findUnique({ where: { id: pickParam(req, 'id') } });
-      if (!booking) throw new NotFoundError('BOOKING_NOT_FOUND');
-      if (booking.customerUserId !== req.user.sub) throw new ForbiddenError('FORBIDDEN');
-      if (booking.status !== 'TIME_PROPOSED') {
-        throw new BusinessError('WRONG_STATUS', 'Booking is not in TIME_PROPOSED state');
-      }
-
-      const updated = await prisma.booking.update({
-        where: { id: booking.id },
-        data: {
-          status: 'CANCELLED',
-          cancelledAt: new Date(),
-          cancelledByUserId: req.user.sub,
-          cancellationReason: 'Customer declined proposed time',
-        },
-      });
-
-      success(res, updated);
+      const result = await actOnDoctorBooking(req.user, pickParam(req, 'id'), 'customer-decline-time');
+      await Promise.all(result.notificationIds.map(id => notificationQueue.add('send', { notificationLogId: id }).catch(() => null)));
+      success(res, result.updated);
     } catch (err) { next(err); }
   },
 };

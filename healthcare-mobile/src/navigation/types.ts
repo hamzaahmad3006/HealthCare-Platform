@@ -19,7 +19,7 @@ export type CustomerTabParamList = {
 
 export type CustomerStackParamList = {
   Tabs: NavigatorScreenParams<CustomerTabParamList> | undefined;
-  BookingDetail: { id: string };
+  BookingDetail: { id: string; refreshKey?: number };
   MyPatients: undefined;
   NewBooking: { serviceTypeId?: string } | undefined;
   Notifications: undefined;
@@ -34,6 +34,7 @@ export type StaffTabParamList = {
 };
 
 export type StaffStackParamList = {
+  DoctorRequests: { refreshKey?: number } | undefined;
   Tabs: NavigatorScreenParams<StaffTabParamList> | undefined;
   VisitDetail: { id: string };
   Notifications: undefined;

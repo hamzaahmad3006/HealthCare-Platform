@@ -15,6 +15,11 @@ export const API = {
   BOOKINGS: {
     LIST: '/bookings',
     CREATE: '/bookings',
+    DOCTOR_REQUESTS: '/bookings?doctorRequestsOnly=true',
+    DOCTOR_ACCEPT: (id: string) => `/bookings/${id}/doctor-accept`,
+    DOCTOR_PROPOSE_TIME: (id: string) => `/bookings/${id}/doctor-propose-time`,
+    CUSTOMER_ACCEPT_TIME: (id: string) => `/bookings/${id}/customer-accept-time`,
+    CUSTOMER_DECLINE_TIME: (id: string) => `/bookings/${id}/customer-decline-time`,
     DETAIL: (id: string) => `/bookings/${id}`,
     CANCEL: (id: string) => `/bookings/${id}/cancel`,
     // Rescheduling is currently exposed by the web UI. This app keeps its
@@ -40,6 +45,7 @@ export const API = {
     DELETE: (id: string) => `/users/addresses/${id}`,
   },
   STAFF: {
+    DOCTORS: '/staff/doctors',
     ME: '/staff/me',
     MY_PROFILE: '/staff/me/profile',
     MY_AVATAR: '/staff/me/avatar',

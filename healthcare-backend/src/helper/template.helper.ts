@@ -1,4 +1,5 @@
 export type TemplateCode =
+  | 'DOCTOR_BOOKING_REQUESTED' | 'DOCTOR_ACCEPTED' | 'DOCTOR_TIME_PROPOSED' | 'DOCTOR_TIME_ACCEPTED' | 'DOCTOR_TIME_DECLINED'
   | 'BOOKING_RECEIVED'
   | 'BOOKING_CONFIRMED'
   | 'STAFF_ASSIGNED'
@@ -15,6 +16,11 @@ export type TemplateCode =
 type TemplateData = Record<string, string | number | undefined>;
 
 const TEMPLATES: Record<TemplateCode, (data: TemplateData) => string> = {
+  DOCTOR_BOOKING_REQUESTED: d => `New doctor request for booking #${d['bookingNumber']}. Open Doctor Requests to respond.`,
+  DOCTOR_ACCEPTED: d => `Your doctor accepted booking #${d['bookingNumber']}. Awaiting admin confirmation.`,
+  DOCTOR_TIME_PROPOSED: d => `Your doctor proposed ${d['proposedDate']} for booking #${d['bookingNumber']}. Open the booking to accept or decline.`,
+  DOCTOR_TIME_ACCEPTED: d => `The customer accepted ${d['proposedDate']} for booking #${d['bookingNumber']}. Awaiting admin confirmation.`,
+  DOCTOR_TIME_DECLINED: d => `The customer declined your time proposal. Booking #${d['bookingNumber']} is cancelled.`,
   BOOKING_RECEIVED: (d) =>
     `✅ We received your booking #${d['bookingNumber']} for ${d['serviceName']}. Our team will confirm it shortly.`,
 

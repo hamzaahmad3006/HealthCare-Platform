@@ -5,7 +5,7 @@ import { prisma } from '../config/database';
 import { success, paginated } from '../helper/response.helper';
 import { NotFoundError, UnauthorizedError, ForbiddenError } from '../utils/stateMachine';
 import { pickParam } from '../helper/request.helper';
-import { bookingAccessWhere } from '../helper/bookingAccess.helper';
+import { authorizedBookingWhere } from '../helper/bookingAccess.helper';
 
 const UpdateProfileSchema = z.object({
   fullName: z.string().min(1).max(150).optional(),
@@ -108,7 +108,7 @@ export const userController = {
       if (req.user.role === 'ADMIN') {
         where = {};
       } else if (req.user.role === 'STAFF') {
-        where = { bookings: { some: bookingAccessWhere(req.user) } };
+        where = { bookings: { some: await authorizedBookingWhere(req.user) } };
       } else {
         where = { customerUserId: req.user.sub };
       }
@@ -131,7 +131,7 @@ export const userController = {
 
       if (req.user.role === 'STAFF') {
         const authorized = await prisma.patient.findFirst({
-          where: { id: patient.id, bookings: { some: bookingAccessWhere(req.user) } },
+          where: { id: patient.id, bookings: { some: await authorizedBookingWhere(req.user) } },
           select: { id: true },
         });
         if (!authorized) throw new ForbiddenError('FORBIDDEN');

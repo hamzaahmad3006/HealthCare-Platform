@@ -21,7 +21,7 @@ const GENDER_OPTIONS: { id: Gender; label: string }[] = [
 ];
 
 export function Step3DateTime({
-  date, time, urgency, gender, instructions, onChange, onBack, onNext,
+  date, time, urgency, gender, instructions, doctorPicker, onChange, onBack, onNext,
 }: Props): JSX.Element {
   return (
     <SafeAreaView style={styles.root}>
@@ -77,6 +77,8 @@ export function Step3DateTime({
             />
           </View>
         </View>
+
+        {doctorPicker}
 
         {/* Urgency */}
         <View style={styles.fieldGroup}>

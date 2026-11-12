@@ -8,6 +8,7 @@ import { hydrateAuth } from '../store/slices/authSlice';
 import { AuthNavigator } from './AuthNavigator';
 import { CustomerNavigator } from './CustomerNavigator';
 import { StaffNavigator } from './StaffNavigator';
+import { flushPendingNotification } from '../utils/notificationNavigation';
 import { navigationRef } from './navigationRef';
 import { Colors } from '../constants/theme';
 import type { RootStackParamList } from './types';
@@ -31,7 +32,7 @@ export function RootNavigator(): JSX.Element {
   }
 
   return (
-    <NavigationContainer ref={navigationRef}>
+    <NavigationContainer ref={navigationRef} onReady={() => flushPendingNotification(user?.role)}>
       <Stack.Navigator screenOptions={{ headerShown: false }}>
         {!user ? (
           <Stack.Screen name="Auth" component={AuthNavigator} />
