@@ -24,19 +24,23 @@ older task estimates for implemented behavior.
 
 ## Current fixes awaiting review
 
-All three branches start independently from the main commit above; none contains another's changes. Merge the patient/address guard first because it protects historical
-records; the web report download and mobile pagination fixes have no code dependency on it.
+All four code branches start independently from the main commit above; none contains
+another's changes. Merge the patient/address guard first because it protects historical
+records. The report and mobile list fixes have no code dependency on it. Merge this
+documentation branch last, after its status is checked against the final code merges.
 
 | Branch | Scope | Local checks |
 | --- | --- | --- |
 | [`fix/patient-address-history-guards`](https://github.com/hamzaahmad3006/HealthCare-Platform/compare/main...fix/patient-address-history-guards?expand=1) (`937442c3dc074f92bb8e39153785f9b200e228bb`) | Preserve patient/address references across every booking state and report history; reject another customer's default address; validate calendar dates and return clear errors for deletion races. | Backend typecheck/build and 304 mocked unit/controller tests passed. |
 | [`fix/web-report-downloads`](https://github.com/hamzaahmad3006/HealthCare-Platform/compare/main...fix/web-report-downloads?expand=1) (`91f0782143e4d3026687b5ee524f3d1923c31838`) | Authenticated report download route checks current report/file access and fetches a freshly signed storage URL. Customer and staff pages get visible list retry and download failure/retry handling. | Backend typecheck/build and 288 mocked tests; web production build; mocked Chromium customer/staff retry and download flows passed. |
 | [`fix/mobile-patient-pagination`](https://github.com/hamzaahmad3006/HealthCare-Platform/compare/main...fix/mobile-patient-pagination?expand=1) (`be5a8c41c6721e7fa4ea74e5e4d0839b5aa3e1c2`) | Customer patient list loads later pages, retains results after page failures and offers retry instead of showing a false empty state. | Mobile typecheck, 76 Jest tests and lint with 0 errors/52 existing warnings passed locally. |
+| [`fix/staff-patient-directory-search`](https://github.com/hamzaahmad3006/HealthCare-Platform/compare/main...fix/staff-patient-directory-search?expand=1) (`b3b4c4c`) | Staff patient directory searches all authorized patients on the server, pages results and handles empty/error/retry states. | Backend typecheck/build and 279 mocked tests; mobile typecheck, 75 Jest tests and lint with 0 errors/52 existing warnings passed locally. |
 
 Suggested PR titles and descriptions:
 
 - `fix: protect patient and address history during deletion` — Prevent deletion of patients or addresses referenced by bookings, reports or patient defaults; validate default-address ownership and birth dates. Backend typecheck/build and 304 local mocked tests passed. Real database concurrency and GitHub CI remain unverified.
 - `fix: load all customer patients in mobile list` — Load paginated customer patients with refresh and retry states. Mobile typecheck, 76 tests and lint with 0 errors passed locally; native/device and GitHub CI remain unverified.
+- `fix: search and page the staff patient directory` — Search authorized patients on the server before paging, and give staff a paged list with loading, empty and retry states. Backend typecheck/build, 279 mocked tests, mobile typecheck, 75 tests and lint with 0 errors passed locally; real database/device and GitHub CI remain unverified.
 - `fix: provide authorized web report downloads and retry states` — Serve report files through an ownership-checked endpoint with a fresh storage signature; give customer/staff pages clear loading, error and retry behavior. Backend typecheck/build, 288 mocked tests, web build and mocked Chromium flows passed. Real storage and GitHub CI remain unverified.
 
 ## Remaining work and limits
@@ -48,7 +52,6 @@ Suggested PR titles and descriptions:
 | P1 | Audit historical Stripe and notification rows on designated data. | Older code could store Stripe intents labeled CASH or notification logs without a user ID. Do not silently modify or expose existing financial/private records. |
 | P2 | Exercise reminder timing, duplicate dispatch and retry with test Redis and notification adapters. | Worker code exists; external delivery and multi-instance/restart behavior remain unverified. Do not send real messages during tests. |
 | P2 | Decide retention for report records left after a failed attachment upload. | Text-only clinical reports are valid; automated deletion needs a retention rule. |
-| P2 | Paginate/search the staff patient directory beyond its current first 100 records. | The staff screen loads a single 100-record page and searches only those loaded records; server search and mobile paging need a focused API/UI change. |
 | P2 | Complete native mobile build/device verification. | JDK 17, Android SDK/emulator and iOS/macOS tooling are unavailable here; TypeScript and Jest do not replace device testing. |
 
 No production migration, real message, live payment or clinical-record deletion was run

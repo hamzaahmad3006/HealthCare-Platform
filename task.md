@@ -31,10 +31,16 @@ passed here. No Android/iOS build or device test was performed in this review.
 3. Review remaining lint warnings as focused maintenance. They are reported, not
    suppressed. Do not send real reset codes or notifications during tests.
 
-The unmerged `fix/mobile-patient-pagination` branch (`be5a8c41c6721e7fa4ea74e5e4d0839b5aa3e1c2`)
-loads all customer patient pages with retry handling. Its local typecheck, 76 tests and
-lint (0 errors, 52 warnings) passed. The staff patient directory still loads only
-the first 100 records and searches locally; that remains a separate API/UI task.
+Two independent unmerged branches extend patient lists:
+
+- `fix/mobile-patient-pagination` (`be5a8c41c6721e7fa4ea74e5e4d0839b5aa3e1c2`)
+  loads all customer patient pages with retry handling. Local typecheck, 76 tests and
+  lint (0 errors, 52 warnings) passed.
+- `fix/staff-patient-directory-search` (`b3b4c4c`) adds server-side authorized name
+  search and paged staff results with retry. Local backend typecheck/build, 279 tests,
+  mobile typecheck, 75 tests and lint (0 errors, 52 warnings) passed.
+
+Both branches still need GitHub CI and test-service/device verification before merge.
 
 See [web/backend progress](web-missing.md) for current unmerged fix branches and
 remaining shared backend checks. The project is not declared production ready.
