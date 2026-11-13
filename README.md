@@ -6,19 +6,23 @@ Healthcare home services platform serving Faisalabad. Customers book verified nu
 
 - **Backend** — Node.js 20, Express 5, TypeScript, Prisma + PostgreSQL, Redis (BullMQ), Argon2, JWT (RS256), Stripe webhooks.
 - **Web** — React 18, Vite, TypeScript, Tailwind, Redux Toolkit, react-hook-form + zod, Headless UI.
-- **Mobile (planned)** — React Native with WatermelonDB offline sync for staff app.
+- **Mobile** — React Native customer/staff app. See [mobile setup](healthcare-mobile/README.md); offline synchronization is not claimed as implemented.
 
 ## Repository layout
 
 ```
 healthcare-backend/     # Express API + Prisma + BullMQ workers
-healthcare-web/         # React Vite web app (customer + admin)
+healthcare-web/         # React Vite web app (customer + admin + staff)
+healthcare-mobile/      # React Native customer + staff app
 .github/workflows/      # CI (typecheck, unit tests, build)
 ```
 
 ## Quick start (local dev)
 
-Prerequisites: Node 20, PostgreSQL 15+, Redis 7+.
+Prerequisites: Node 20 for backend/web, Node 22.11+ for mobile, PostgreSQL 15+.
+Redis 7+ is required for shared cache/queue operation across processes; the configured
+no-Redis fallback is single-process only. Use a dedicated development database for
+the migration and seed commands below.
 
 ### Backend
 
@@ -54,7 +58,7 @@ npm run dev                # http://localhost:5173
 | `npm run build`     | tsc -> dist/                                  |
 | `npm run start`     | node dist/server.js                           |
 | `npm run typecheck` | tsc --noEmit                                  |
-| `npm test`          | jest (unit + integration)                     |
+| `npm test`          | Jest tests (external-service mocks in current suites) |
 | `npm run test:unit` | unit suite only — fast, no DB needed          |
 
 ### Web
@@ -88,17 +92,19 @@ The backend exposes two probes for orchestrators:
 
 1. Backend — `prisma generate` -> typecheck -> jest unit suite.
 2. Web — typecheck -> build.
+3. Mobile — safe development API generation -> typecheck -> tests on Node 22.
+   The separate `fix/mobile-lint-ci` branch also adds lint.
+
+These are configured jobs, not evidence that a particular GitHub run passed.
 
 ## Project status
 
-- ✅ Backend modules: auth, users, staff, bookings, visits, reports, reviews, admin, payments.
-- ✅ Web customer flow: landing, register/login, booking wizard, my bookings, booking detail.
-- ✅ Web admin flow: dashboard, bookings, staff, visits, reports, reviews.
-- ✅ Background workers: notifications, reminders.
-- ✅ CI/CD pipeline.
-- ✅ Unit tests for state machine, helpers, redaction.
-- 🟡 Integration tests with real DB — planned.
-- 🟡 React Native staff app — planned (Phase 3).
+See [verified web/backend progress and PR handoff](web-missing.md) and
+[mobile progress](task.md) for the 2026-11-13 review. Several old “missing” features
+are implemented, while recovery/onboarding and the new fixes remain on unmerged
+branches. Those documents distinguish merged code, local mocked checks, external
+integration blockers and device verification. The project is not declared complete
+or production-ready merely because local tests and builds pass.
 
 ## Contributing
 

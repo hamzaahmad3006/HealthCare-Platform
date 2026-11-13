@@ -1,59 +1,56 @@
-# Mobile App — Remaining Tasks
+# Mobile progress and remaining verification
 
-Healthcare Home Services Platform — **healthcare-mobile** (React Native)
-Backend base URL: `/api/v1`. All endpoints below already exist and work on the backend — only the mobile wiring is missing.
+Reviewed 2026-11-13 against `origin/main` at `5ea63cc`. See
+[web/backend progress and branch handoff](web-missing.md) for full SHAs, compare links,
+validation results and shared backend work. This file replaces outdated claims that
+existing mobile screens are missing or mocked.
 
----
+## Present in main
 
-## 1. Customer App
+- Service selection fetches `/service-types`; customer booking, patient/address selection,
+  bookings, reports and registration use backend APIs.
+- Staff home, visits, visit detail/lifecycle, reports, patients, availability and password
+  change have API integrations. Their presence is not physical-device verification.
+- Notifications have a list, unread tracking and booking/visit navigation.
+- Doctor selection, authorized requests, acceptance/time proposals and customer responses
+  reached main in PR #24. Staff access, rescheduling and types/setup reached main in
+  PRs #21–23. These are verified by fetched Git ancestry.
+- Fresh-checkout API host generation and mobile typecheck/tests are in CI. Production
+  API configuration requires an explicit environment value; no production URL is assumed.
 
-| Screen | Endpoint(s) to wire | Priority | Effort | Notes |
-|---|---|---|---|---|
-| **Home — Services grid** `Home/Home.tsx` | `GET /service-types` | 🟡 Medium | 30 min | Grid is a hardcoded list. Fetch real service types; tap → New Booking pre-selected. |
-| **Notifications** (bell icon, all screens) | `GET /notifications` | 🟡 Medium | 1 hr | Bell icons are decorative. Add a notifications list screen + unread badge. |
+## Implemented but not merged
 
-## 2. Staff App
+- `feat/mobile-recovery-and-onboarding` (`7f63122621677b84d9d63645bb8f78fdb20feeda`):
+  forgot/reset password, staff completion/documents/verification UI and backend work gates.
+  It was preserved and included only in an isolated compatibility check.
+- `fix/mobile-lint-ci` (`875e8a48d9eba90cc0412b68a7fc88f8caba4246`): fixes the three
+  existing lint errors and adds the lint CI step. No unrelated UI changes.
+- Shared backend payment, report-file and notification-access fixes are listed in
+  [web-missing.md](web-missing.md). Their API response formats remain compatible.
 
-| Screen | Endpoint(s) to wire | Priority | Effort | Notes |
-|---|---|---|---|---|
-| **Staff Home** `staff/Home/Home.tsx` | `GET /visits`, `PATCH /staff/:id/availability` | 🟠 High | 1.5 hr | Stats, next patient, and "later today" list are mock. Duty toggle is local-only. |
-| **Staff Visits** `staff/Visits/StaffVisits.tsx` | `GET /visits` | 🟠 High | 1 hr | Hardcoded empty list. Fetch and group into Today / Upcoming / Completed. |
-| **Visit Detail** `staff/VisitDetail/VisitDetail.tsx` | `GET /visits/:id`, `PATCH /visits/:id/en-route` · `/check-in` · `/check-out` · `/complete`, `POST /reports` (+ presign/confirm) | 🟠 High | 2 hr | Patient data hardcoded; Mark-En-Route and Upload-Report are no-ops. Wire the full visit lifecycle + report upload. Also add navigation from Staff Visits → Visit Detail. |
-| **Staff Reports** `staff/Reports/StaffReports.tsx` | `GET /reports` | 🟡 Medium | 30 min | Hardcoded empty list. Fetch staff-submitted reports. |
-| **Staff Patients** `staff/Patients/StaffPatients.tsx` | `GET /users/patients` | 🟡 Medium | 45 min | Not in `StaffTabs` yet + list is mock. Add tab/route and wire directory + search. |
-| **Staff Profile — extras** `staff/Profile/StaffProfile.tsx` | `PATCH /staff/:id/availability`, `PATCH /auth/change-password` | 🟡 Medium | 45 min | Availability toggle is local-only; Change-Password row is a no-op. (Profile display + logout already wired.) |
+## Local evidence
 
-## 3. Cross-cutting
+Main-based mobile lint branch: typecheck and **34 tests passed**; lint has **0 errors,
+38 warnings**. Combined with recovery/onboarding and this review's backend/web fixes:
+typecheck and **72 tests passed**; lint has **0 errors, 52 warnings**. Combined backend
+unit/controller/helper tests: **278 passed**. These use test doubles for external services.
 
-| Task | Endpoint(s) | Priority | Effort | Notes |
-|---|---|---|---|---|
-| **Register screen** | `POST /auth/register` | 🟡 Medium | 1 hr | No sign-up UI exists (only Login). Endpoint + auth handling are ready. |
-| **Reschedule handling** | `PATCH /bookings/:id/reschedule` | ⚪ Low | 15 min | Backend gates this `adminOnly` → a customer call returns 403. Either hide reschedule from the mobile UI or coordinate a backend ownership-check relaxation. |
-| **Empty/error/loading states** | — | 🟡 Medium | ongoing | Apply the `useMyBookings` loading/empty/refresh pattern to each newly-wired staff screen. |
+All branches combine without Git conflicts. No main merge was performed. GitHub API
+access is forbidden, so GitHub CI and required checks remain **unverified**. Code branches
+are **NOT READY TO MERGE** until those checks and review gates are satisfied.
 
----
+## Remaining work
 
-## Effort Estimate
+1. Review/merge recovery/onboarding and the independent fixes after CI is visible.
+2. Use designated test database/storage/message integrations for reset codes, document
+   rejection/resubmission, report confirmation, assignment revocation and notification
+   navigation. No real reset messages were sent in automated tests.
+3. Verify camera/file-picker permissions, upload cancellation/network recovery, push
+   navigation from cold/background states, accessibility and complete customer/staff
+   workflows on Android/iOS devices. These have not been device-tested in this review.
+4. Build Android with JDK 17 and the Android SDK, and iOS on macOS/Xcode. This environment
+   has Java 21 and no Android SDK commands or iOS toolchain; no native build pass is claimed.
+5. Reduce remaining lint warnings as focused maintenance. They are reported, not suppressed.
 
-| Item | Effort | Priority |
-|---|---|---|
-| Visit Detail lifecycle + report upload | 2 hr | 🟠 High |
-| Staff Home (visits + duty toggle) | 1.5 hr | 🟠 High |
-| Staff Visits list | 1 hr | 🟠 High |
-| Notifications list + badge | 1 hr | 🟡 Medium |
-| Register screen | 1 hr | 🟡 Medium |
-| Staff Profile extras (availability + password) | 45 min | 🟡 Medium |
-| Staff Patients (tab + wire) | 45 min | 🟡 Medium |
-| Home services grid | 30 min | 🟡 Medium |
-| Staff Reports list | 30 min | 🟡 Medium |
-| Reschedule 403 handling | 15 min | ⚪ Low |
-
-**Total estimated: ~9 hours**
-
----
-
-## Status Legend
-- 🔴 High / blocker — core flow missing
-- 🟠 High — whole staff area depends on it
-- 🟡 Medium — feature incomplete
-- ⚪ Low — nice-to-have / edge case
+The old blanket estimates and “backend already works” claim have been removed. Integration
+and release readiness depend on the concrete checks above, not just TypeScript success.
