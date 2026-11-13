@@ -4,6 +4,7 @@ import { ZodError } from 'zod';
 import { Prisma } from '@prisma/client';
 
 jest.mock('../../src/config/database', () => ({ prisma: {
+  staffProfile: { findFirst: jest.fn() },
   booking: { findUnique: jest.fn(), findFirst: jest.fn(), update: jest.fn(), updateMany: jest.fn(), findUniqueOrThrow: jest.fn() },
   bookingVisit: { findMany: jest.fn(), createMany: jest.fn(), updateMany: jest.fn(), findUnique: jest.fn(), update: jest.fn() },
   bookingAssignment: { updateMany: jest.fn() },
@@ -61,6 +62,7 @@ app.use((err: AppError, _req: Request, res: Response, _next: NextFunction) => re
 
 beforeEach(() => {
   jest.resetAllMocks();
+  db.staffProfile.findFirst.mockResolvedValue({ userId: 'staff' });
   state = initial();
   (prisma.$transaction as jest.Mock).mockImplementation(async (callback: (tx: typeof prisma) => Promise<unknown>) => {
     const before = structuredClone(state);

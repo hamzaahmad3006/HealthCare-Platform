@@ -55,7 +55,7 @@ const ForgotPasswordSchema = z.object({
 
 const ResetPasswordSchema = z.object({
   phone: z.string().min(1),
-  otp: z.string().length(6, 'OTP must be 6 digits'),
+  otp: z.string().regex(/^[0-9]{6}$/, 'OTP must be 6 digits'),
   newPassword: z.string().min(8),
 });
 
@@ -415,7 +415,7 @@ export const authController = {
       const genericOk = { message: 'If an account with this phone exists, a reset code has been sent.' };
 
       const user = await prisma.user.findUnique({ where: { phone } });
-      if (!user || user.deletedAt) {
+      if (!user || user.deletedAt || user.status !== 'ACTIVE') {
         success(res, genericOk);
         return;
       }
@@ -468,7 +468,7 @@ export const authController = {
         where: { phone },
         include: { staffProfile: { select: { verificationStatus: true, profileCompletedAt: true } } },
       });
-      if (!user || user.deletedAt) {
+      if (!user || user.deletedAt || user.status !== 'ACTIVE') {
         throw new AppError(400, 'INVALID_OTP', 'Invalid or expired reset code');
       }
 
@@ -493,17 +493,23 @@ export const authController = {
       const expiresAt = new Date(Date.now() + env.JWT_REFRESH_TTL * 1000);
 
       // Reset password + mark OTP used + revoke old sessions + issue new session.
-      await prisma.$transaction([
-        prisma.user.update({ where: { id: user.id }, data: { passwordHash: newHash } }),
-        prisma.passwordResetToken.update({ where: { id: token.id }, data: { usedAt: new Date() } }),
-        prisma.refreshToken.updateMany({
+      await prisma.$transaction(async (tx) => {
+        // Claim once inside the transaction: simultaneous requests cannot reuse
+        // a code, and expiry is checked again after password hashing.
+        const claimed = await tx.passwordResetToken.updateMany({
+          where: { id: token.id, usedAt: null, expiresAt: { gt: new Date() } },
+          data: { usedAt: new Date() },
+        });
+        if (claimed.count !== 1) throw new AppError(400, 'INVALID_OTP', 'Invalid or expired reset code');
+        await tx.user.update({ where: { id: user.id }, data: { passwordHash: newHash } });
+        await tx.refreshToken.updateMany({
           where: { userId: user.id, revokedAt: null },
           data: { revokedAt: new Date() },
-        }),
-        prisma.refreshToken.create({
+        });
+        await tx.refreshToken.create({
           data: { userId: user.id, tokenHash: newTokenHash, expiresAt, ipAddress: req.ip, userAgent: req.headers['user-agent'] },
-        }),
-      ]);
+        });
+      });
 
       const accessToken = generateAccessToken({ sub: user.id, role: user.role, phone: user.phone, session_id: sessionId });
 

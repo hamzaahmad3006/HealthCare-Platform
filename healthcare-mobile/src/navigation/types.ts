@@ -8,6 +8,8 @@ export type AuthStackParamList = {
   Onboarding: undefined;
   Login: undefined;
   Register: undefined;
+  ForgotPassword: undefined;
+  ResetPassword: { phone: string };
 };
 
 export type CustomerTabParamList = {
@@ -35,6 +37,10 @@ export type StaffTabParamList = {
 
 export type StaffStackParamList = {
   DoctorRequests: { refreshKey?: number } | undefined;
+
+  StaffSetup: undefined;
+  CompleteProfile: undefined;
+  StaffDocuments: undefined;
   Tabs: NavigatorScreenParams<StaffTabParamList> | undefined;
   VisitDetail: { id: string };
   Notifications: undefined;
