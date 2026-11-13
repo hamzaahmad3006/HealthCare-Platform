@@ -66,16 +66,16 @@ export function useMyPatients() {
     }
   }, []);
 
-  useEffect(() => { void fetchPatients(); }, [fetchPatients]);
+  useEffect(() => { fetchPatients(); }, [fetchPatients]);
 
   const onRefresh = (): void => {
     setRefreshing(true);
-    void fetchPatients(1);
+    fetchPatients(1);
   };
-  const retry = (): void => { void fetchPatients(error && patients.length > 0 ? nextPage : 1); };
+  const retry = (): void => { fetchPatients(error && patients.length > 0 ? nextPage : 1); };
   const loadMore = (): void => {
     if (!hasNext || loading || refreshing || pageInFlight.current || error) return;
-    void fetchPatients(nextPage);
+    fetchPatients(nextPage);
   };
 
   // Returns true on success so the screen can close its modal.
