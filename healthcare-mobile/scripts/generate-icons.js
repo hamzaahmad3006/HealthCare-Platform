@@ -7,6 +7,7 @@
  *  - ic_launcher_round.png (circular version)
  */
 
+const { Buffer } = require('node:buffer');
 const sharp = require('sharp');
 const path = require('path');
 

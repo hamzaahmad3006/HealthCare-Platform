@@ -79,6 +79,9 @@ jobs:
       - name: Install (generates safe development API configuration)
         run: npm ci
 
+      - name: Lint
+        run: npm run lint
+
       - name: Typecheck
         run: npm run typecheck
 
