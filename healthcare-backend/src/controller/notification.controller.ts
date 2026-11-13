@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import { prisma } from '../config/database';
+import { authorizedBookingWhere } from '../helper/bookingAccess.helper';
 import { success } from '../helper/response.helper';
 import { NotFoundError, UnauthorizedError } from '../utils/stateMachine';
 import { notificationQueue } from '../../worker/notification.worker';
@@ -23,12 +24,16 @@ export const notificationController = {
 
       const { role, sub } = req.user;
 
-      const where =
-        role === 'CUSTOMER'
-          ? { booking: { customerUserId: sub } }
-          : role === 'STAFF'
-          ? { booking: { assignments: { some: { staffUserId: sub } } } }
-          : {}; // ADMIN — all
+      // A personal feed contains this user's messages, not every message about
+      // a booking they once worked on. Current booking access also preserves
+      // eligible preferred doctors' requests before a visit is assigned.
+      const where = role === 'ADMIN' ? {} : {
+        userId: sub,
+        OR: [
+          { bookingId: null },
+          { booking: await authorizedBookingWhere(req.user) },
+        ],
+      };
 
       const logs = await prisma.notificationLog.findMany({
         where,
