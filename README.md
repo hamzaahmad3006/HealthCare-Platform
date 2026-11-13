@@ -93,18 +93,17 @@ The backend exposes two probes for orchestrators:
 1. Backend — `prisma generate` -> typecheck -> jest unit suite.
 2. Web — typecheck -> build.
 3. Mobile — safe development API generation -> typecheck -> tests on Node 22.
-   The separate `fix/mobile-lint-ci` branch also adds lint.
+   Mobile lint is included in the merged CI workflow.
 
 These are configured jobs, not evidence that a particular GitHub run passed.
 
 ## Project status
 
-See [verified web/backend progress and PR handoff](web-missing.md) and
-[mobile progress](task.md) for the 2026-11-13 review. Several old “missing” features
-are implemented, while recovery/onboarding and the new fixes remain on unmerged
-branches. Those documents distinguish merged code, local mocked checks, external
-integration blockers and device verification. The project is not declared complete
-or production-ready merely because local tests and builds pass.
+See [verified web/backend progress](web-missing.md) and
+[mobile progress](task.md) for the 2026-11-13 review. The earlier recovery,
+onboarding and security fixes are now in main. The documents distinguish source
+implementation from local tests, GitHub CI, provider integration and device checks.
+The project is not declared production ready based only on builds or unit tests.
 
 ## Contributing
 
