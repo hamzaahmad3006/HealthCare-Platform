@@ -13,7 +13,7 @@ import { useStaffDocuments } from './useStaffDocuments';
 const DOC_TYPES = ['CNIC', 'DEGREE', 'LICENSE', 'EXPERIENCE_LETTER', 'OTHER'] as const;
 type DocType = (typeof DOC_TYPES)[number];
 
-const MAX_FILE_BYTES = 10 * 1024 * 1024; // 10 MB — matches typical S3 presign limit
+const MAX_FILE_BYTES = 10 * 1024 * 1024; // 10 MB — matches backend upload validation
 const ALLOWED_MIME = ['application/pdf', 'image/jpeg', 'image/png'];
 
 export function StaffDocuments(): JSX.Element {
@@ -105,6 +105,7 @@ export function StaffDocuments(): JSX.Element {
         {d.error ? (
           <div className="px-4 py-3 rounded-xl bg-danger-50 ring-1 ring-danger-500/20 text-sm text-danger-700">
             {d.error}
+            <Button size="sm" variant="secondary" className="ml-3" onClick={d.retry}>Retry</Button>
           </div>
         ) : d.isLoading ? (
           <LoadingSpinner size="md" label="Loading documents…" className="py-10" />
