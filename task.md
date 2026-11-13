@@ -31,7 +31,7 @@ passed here. No Android/iOS build or device test was performed in this review.
 3. Review remaining lint warnings as focused maintenance. They are reported, not
    suppressed. Do not send real reset codes or notifications during tests.
 
-Two independent unmerged branches extend patient lists:
+At this review, two independent branches awaiting merge extend patient lists:
 
 - `fix/mobile-patient-pagination` (`be5a8c41c6721e7fa4ea74e5e4d0839b5aa3e1c2`)
   loads all customer patient pages with retry handling. Local typecheck, 76 tests and
@@ -40,7 +40,7 @@ Two independent unmerged branches extend patient lists:
   search and paged staff results with retry. Local backend typecheck/build, 279 tests,
   mobile typecheck, 75 tests and lint (0 errors, 52 warnings) passed.
 
-Both branches still need GitHub CI and test-service/device verification before merge.
+Neither branch had observed GitHub CI, test-service or device verification at this review.
 
 See [web/backend progress](web-missing.md) for current unmerged fix branches and
 remaining shared backend checks. The project is not declared production ready.

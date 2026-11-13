@@ -22,9 +22,9 @@ older task estimates for implemented behavior.
 | Reminder and notification workers | `worker/reminder.worker.ts` and `worker/notification.worker.ts`; delivery/restart behavior has not been validated with test services. |
 | Web/mobile CI | `.github/workflows/ci.yml` configures backend, web and mobile jobs; mobile lint is included. Actual GitHub run results are not available here. |
 
-## Current fixes awaiting review
+## Fixes prepared during this review
 
-All four code branches start independently from the main commit above; none contains
+All four code branches started independently from the main commit above; none contains
 another's changes. Merge the patient/address guard first because it protects historical
 records. The report and mobile list fixes have no code dependency on it. Merge this
 documentation branch last, after its status is checked against the final code merges.
@@ -55,4 +55,4 @@ Suggested PR titles and descriptions:
 | P2 | Complete native mobile build/device verification. | JDK 17, Android SDK/emulator and iOS/macOS tooling are unavailable here; TypeScript and Jest do not replace device testing. |
 
 No production migration, real message, live payment or clinical-record deletion was run
-in this review. The new task branches have been pushed but not merged.
+in this review. The new task branches were pushed and awaiting review on 2026-11-13.
