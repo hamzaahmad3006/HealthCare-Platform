@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { Alert } from 'react-native';
 import { api, extractApiError } from '../../../api/client';
 import { API } from '../../../api/endpoints';
@@ -20,24 +20,62 @@ export function useMyPatients() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [hasNext, setHasNext] = useState(false);
+  const [nextPage, setNextPage] = useState(1);
+  const requestId = useRef(0);
+  const pageInFlight = useRef(false);
 
-  const fetchPatients = useCallback(async (): Promise<void> => {
+  const fetchPatients = useCallback(async (page = 1): Promise<void> => {
+    if (page > 1 && pageInFlight.current) return;
+    const current = ++requestId.current;
+    if (page > 1) {
+      pageInFlight.current = true;
+      setLoadingMore(true);
+    } else {
+      pageInFlight.current = false;
+      setLoadingMore(false);
+    }
+    setError(null);
     try {
-      const { data } = await api.get<{ success: true; data: Patient[] }>(API.PATIENTS.LIST);
-      setPatients(data.data);
+      const { data } = await api.get<{ success: true; data: Patient[]; meta: { hasNext: boolean } }>(
+        API.PATIENTS.LIST, { params: { page, limit: 20 } },
+      );
+      if (current !== requestId.current) return;
+      setPatients(previous => page === 1 ? data.data : [
+        ...previous,
+        ...data.data.filter(patient => !previous.some(item => item.id === patient.id)),
+      ]);
+      setHasNext(data.meta.hasNext);
+      setNextPage(page + 1);
     } catch (err) {
-      Alert.alert('Error', extractApiError(err));
+      if (current !== requestId.current) return;
+      setError(extractApiError(err));
+      if (page === 1) {
+        setPatients([]);
+        setHasNext(false);
+      }
     } finally {
-      setLoading(false);
-      setRefreshing(false);
+      if (current === requestId.current) {
+        pageInFlight.current = false;
+        setLoadingMore(false);
+        setLoading(false);
+        setRefreshing(false);
+      }
     }
   }, []);
 
-  useEffect(() => { fetchPatients(); }, [fetchPatients]);
+  useEffect(() => { void fetchPatients(); }, [fetchPatients]);
 
   const onRefresh = (): void => {
     setRefreshing(true);
-    fetchPatients();
+    void fetchPatients(1);
+  };
+  const retry = (): void => { void fetchPatients(error && patients.length > 0 ? nextPage : 1); };
+  const loadMore = (): void => {
+    if (!hasNext || loading || refreshing || pageInFlight.current || error) return;
+    void fetchPatients(nextPage);
   };
 
   // Returns true on success so the screen can close its modal.
@@ -81,5 +119,5 @@ export function useMyPatients() {
     ]);
   };
 
-  return { patients, loading, refreshing, saving, onRefresh, savePatient, deletePatient };
+  return { patients, loading, refreshing, saving, loadingMore, error, hasNext, onRefresh, retry, loadMore, savePatient, deletePatient };
 }
