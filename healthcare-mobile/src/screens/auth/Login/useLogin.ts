@@ -2,12 +2,8 @@ import { useState } from 'react';
 import { Alert } from 'react-native';
 import { useAppDispatch, useAppSelector } from '../../../store';
 import { login } from '../../../store/slices/authSlice';
-import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import type { AuthStackParamList } from '../../../navigation/types';
 
-type LoginNavProp = NativeStackNavigationProp<AuthStackParamList, 'Login'>;
-
-export function useLogin(navigation: LoginNavProp) {
+export function useLogin() {
   const dispatch = useAppDispatch();
   const { loading, error } = useAppSelector((s) => s.auth);
 

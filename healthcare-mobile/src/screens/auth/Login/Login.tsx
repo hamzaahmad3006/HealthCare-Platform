@@ -34,7 +34,7 @@ export function Login({ navigation }: Props): JSX.Element {
     setPassFocused,
     togglePassword,
     handleLogin,
-  } = useLogin(navigation);
+  } = useLogin();
 
   return (
     <KeyboardAvoidingView
