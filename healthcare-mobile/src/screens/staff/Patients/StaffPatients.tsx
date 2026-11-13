@@ -11,11 +11,7 @@ import type { StaffPatient } from '../../../types/StaffPatients.types';
 
 export function StaffPatients(): JSX.Element {
   const [search, setSearch] = useState('');
-  const { patients, loading, refreshing, onRefresh } = useStaffPatients();
-
-  const filtered = patients.filter((p) =>
-    p.fullName.toLowerCase().includes(search.toLowerCase()),
-  );
+  const { patients, loading, refreshing, loadingMore, error, onRefresh, retry, loadMore } = useStaffPatients(search);
 
   return (
     <SafeAreaView style={styles.root}>
@@ -51,17 +47,26 @@ export function StaffPatients(): JSX.Element {
         </View>
       ) : (
         <FlatList
-          data={filtered}
+          data={patients}
           keyExtractor={(p) => p.id}
-          contentContainerStyle={filtered.length === 0 ? styles.emptyContainer : styles.listContent}
+          onEndReached={loadMore}
+          onEndReachedThreshold={0.3}
+          ListFooterComponent={loadingMore ? <ActivityIndicator size="small" color={Colors.primary} /> : error && patients.length > 0 ? (
+            <TouchableOpacity style={styles.emptyBox} onPress={retry} accessibilityRole="button">
+              <Text style={styles.emptyHint}>{error}</Text>
+              <Text style={styles.emptyTitle}>Retry loading patients</Text>
+            </TouchableOpacity>
+          ) : null}
+          contentContainerStyle={patients.length === 0 ? styles.emptyContainer : styles.listContent}
           refreshControl={
             <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[Colors.primary]} tintColor={Colors.primary} />
           }
           ListEmptyComponent={
             <View style={styles.emptyBox}>
               <MaterialDesignIcons name="account-group-outline" size={48} color={Colors.neutralBorder} />
-              <Text style={styles.emptyTitle}>No patients yet</Text>
-              <Text style={styles.emptyHint}>Patients from your assigned visits will appear here.</Text>
+              <Text style={styles.emptyTitle}>{error ? "Could not load patients" : search ? "No matching patients" : "No patients yet"}</Text>
+              <Text style={styles.emptyHint}>{error ?? (search ? "Try another name." : "Patients from your assigned visits will appear here.")}</Text>
+              {error ? <TouchableOpacity onPress={retry} accessibilityRole="button"><Text style={styles.emptyTitle}>Retry</Text></TouchableOpacity> : null}
             </View>
           }
           renderItem={({ item }) => <PatientCard patient={item} />}
