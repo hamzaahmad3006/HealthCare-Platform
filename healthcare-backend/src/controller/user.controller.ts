@@ -3,7 +3,7 @@ import { z } from 'zod';
 import { Prisma } from '@prisma/client';
 import { prisma } from '../config/database';
 import { success, paginated } from '../helper/response.helper';
-import { NotFoundError, UnauthorizedError, ForbiddenError } from '../utils/stateMachine';
+import { NotFoundError, UnauthorizedError, ForbiddenError, BusinessError } from '../utils/stateMachine';
 import { pickParam } from '../helper/request.helper';
 import { authorizedBookingWhere } from '../helper/bookingAccess.helper';
 
@@ -15,7 +15,10 @@ const UpdateProfileSchema = z.object({
 const CreatePatientSchema = z.object({
   fullName: z.string().min(1).max(150),
   gender: z.enum(['MALE', 'FEMALE', 'OTHER']).optional(),
-  dateOfBirth: z.string().optional(),
+  dateOfBirth: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Use YYYY-MM-DD').refine(value => {
+    const date = new Date(`${value}T00:00:00.000Z`);
+    return !Number.isNaN(date.getTime()) && date.toISOString().slice(0, 10) === value;
+  }, 'Invalid calendar date').optional(),
   relationshipToCustomer: z.string().max(50).optional(),
   primaryCondition: z.string().optional(),
   allergies: z.string().optional(),
@@ -80,6 +83,7 @@ export const userController = {
     try {
       if (!req.user) throw new UnauthorizedError('UNAUTHENTICATED');
       const data = CreatePatientSchema.parse(req.body);
+      await assertCustomerAddress(req.user.sub, data.defaultAddressId);
 
       const patient = await prisma.patient.create({
         data: {
@@ -155,6 +159,7 @@ export const userController = {
       }
 
       const { dateOfBirth, ...rest } = CreatePatientSchema.partial().parse(req.body);
+      await assertCustomerAddress(existing.customerUserId, rest.defaultAddressId);
       const patient = await prisma.patient.update({
         where: { id: pickParam(req, 'id') },
         data: {
@@ -214,48 +219,66 @@ export const userController = {
   async deletePatient(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       if (!req.user) throw new UnauthorizedError('UNAUTHENTICATED');
+      const patientId = pickParam(req, 'id');
+      await prisma.$transaction(async (tx) => {
+        const existing = await tx.patient.findUnique({ where: { id: patientId } });
+        if (!existing) throw new NotFoundError('PATIENT_NOT_FOUND');
+        if (req.user!.role !== 'ADMIN' && existing.customerUserId !== req.user!.sub) {
+          throw new ForbiddenError('FORBIDDEN');
+        }
 
-      const existing = await prisma.patient.findUnique({ where: { id: pickParam(req, 'id') } });
-      if (!existing) throw new NotFoundError('PATIENT_NOT_FOUND');
-
-      if (req.user.role !== 'ADMIN' && existing.customerUserId !== req.user.sub) {
-        throw new ForbiddenError('FORBIDDEN');
-      }
-
-      const activeBooking = await prisma.booking.findFirst({
-        where: { patientId: pickParam(req, 'id'), status: { in: ['PENDING', 'CONFIRMED', 'ASSIGNED', 'IN_PROGRESS'] } },
-      });
-
-      if (activeBooking) {
-        throw new Error('PATIENT_HAS_ACTIVE_BOOKINGS');
-      }
-
-      await prisma.patient.delete({ where: { id: pickParam(req, 'id') } });
+        // Keep every booking and clinical report attached to its original patient,
+        // including cancelled/completed bookings and doctor time proposals.
+        const booking = await tx.booking.findFirst({ where: { patientId }, select: { id: true } });
+        const report = booking ? null : await tx.report.findFirst({ where: { patientId }, select: { id: true } });
+        if (booking || report) {
+          throw new BusinessError('PATIENT_HAS_HISTORY', 'Patients with booking or report history cannot be removed');
+        }
+        await tx.patient.delete({ where: { id: patientId } });
+      }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
       success(res, { message: 'Patient removed' });
-    } catch (err) { next(err); }
+    } catch (err) {
+      if (isDeletionRace(err)) return next(new BusinessError('PATIENT_HAS_HISTORY', 'Patient records changed; refresh and try again'));
+      next(err);
+    }
   },
 
   async deleteAddress(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       if (!req.user) throw new UnauthorizedError('UNAUTHENTICATED');
+      const addressId = pickParam(req, 'id');
+      await prisma.$transaction(async (tx) => {
+        const existing = await tx.address.findUnique({ where: { id: addressId } });
+        if (!existing) throw new NotFoundError('ADDRESS_NOT_FOUND');
+        if (req.user!.role !== 'ADMIN' && existing.customerUserId !== req.user!.sub) {
+          throw new ForbiddenError('FORBIDDEN');
+        }
 
-      const existing = await prisma.address.findUnique({ where: { id: pickParam(req, 'id') } });
-      if (!existing) throw new NotFoundError('ADDRESS_NOT_FOUND');
-
-      if (req.user.role !== 'ADMIN' && existing.customerUserId !== req.user.sub) {
-        throw new ForbiddenError('FORBIDDEN');
-      }
-
-      const activeBooking = await prisma.booking.findFirst({
-        where: { addressId: pickParam(req, 'id'), status: { in: ['PENDING', 'CONFIRMED', 'ASSIGNED', 'IN_PROGRESS'] } },
-      });
-
-      if (activeBooking) {
-        throw new Error('ADDRESS_HAS_ACTIVE_BOOKINGS');
-      }
-
-      await prisma.address.delete({ where: { id: pickParam(req, 'id') } });
+        const booking = await tx.booking.findFirst({ where: { addressId }, select: { id: true } });
+        const defaultPatient = booking ? null : await tx.patient.findFirst({
+          where: { defaultAddressId: addressId }, select: { id: true },
+        });
+        if (booking || defaultPatient) {
+          throw new BusinessError('ADDRESS_IN_USE', 'Addresses used by bookings or patients cannot be removed');
+        }
+        await tx.address.delete({ where: { id: addressId } });
+      }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
       success(res, { message: 'Address deleted' });
-    } catch (err) { next(err); }
+    } catch (err) {
+      if (isDeletionRace(err)) return next(new BusinessError('ADDRESS_IN_USE', 'Address records changed; refresh and try again'));
+      next(err);
+    }
   },
 };
+
+function isDeletionRace(err: unknown): boolean {
+  return err instanceof Prisma.PrismaClientKnownRequestError && ['P2003', 'P2014', 'P2034'].includes(err.code);
+}
+
+async function assertCustomerAddress(customerUserId: string, addressId?: string): Promise<void> {
+  if (!addressId) return;
+  const address = await prisma.address.findFirst({
+    where: { id: addressId, customerUserId }, select: { id: true },
+  });
+  if (!address) throw new BusinessError('PATIENT_ADDRESS_MISMATCH', 'Choose an address belonging to this customer');
+}
