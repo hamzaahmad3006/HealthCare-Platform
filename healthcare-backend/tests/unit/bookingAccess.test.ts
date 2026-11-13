@@ -1,3 +1,6 @@
+import { Prisma } from '@prisma/client';
+import { assertReportTargetAccess } from '../../src/helper/bookingAccess.helper';
+jest.mock('../../src/config/env', () => ({ env: { CLOUDINARY_CLOUD_NAME: 'test' } }));
 import { API as webApi } from '../../../healthcare-web/src/constant/apiUrls';
 import { API as mobileApi } from '../../../healthcare-mobile/src/api/endpoints';
 import express, { Request, Response, NextFunction } from 'express';
@@ -8,10 +11,10 @@ jest.mock('../../src/config/database', () => ({ prisma: {
   booking: { findFirst: jest.fn(), findUnique: jest.fn(), findMany: jest.fn(), count: jest.fn(), updateMany: jest.fn(), findUniqueOrThrow: jest.fn() },
   bookingVisit: { findMany: jest.fn(), findUnique: jest.fn(), update: jest.fn(), updateMany: jest.fn(), count: jest.fn() },
   bookingAssignment: { updateMany: jest.fn() },
-  notificationLog: { updateMany: jest.fn() },
+  notificationLog: { updateMany: jest.fn(), create: jest.fn() },
   patient: { findMany: jest.fn(), count: jest.fn(), findUnique: jest.fn(), findFirst: jest.fn(), update: jest.fn() },
   report: { create: jest.fn(), findUnique: jest.fn(), update: jest.fn(), findMany: jest.fn(), count: jest.fn() },
-  reportFile: { create: jest.fn() },
+  reportFile: { create: jest.fn(), findFirst: jest.fn() },
   $transaction: jest.fn(),
 } }));
 jest.mock('../../worker/notification.worker', () => ({ notificationQueue: { add: jest.fn() } }));
@@ -31,6 +34,8 @@ import userRoutes from '../../src/routes/user.routes';
 import visitRoutes from '../../src/routes/visit.routes';
 import { prisma } from '../../src/config/database';
 import { getPresignedUploadUrl } from '../../src/helper/cloudinary.helper';
+import { notificationQueue } from '../../worker/notification.worker';
+import { ZodError } from 'zod';
 import { AppError } from '../../src/utils/stateMachine';
 
 const db = prisma as unknown as {
@@ -72,11 +77,13 @@ app.use('/reports', reportRoutes);
 app.use('/users', userRoutes);
 app.use('/visits', visitRoutes);
 app.use((err: AppError, _req: Request, res: Response, _next: NextFunction) => {
-  res.status(err.statusCode ?? 500).json({ error: { code: err.code } });
+  res.status(err instanceof ZodError ? 400 : err.statusCode ?? 500).json({ error: { code: err.code } });
 });
 
 beforeEach(() => {
   jest.clearAllMocks();
+  db.reportFile.findFirst.mockReset();
+  db.notificationLog.create.mockReset();
   (prisma.$transaction as jest.Mock).mockImplementation((arg: unknown) => typeof arg === 'function' ? arg(prisma) : Promise.all(arg as Promise<unknown>[]));
   db.staffProfile.findFirst.mockImplementation(async ({ where }: { where: Row }) => !where.serviceTypes || where.userId === 'doctor' ? { userId: where.userId, user: { phone: '+923000000001' } } : null);
   booking.status = 'ASSIGNED';
@@ -290,9 +297,99 @@ it.each([
   expect(getPresignedUploadUrl).toHaveBeenCalledWith(`reports/${otherId}`, 'image/png', 100);
 
   const confirmed = await request(app).post(confirm(otherId)).set('x-role', role).send({
-    fileKey: signed.body.data.fileKey, fileUrl: 'https://res.cloudinary.com/test/image/upload/image.png',
+    fileKey: signed.body.data.fileKey, fileUrl: `https://res.cloudinary.com/test/image/upload/${signedUpload.fileKey}.png`,
     mimeType: 'image/png', fileSizeBytes: 100,
   });
   expect(confirmed.status).toBe(201);
   expect(confirmed.body).toMatchObject({ success: true, data: { reportId: otherId, fileSizeBytes: '100' } });
+});
+
+const uploadPayload = () => ({
+  fileKey: `reports/${otherId}/test-file`,
+  fileUrl: `https://res.cloudinary.com/test/image/upload/v1/reports/${otherId}/test-file.png`,
+  mimeType: 'image/png', fileSizeBytes: 100,
+});
+it.each([
+  { fileKey: `reports/${reportId}/other-file` },
+  { fileUrl: 'https://external.example/file.png' },
+  { fileUrl: `https://res.cloudinary.com/another-cloud/image/upload/reports/${otherId}/test-file.png` },
+  { fileUrl: `https://res.cloudinary.com/test/image/upload/reports/${reportId}/test-file.png` },
+  { fileUrl: `https://res.cloudinary.com/test/image/upload/reports/${otherId}/test-file.png?download=1` },
+])('rejects storage paths outside the signed report target: %j', async override => {
+  const response = await request(app).post(webApi.REPORTS.CONFIRM(otherId)).send({ ...uploadPayload(), ...override });
+  expect(response.status).toBe(422);
+  expect(response.body.error.code).toBe('INVALID_UPLOAD_TARGET');
+  expect(db.reportFile.create).not.toHaveBeenCalled();
+});
+it.each([{ mimeType: 'text/html' }, { fileSizeBytes: 10485761 }, { checksumSha256: 'invalid' }])('rejects invalid confirmation metadata: %j', async override => {
+  const response = await request(app).post(webApi.REPORTS.CONFIRM(otherId)).send({ ...uploadPayload(), ...override });
+  expect(response.status).toBe(400);
+  expect(db.reportFile.create).not.toHaveBeenCalled();
+});
+async function makeVisibleReport() {
+  const original = await db.report.findUnique({ where: { id: otherId } });
+  db.report.findUnique.mockResolvedValue({ ...original, isVisibleToCustomer: true,
+    patient: { fullName: 'Test Patient' },
+    booking: { ...booking, address: { contactPhone: '+923001234567' }, customer: { phone: '+923001234567' } },
+  });
+  db.notificationLog.create.mockResolvedValue({ id: 'notification' });
+  (notificationQueue.add as jest.Mock).mockResolvedValue(undefined);
+}
+it('commits one file and notification and treats identical confirmation as a retry', async () => {
+  await makeVisibleReport();
+  let saved: Row | null = null;
+  db.reportFile.findFirst.mockImplementation(async () => saved);
+  db.reportFile.create.mockImplementation(async ({ data }: { data: Row }) => { saved = { id: 'file', ...data }; return saved; });
+  await request(app).post(webApi.REPORTS.CONFIRM(otherId)).send(uploadPayload()).expect(201);
+  await request(app).post(webApi.REPORTS.CONFIRM(otherId)).send(uploadPayload()).expect(201);
+  expect(db.reportFile.create).toHaveBeenCalledTimes(1);
+  expect(db.notificationLog.create).toHaveBeenCalledTimes(1);
+  expect(notificationQueue.add).toHaveBeenCalledTimes(1);
+  expect(prisma.$transaction).toHaveBeenCalledWith(expect.any(Function), { isolationLevel: 'Serializable' });
+});
+it('does not overwrite a confirmed file with changed metadata', async () => {
+  db.reportFile.findFirst.mockResolvedValue({ ...uploadPayload(), fileSizeBytes: BigInt(101) });
+  const response = await request(app).post(webApi.REPORTS.CONFIRM(otherId)).send(uploadPayload());
+  expect(response.body.error.code).toBe('UPLOAD_ALREADY_CONFIRMED');
+  expect(db.reportFile.create).not.toHaveBeenCalled();
+});
+it('does not dispatch a notification when the transaction fails', async () => {
+  await makeVisibleReport();
+  db.reportFile.create.mockImplementation(async ({ data }: { data: Row }) => ({ id: 'file', ...data }));
+  db.notificationLog.create.mockRejectedValue(new Error('Test transaction failure'));
+  await request(app).post(webApi.REPORTS.CONFIRM(otherId)).send(uploadPayload()).expect(500);
+  expect(notificationQueue.add).not.toHaveBeenCalled();
+});
+
+it.each([
+  ['application/pdf', 'raw', 'pdf'], ['image/jpeg', 'image', 'jpg'], ['image/png', 'image', 'png'],
+])('accepts a legitimate %s upload using the existing client payload', async (mimeType, resource, extension) => {
+  const payload = { ...uploadPayload(), mimeType, fileUrl: `https://res.cloudinary.com/test/${resource}/upload/v1/reports/${otherId}/test-file.${extension}` };
+  db.reportFile.create.mockImplementation(async ({ data }: { data: Row }) => ({ id: 'file', ...data }));
+  await request(app).post(mobileApi.REPORTS.FILES_CONFIRM(otherId)).send(payload).expect(201);
+  expect(db.notificationLog.create).not.toHaveBeenCalled();
+});
+it('does not queue a notification when the database rejects the commit', async () => {
+  await makeVisibleReport();
+  db.reportFile.create.mockImplementation(async ({ data }: { data: Row }) => ({ id: 'file', ...data }));
+  (prisma.$transaction as jest.Mock).mockImplementation(async (fn: (tx: typeof prisma) => Promise<unknown>) => {
+    await fn(prisma);
+    throw new Error('Test serialization failure');
+  });
+  await request(app).post(webApi.REPORTS.CONFIRM(otherId)).send(uploadPayload()).expect(500);
+  expect(notificationQueue.add).not.toHaveBeenCalled();
+});
+
+it('uses the supplied transaction for every report-target authorization lookup', async () => {
+  const tx = {
+    booking: { findFirst: jest.fn().mockResolvedValue({ id: bookingId }), findUnique: jest.fn().mockResolvedValue({ patientId }) },
+    bookingVisit: { findUnique: jest.fn().mockResolvedValue({ bookingId, assignedStaffUserId: 'staff' }) },
+  };
+  await assertReportTargetAccess({ sub: 'staff', role: 'STAFF' }, { bookingId, patientId, bookingVisitId: visitId }, tx as unknown as Prisma.TransactionClient);
+  expect(tx.booking.findFirst).toHaveBeenCalledWith(expect.objectContaining({ where: expect.objectContaining({ id: bookingId }) }));
+  expect(tx.booking.findUnique).toHaveBeenCalledTimes(1);
+  expect(tx.bookingVisit.findUnique).toHaveBeenCalledTimes(1);
+  expect(db.booking.findFirst).not.toHaveBeenCalled();
+  expect(db.booking.findUnique).not.toHaveBeenCalled();
+  expect(db.bookingVisit.findUnique).not.toHaveBeenCalled();
 });

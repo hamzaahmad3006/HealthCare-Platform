@@ -2,10 +2,13 @@ import { Request, Response, NextFunction } from 'express';
 import { z } from 'zod';
 import { Prisma } from '@prisma/client';
 import { prisma } from '../config/database';
+import { env } from '../config/env';
+import { assertUploadTarget } from '../helper/uploadTarget.helper';
+import { MAX_FILE_SIZE_BYTES } from '../utils/constants';
 import { getPresignedUploadUrl, deleteFile, signDeliveryUrl } from '../helper/cloudinary.helper';
 import { renderTemplate } from '../helper/template.helper';
 import { success, paginated } from '../helper/response.helper';
-import { NotFoundError, UnauthorizedError, ForbiddenError } from '../utils/stateMachine';
+import { NotFoundError, UnauthorizedError, ForbiddenError, BusinessError } from '../utils/stateMachine';
 import { notificationQueue } from '../../worker/notification.worker';
 import { pickParam } from '../helper/request.helper';
 import { assertReportTargetAccess, bookingAccessWhere } from '../helper/bookingAccess.helper';
@@ -22,15 +25,15 @@ const CreateReportSchema = z.object({
 
 const PresignSchema = z.object({
   mimeType: z.enum(['application/pdf', 'image/jpeg', 'image/png']),
-  fileSizeBytes: z.number().int().positive(),
+  fileSizeBytes: z.number().int().positive().max(MAX_FILE_SIZE_BYTES),
 });
 
 const ConfirmFileSchema = z.object({
-  fileKey: z.string().min(1),
-  fileUrl: z.string().url(),
-  mimeType: z.string().min(1),
-  fileSizeBytes: z.number().int().positive(),
-  checksumSha256: z.string().optional(),
+  fileKey: z.string().min(1).max(500),
+  fileUrl: z.string().url().max(1000),
+  mimeType: z.enum(['application/pdf', 'image/jpeg', 'image/png']),
+  fileSizeBytes: z.number().int().positive().max(MAX_FILE_SIZE_BYTES),
+  checksumSha256: z.string().regex(/^[a-fA-F0-9]{64}$/).optional(),
 });
 
 const ReportListQuerySchema = z.object({
@@ -187,60 +190,75 @@ export const reportController = {
     try {
       if (!req.user) throw new UnauthorizedError('UNAUTHENTICATED');
 
-      const report = await prisma.report.findUnique({
-        where: { id: pickParam(req, 'id') },
-        include: {
-          booking: {
-            select: {
-              customerUserId: true,
-              bookingNumber: true,
-              address: { select: { contactPhone: true } },
-              customer: { select: { phone: true } },
+      const user = req.user;
+      const result = await prisma.$transaction(async tx => {
+        const report = await tx.report.findUnique({
+          where: { id: pickParam(req, 'id') },
+          include: {
+            booking: {
+              select: {
+                customerUserId: true,
+                bookingNumber: true,
+                address: { select: { contactPhone: true } },
+                customer: { select: { phone: true } },
+              },
             },
-          },
-          patient: { select: { fullName: true } },
-        },
-      });
-      if (!report) throw new NotFoundError('REPORT_NOT_FOUND');
-
-      if (req.user.role !== 'ADMIN' && report.uploadedByUserId !== req.user.sub) {
-        throw new ForbiddenError('FORBIDDEN');
-      }
-
-      await assertReportTargetAccess(req.user, report);
-      const data = ConfirmFileSchema.parse(req.body);
-      const file = await prisma.reportFile.create({
-        data: {
-          reportId: report.id,
-          fileProvider: 'CLOUDINARY',
-          fileKey: data.fileKey,
-          fileUrl: data.fileUrl,
-          mimeType: data.mimeType,
-          fileSizeBytes: BigInt(data.fileSizeBytes),
-          checksumSha256: data.checksumSha256,
-        },
-      });
-
-      if (report.isVisibleToCustomer) {
-        const templateData = {
-          patientName: report.patient.fullName,
-          bookingNumber: report.booking.bookingNumber,
-        };
-        const notifLog = await prisma.notificationLog.create({
-          data: {
-            userId: report.booking.customerUserId,
-            bookingId: report.bookingId,
-            templateCode: 'REPORT_AVAILABLE',
-            recipient: report.booking.address.contactPhone ?? report.booking.customer.phone,
-            renderedContent: renderTemplate('REPORT_AVAILABLE', templateData),
-            templateData,
-            status: 'PENDING',
+            patient: { select: { fullName: true } },
           },
         });
-        await notificationQueue.add('send', { notificationLogId: notifLog.id }).catch(() => null);
-      }
+        if (!report) throw new NotFoundError('REPORT_NOT_FOUND');
 
-      success(res, { ...file, fileSizeBytes: file.fileSizeBytes.toString() }, 201);
+        if (user.role !== 'ADMIN' && report.uploadedByUserId !== user.sub) {
+          throw new ForbiddenError('FORBIDDEN');
+        }
+
+        await assertReportTargetAccess(user, report, tx);
+        const data = ConfirmFileSchema.parse(req.body);
+        assertUploadTarget(data, `reports/${report.id}`, env.CLOUDINARY_CLOUD_NAME);
+        const existing = await tx.reportFile.findFirst({ where: { reportId: report.id, fileKey: data.fileKey } });
+        if (existing) {
+          if (existing.fileUrl !== data.fileUrl || existing.mimeType !== data.mimeType || existing.fileSizeBytes !== BigInt(data.fileSizeBytes) ||
+              (existing.checksumSha256 ?? undefined) !== data.checksumSha256) throw new BusinessError('UPLOAD_ALREADY_CONFIRMED');
+          return { file: existing, notificationLogId: null };
+        }
+        const file = await tx.reportFile.create({
+          data: {
+            reportId: report.id,
+            fileProvider: 'CLOUDINARY',
+            fileKey: data.fileKey,
+            fileUrl: data.fileUrl,
+            mimeType: data.mimeType,
+            fileSizeBytes: BigInt(data.fileSizeBytes),
+            checksumSha256: data.checksumSha256,
+          },
+        });
+
+        let notificationLogId: string | null = null;
+        if (report.isVisibleToCustomer) {
+          const templateData = {
+            patientName: report.patient.fullName,
+            bookingNumber: report.booking.bookingNumber,
+          };
+          const notifLog = await tx.notificationLog.create({
+            data: {
+              userId: report.booking.customerUserId,
+              bookingId: report.bookingId,
+              templateCode: 'REPORT_AVAILABLE',
+              recipient: report.booking.address.contactPhone ?? report.booking.customer.phone,
+              renderedContent: renderTemplate('REPORT_AVAILABLE', templateData),
+              templateData,
+              status: 'PENDING',
+            },
+          });
+          notificationLogId = notifLog.id;
+        }
+
+        return { file, notificationLogId };
+      }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
+      if (result.notificationLogId) {
+        await notificationQueue.add('send', { notificationLogId: result.notificationLogId }).catch(() => null);
+      }
+      success(res, { ...result.file, fileSizeBytes: result.file.fileSizeBytes.toString() }, 201);
     } catch (err) { next(err); }
   },
 

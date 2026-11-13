@@ -22,14 +22,14 @@ export function doctorRequestWhere(userId: string, cityId?: string): Prisma.Book
   return { ...(cityId ? { cityId } : {}), serviceType: { code: 'VISITING_DOCTOR', isActive: true }, preferredDoctorUserId: userId, status: { in: ['PENDING_DOCTOR', 'TIME_PROPOSED'] } };
 }
 
-export async function authorizedBookingWhere(user: AccessUser, allowDoctorRequest = true): Promise<Prisma.BookingWhereInput> {
-  const doctor = user.role === 'STAFF' && allowDoctorRequest ? await findEligibleDoctor(prisma, user.sub) : null;
+export async function authorizedBookingWhere(user: AccessUser, allowDoctorRequest = true, db: Prisma.TransactionClient = prisma): Promise<Prisma.BookingWhereInput> {
+  const doctor = user.role === 'STAFF' && allowDoctorRequest ? await findEligibleDoctor(db, user.sub) : null;
   return bookingAccessWhere(user, Boolean(doctor), doctor?.cityId ?? undefined);
 }
 
-export async function assertBookingAccess(user: AccessUser, bookingId: string, allowDoctorRequest = true): Promise<void> {
-  const booking = await prisma.booking.findFirst({
-    where: { id: bookingId, AND: [await authorizedBookingWhere(user, allowDoctorRequest)] },
+export async function assertBookingAccess(user: AccessUser, bookingId: string, allowDoctorRequest = true, db: Prisma.TransactionClient = prisma): Promise<void> {
+  const booking = await db.booking.findFirst({
+    where: { id: bookingId, AND: [await authorizedBookingWhere(user, allowDoctorRequest, db)] },
     select: { id: true },
   });
   if (!booking) throw new ForbiddenError('FORBIDDEN');
@@ -48,14 +48,15 @@ export function bookingVisitAccessWhere(user: AccessUser, allowDoctorRequest = t
 export async function assertReportTargetAccess(
   user: AccessUser,
   target: { bookingId: string; patientId: string; bookingVisitId?: string | null },
+  db: Prisma.TransactionClient = prisma,
 ): Promise<void> {
   if (user.role !== 'ADMIN' && user.role !== 'STAFF') throw new ForbiddenError('FORBIDDEN');
-  await assertBookingAccess(user, target.bookingId, false);
-  const booking = await prisma.booking.findUnique({ where: { id: target.bookingId }, select: { patientId: true } });
+  await assertBookingAccess(user, target.bookingId, false, db);
+  const booking = await db.booking.findUnique({ where: { id: target.bookingId }, select: { patientId: true } });
   if (!booking) throw new NotFoundError('BOOKING_NOT_FOUND');
   if (booking.patientId !== target.patientId) throw new BusinessError('REPORT_PATIENT_MISMATCH');
   if (target.bookingVisitId) {
-    const visit = await prisma.bookingVisit.findUnique({ where: { id: target.bookingVisitId } });
+    const visit = await db.bookingVisit.findUnique({ where: { id: target.bookingVisitId } });
     if (!visit || visit.bookingId !== target.bookingId) throw new BusinessError('REPORT_VISIT_MISMATCH');
     if (user.role === 'STAFF' && visit.assignedStaffUserId !== user.sub) throw new ForbiddenError('FORBIDDEN');
   }
