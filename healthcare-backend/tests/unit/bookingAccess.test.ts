@@ -1,3 +1,5 @@
+import { Prisma } from '@prisma/client';
+import { assertReportTargetAccess } from '../../src/helper/bookingAccess.helper';
 jest.mock('../../src/config/env', () => ({ env: { CLOUDINARY_CLOUD_NAME: 'test' } }));
 import { API as webApi } from '../../../healthcare-web/src/constant/apiUrls';
 import { API as mobileApi } from '../../../healthcare-mobile/src/api/endpoints';
@@ -376,4 +378,18 @@ it('does not queue a notification when the database rejects the commit', async (
   });
   await request(app).post(webApi.REPORTS.CONFIRM(otherId)).send(uploadPayload()).expect(500);
   expect(notificationQueue.add).not.toHaveBeenCalled();
+});
+
+it('uses the supplied transaction for every report-target authorization lookup', async () => {
+  const tx = {
+    booking: { findFirst: jest.fn().mockResolvedValue({ id: bookingId }), findUnique: jest.fn().mockResolvedValue({ patientId }) },
+    bookingVisit: { findUnique: jest.fn().mockResolvedValue({ bookingId, assignedStaffUserId: 'staff' }) },
+  };
+  await assertReportTargetAccess({ sub: 'staff', role: 'STAFF' }, { bookingId, patientId, bookingVisitId: visitId }, tx as unknown as Prisma.TransactionClient);
+  expect(tx.booking.findFirst).toHaveBeenCalledWith(expect.objectContaining({ where: expect.objectContaining({ id: bookingId }) }));
+  expect(tx.booking.findUnique).toHaveBeenCalledTimes(1);
+  expect(tx.bookingVisit.findUnique).toHaveBeenCalledTimes(1);
+  expect(db.booking.findFirst).not.toHaveBeenCalled();
+  expect(db.booking.findUnique).not.toHaveBeenCalled();
+  expect(db.bookingVisit.findUnique).not.toHaveBeenCalled();
 });

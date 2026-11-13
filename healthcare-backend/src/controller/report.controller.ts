@@ -212,7 +212,7 @@ export const reportController = {
           throw new ForbiddenError('FORBIDDEN');
         }
 
-        await assertReportTargetAccess(user, report);
+        await assertReportTargetAccess(user, report, tx);
         const data = ConfirmFileSchema.parse(req.body);
         assertUploadTarget(data, `reports/${report.id}`, env.CLOUDINARY_CLOUD_NAME);
         const existing = await tx.reportFile.findFirst({ where: { reportId: report.id, fileKey: data.fileKey } });
