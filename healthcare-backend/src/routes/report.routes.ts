@@ -11,6 +11,7 @@ const router = Router();
 router.post('/', authenticateToken, adminOrStaff, verifiedStaff, reportController.create);
 router.get('/', authenticateToken, reportController.list);
 router.get('/:id', authenticateToken, reportController.getById);
+router.get('/:id/files/:fileId/download', authenticateToken, reportController.downloadFile);
 router.patch('/:id', authenticateToken, adminOrStaff, verifiedStaff, reportController.update);
 router.post('/:id/files/presign', authenticateToken, adminOrStaff, verifiedStaff, uploadLimiter, reportController.presignFile);
 router.post('/:id/files/confirm', authenticateToken, adminOrStaff, verifiedStaff, reportController.confirmFile);

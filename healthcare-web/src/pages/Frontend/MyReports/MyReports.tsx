@@ -1,3 +1,6 @@
+import { useState } from 'react';
+import toast from 'react-hot-toast';
+import { downloadReportFile } from '../../../helper/reportDownload';
 import clsx from 'clsx';
 import { FileText, Download, ExternalLink, FlaskConical, Pill, ClipboardList, ImageIcon, File } from 'lucide-react';
 import { TopNav } from '../../../component/common/TopNav';
@@ -77,6 +80,7 @@ export function MyReports(): JSX.Element {
         {r.error ? (
           <div className="mb-6 px-4 py-3 rounded-xl bg-danger-50 ring-1 ring-danger-500/20 text-sm text-danger-700">
             {r.error}
+            <button type="button" onClick={r.retry} className="ml-3 font-semibold underline">Retry</button>
           </div>
         ) : null}
 
@@ -87,7 +91,7 @@ export function MyReports(): JSX.Element {
               <ReportCardSkeleton key={i} />
             ))}
           </div>
-        ) : r.reports.length === 0 ? (
+        ) : r.error ? null : r.reports.length === 0 ? (
           <EmptyState
             icon={<FileText className="h-7 w-7" />}
             title="No reports yet"
@@ -112,19 +116,20 @@ export function MyReports(): JSX.Element {
   );
 }
 
-async function downloadFile(url: string, filename: string): Promise<void> {
-  const resp = await fetch(url);
-  if (!resp.ok) throw new Error('Download failed');
-  const blob = await resp.blob();
-  const blobUrl = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = blobUrl;
-  a.download = filename;
-  a.click();
-  URL.revokeObjectURL(blobUrl);
-}
-
 function ReportCard({ report }: { report: Report }): JSX.Element {
+  const [isDownloading, setIsDownloading] = useState(false);
+  const handleDownload = async (): Promise<void> => {
+    const file = report.files?.[0];
+    if (!file || isDownloading) return;
+    setIsDownloading(true);
+    try {
+      await downloadReportFile(report, file);
+    } catch {
+      toast.error('Could not download report. Please try again.');
+    } finally {
+      setIsDownloading(false);
+    }
+  };
   const firstFile = report.files?.[0];
   const isImage = firstFile?.mimeType.startsWith('image/');
 
@@ -189,11 +194,12 @@ function ReportCard({ report }: { report: Report }): JSX.Element {
             </a>
             <button
               type="button"
-              onClick={() => void downloadFile(firstFile.fileUrl, report.title)}
+              onClick={() => void handleDownload()}
+              disabled={isDownloading}
               className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg bg-brand-50 hover:bg-brand-100 text-xs font-semibold text-brand-700 transition-colors"
             >
               <Download className="h-3.5 w-3.5" />
-              Download
+              {isDownloading ? 'Downloading…' : 'Download'}
             </button>
           </div>
         ) : (
