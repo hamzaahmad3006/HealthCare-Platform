@@ -1,5 +1,5 @@
+import { uploadSignedFile, type SignedUpload } from '../../../helper/signedUpload';
 import { useCallback, useEffect, useState } from 'react';
-import axios from 'axios';
 import toast from 'react-hot-toast';
 import { api, extractApiError } from '../../../helper/axios';
 import { API } from '../../../constant/apiUrls';
@@ -21,6 +21,7 @@ interface UseStaffDocumentsReturn {
   isLoading: boolean;
   error: string | null;
   isUploading: boolean;
+  retry: () => void;
   uploadDocument: (file: File, documentType: string) => Promise<void>;
 }
 
@@ -38,6 +39,7 @@ export function useStaffDocuments(): UseStaffDocumentsReturn {
     let cancelled = false;
     const load = async (): Promise<void> => {
       setIsLoading(true);
+      setError(null);
       try {
         const { data } = await api.get<{ success: true; data: StaffDocumentRow[] }>(
           API.STAFF.DOCS(userId),
@@ -66,44 +68,13 @@ export function useStaffDocuments(): UseStaffDocumentsReturn {
       if (!userId) return;
       setIsUploading(true);
       try {
-        const presignRes = await api.post<{
-          success: true;
-          data: {
-            uploadUrl: string;
-            fileKey: string;
-            expiresIn: number;
-            uploadParams: {
-              api_key: string;
-              timestamp: number;
-              signature: string;
-              public_id: string;
-              folder: string;
-              resource_type: string;
-            };
-          };
-        }>(API.STAFF.DOC_PRESIGN(userId), {
+        const presignRes = await api.post<{ success: true; data: SignedUpload }>(API.STAFF.DOC_PRESIGN(userId), {
           documentType,
           mimeType: file.type,
           fileSizeBytes: file.size,
         });
-        const { uploadUrl, fileKey, uploadParams } = presignRes.data.data;
-
-        const formData = new FormData();
-        formData.append('file', file);
-        formData.append('api_key', uploadParams.api_key);
-        formData.append('timestamp', String(uploadParams.timestamp));
-        formData.append('signature', uploadParams.signature);
-        formData.append('public_id', uploadParams.public_id);
-        formData.append('folder', uploadParams.folder);
-        // resource_type belongs in the URL path, NOT the form body —
-        // Cloudinary's signature was computed without it, adding it here
-        // would invalidate the check.
-
-        const uploadRes = await axios.post<{ secure_url: string; public_id: string }>(
-          uploadUrl,
-          formData,
-        );
-        const fileUrl = uploadRes.data.secure_url;
+        const { fileKey } = presignRes.data.data;
+        const fileUrl = await uploadSignedFile(file, presignRes.data.data);
 
         await api.post(API.STAFF.DOC_CONFIRM(userId), {
           documentType,
@@ -124,5 +95,5 @@ export function useStaffDocuments(): UseStaffDocumentsReturn {
     [userId],
   );
 
-  return { documents, isLoading, error, isUploading, uploadDocument };
+  return { documents, isLoading, error, isUploading, uploadDocument, retry: () => setReloadFlag(f => f + 1) };
 }

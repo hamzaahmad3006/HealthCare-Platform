@@ -1,5 +1,5 @@
+import { uploadSignedFile, type SignedUpload } from '../../../helper/signedUpload';
 import { useCallback, useEffect, useState } from 'react';
-import axios from 'axios';
 import toast from 'react-hot-toast';
 import { api, extractApiError } from '../../../helper/axios';
 import { API } from '../../../constant/apiUrls';
@@ -90,37 +90,12 @@ export function useStaffProfile(): UseStaffProfileReturn {
 
       setIsUploadingAvatar(true);
       try {
-        const presignRes = await api.post<{
-          success: true;
-          data: {
-            uploadUrl: string;
-            fileKey: string;
-            uploadParams: {
-              api_key: string;
-              timestamp: number;
-              signature: string;
-              public_id: string;
-              folder: string;
-              resource_type: string;
-            };
-          };
-        }>(API.STAFF.DOC_PRESIGN(reduxUser.id), {
+        const presignRes = await api.post<{ success: true; data: SignedUpload }>(API.STAFF.DOC_PRESIGN(reduxUser.id), {
           documentType: 'AVATAR',
           mimeType: file.type,
           fileSizeBytes: file.size,
         });
-        const { uploadUrl, uploadParams } = presignRes.data.data;
-
-        const formData = new FormData();
-        formData.append('file', file);
-        formData.append('api_key', uploadParams.api_key);
-        formData.append('timestamp', String(uploadParams.timestamp));
-        formData.append('signature', uploadParams.signature);
-        formData.append('public_id', uploadParams.public_id);
-        formData.append('folder', uploadParams.folder);
-
-        const uploadRes = await axios.post<{ secure_url: string }>(uploadUrl, formData);
-        const avatarUrl = uploadRes.data.secure_url;
+        const avatarUrl = await uploadSignedFile(file, presignRes.data.data);
 
         const patchRes = await api.patch<{
           success: true;

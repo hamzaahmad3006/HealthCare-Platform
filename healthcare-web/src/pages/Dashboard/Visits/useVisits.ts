@@ -1,3 +1,4 @@
+import { uploadSignedFile, type SignedUpload } from '../../../helper/signedUpload';
 import { useCallback, useEffect, useState } from 'react';
 import toast from 'react-hot-toast';
 import { api, extractApiError } from '../../../helper/axios';
@@ -211,40 +212,17 @@ export function useVisits(): UseVisitsReturn {
         const reportId = createRes.data.data.id;
 
         // 2 — get Cloudinary presigned URL
-        const presignRes = await api.post<{
-          success: true;
-          data: {
-            uploadUrl: string;
-            fileKey: string;
-            uploadParams: {
-              api_key: string;
-              timestamp: number;
-              signature: string;
-              public_id: string;
-              resource_type: string;
-            };
-          };
-        }>(API.REPORTS.PRESIGN(reportId), {
+        const presignRes = await api.post<{ success: true; data: SignedUpload }>(API.REPORTS.PRESIGN(reportId), {
           mimeType: payload.file.type,
           fileSizeBytes: payload.file.size,
         });
-        const { uploadUrl, fileKey, uploadParams } = presignRes.data.data;
-
-        // 3 — upload directly to Cloudinary (multipart, same as staff docs)
-        const formData = new FormData();
-        formData.append('file', payload.file);
-        formData.append('api_key', uploadParams.api_key);
-        formData.append('timestamp', String(uploadParams.timestamp));
-        formData.append('signature', uploadParams.signature);
-        formData.append('public_id', uploadParams.public_id);
-        const uploadResp = await fetch(uploadUrl, { method: 'POST', body: formData });
-        if (!uploadResp.ok) throw new Error('File upload to storage failed');
-        const uploaded = (await uploadResp.json()) as { secure_url: string };
+        const { fileKey } = presignRes.data.data;
+        const fileUrl = await uploadSignedFile(payload.file, presignRes.data.data);
 
         // 4 — confirm the upload
         await api.post(API.REPORTS.CONFIRM(reportId), {
           fileKey,
-          fileUrl: uploaded.secure_url,
+          fileUrl,
           mimeType: payload.file.type,
           fileSizeBytes: payload.file.size,
         });
