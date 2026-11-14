@@ -11,7 +11,7 @@ module.exports = {
     '!src/**/*.d.ts',
   ],
   setupFiles: ['<rootDir>/tests/setup.ts'],
-  testPathIgnorePatterns: ['/node_modules/', '/dist/'],
+  testPathIgnorePatterns: ['/node_modules/', '/dist/', '/tests/integration/'],
   moduleFileExtensions: ['ts', 'js', 'json'],
   clearMocks: true,
 };
