@@ -1,3 +1,4 @@
+import { safeRequestId } from '../helper/auditPrivacy.helper';
 import { Request, Response, NextFunction } from 'express';
 import { Prisma } from '@prisma/client';
 import { ZodError } from 'zod';
@@ -15,7 +16,7 @@ export function globalErrorHandler(
   res: Response,
   _next: NextFunction,
 ): void {
-  const requestId = res.locals['requestId'] as string | undefined;
+  const requestId = safeRequestId(res.locals['requestId']);
 
   // AppError (includes NotFoundError, ForbiddenError, ConflictError, etc.)
   if (err instanceof AppError) {
@@ -69,7 +70,7 @@ export function globalErrorHandler(
 
   // Prisma: bad query / validation (wrong type, missing required field, etc.)
   if (err instanceof PrismaClientValidationError) {
-    logger.warn('Prisma validation error', { message: err.message, path: req.path });
+    logger.warn('Prisma validation error', { requestId });
     res.status(400).json({
       success: false,
       error: { code: 'BAD_REQUEST', message: 'Invalid query parameters.' },
@@ -80,11 +81,7 @@ export function globalErrorHandler(
 
   // Unknown / unhandled errors
   logger.error('Unhandled error', {
-    errName: err instanceof Error ? err.constructor.name : typeof err,
-    errMessage: err instanceof Error ? err.message : String(err),
-    err,
-    path: req.path,
-    method: req.method,
+    errorType: err instanceof Prisma.PrismaClientKnownRequestError ? 'DATABASE_ERROR' : 'REQUEST_ERROR',
     requestId,
   });
 
