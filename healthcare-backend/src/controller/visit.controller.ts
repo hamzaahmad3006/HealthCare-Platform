@@ -267,48 +267,48 @@ export const visitController = {
 
       assertVisitTransition(visit.status, 'COMPLETED');
 
-      await prisma.$transaction(async (tx) => {
-        await tx.bookingVisit.update({
-          where: { id: visit.id },
-          data: { status: 'COMPLETED', completedByStaffUserId: req.user!.sub },
-        });
-
-        const remainingVisits = await tx.bookingVisit.count({
-          where: { bookingId: visit.bookingId, status: { notIn: ['COMPLETED', 'CANCELLED'] } },
-        });
-
-        if (remainingVisits === 0) {
-          await tx.booking.update({
-            where: { id: visit.bookingId },
-            data: { status: 'COMPLETED' },
-          });
-        }
-      });
-
       const recipient = visit.booking.address.contactPhone ?? visit.booking.customer.phone;
       const templateData = {
         bookingNumber: visit.booking.bookingNumber,
         visitNotes: visit.visitNotes ?? undefined,
       };
-
-      const notifLog = await prisma.notificationLog.create({
-        data: {
-          userId: visit.booking.customerUserId,
-          bookingId: visit.bookingId,
-          bookingVisitId: visit.id,
-          templateCode: 'VISIT_COMPLETED',
-          recipient,
-          renderedContent: renderTemplate('VISIT_COMPLETED', templateData),
-          templateData,
-          status: 'PENDING',
-        },
-      });
+      const actor = req.user;
+      const { updatedVisit, notifLog } = await prisma.$transaction(async (tx) => {
+        const updatedVisit = await tx.bookingVisit.update({
+          where: { id: visit.id, status: visit.status, ...(actor.role === 'STAFF' && { assignedStaffUserId: actor.sub }) },
+          data: { status: 'COMPLETED', completedByStaffUserId: actor.sub },
+        });
+        const remainingVisits = await tx.bookingVisit.count({
+          where: { bookingId: visit.bookingId, status: { notIn: ['COMPLETED', 'CANCELLED'] } },
+        });
+        if (remainingVisits === 0) {
+          await tx.booking.update({
+            where: { id: visit.bookingId, status: 'IN_PROGRESS' },
+            data: { status: 'COMPLETED' },
+          });
+        }
+        const notifLog = await tx.notificationLog.create({
+          data: {
+            userId: visit.booking.customerUserId,
+            bookingId: visit.bookingId,
+            bookingVisitId: visit.id,
+            templateCode: 'VISIT_COMPLETED',
+            recipient,
+            renderedContent: renderTemplate('VISIT_COMPLETED', templateData),
+            templateData,
+            status: 'PENDING',
+          },
+        });
+        return { updatedVisit, notifLog };
+      }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
 
       await notificationQueue.add('send', { notificationLogId: notifLog.id }).catch(() => null);
 
-      const updatedVisit = await prisma.bookingVisit.findUnique({ where: { id: visit.id } });
       success(res, updatedVisit);
-    } catch (err) { next(err); }
+    } catch (err) {
+      next(err instanceof Prisma.PrismaClientKnownRequestError && ['P2025', 'P2034'].includes(err.code)
+        ? new ConflictError('VISIT_CHANGED', 'The visit changed. Refresh before trying again.') : err);
+    }
   },
 
   async miss(req: Request, res: Response, next: NextFunction): Promise<void> {
