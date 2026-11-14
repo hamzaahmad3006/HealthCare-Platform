@@ -20,7 +20,7 @@ function calcAge(dob?: string): string {
 }
 
 export function MyPatients(): JSX.Element {
-  const { patients, loading, refreshing, saving, onRefresh, savePatient, deletePatient } = useMyPatients();
+  const { patients, loading, refreshing, saving, loadingMore, error, onRefresh, retry, loadMore, savePatient, deletePatient } = useMyPatients();
   const [modalOpen, setModalOpen] = useState(false);
   const [editing, setEditing] = useState<Patient | null>(null);
 
@@ -83,12 +83,26 @@ export function MyPatients(): JSX.Element {
         keyExtractor={(item) => item.id}
         refreshing={refreshing}
         onRefresh={onRefresh}
+        onEndReached={loadMore}
+        onEndReachedThreshold={0.3}
+        ListFooterComponent={loadingMore ? <ActivityIndicator size="small" color={Colors.primary} /> : error && patients.length > 0 ? (
+          <TouchableOpacity style={styles.emptyBox} onPress={retry} accessibilityRole="button">
+            <Text style={styles.emptyHint}>{error}</Text>
+            <Text style={styles.emptyAddText}>Retry loading patients</Text>
+          </TouchableOpacity>
+        ) : null}
         contentContainerStyle={patients.length === 0 ? styles.emptyContainer : styles.listContent}
         ListEmptyComponent={
           loading ? (
             <View style={styles.emptyBox}>
               <ActivityIndicator size="large" color={Colors.primary} />
             </View>
+          ) : error ? (
+            <TouchableOpacity style={styles.emptyBox} onPress={retry} accessibilityRole="button">
+              <Text style={styles.emptyTitle}>Could not load patients</Text>
+              <Text style={styles.emptyHint}>{error}</Text>
+              <Text style={styles.emptyAddText}>Retry</Text>
+            </TouchableOpacity>
           ) : (
             <View style={styles.emptyBox}>
               <MaterialDesignIcons name="account-group" size={48} color={Colors.neutralBorder} />
