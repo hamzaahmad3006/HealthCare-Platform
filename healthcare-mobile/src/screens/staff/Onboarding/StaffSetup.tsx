@@ -1,4 +1,4 @@
-import { ActivityIndicator, Text } from 'react-native';
+import { ActivityIndicator, Alert, Text } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { StaffStackParamList } from '../../../navigation/types';
@@ -64,7 +64,7 @@ export function StaffSetup() {
       <FlowButton
         title="Logout"
         onPress={() => {
-          void dispatch(logout());
+          void dispatch(logout()).unwrap().catch(() => Alert.alert('Sign out failed', 'Could not clear your secure session. Please try again.'));
         }}
       />
     </FlowForm>

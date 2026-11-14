@@ -1,3 +1,4 @@
+import { rotateTokens, tokenGeneration } from '../../../api/sessionTokens';
 import { useCallback, useEffect, useState } from 'react';
 import { Alert } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -133,6 +134,7 @@ export function useAccount() {
       Alert.alert('Mismatch', 'New password and confirmation do not match.');
       return;
     }
+    const version = tokenGeneration();
     setUpdatingPwd(true);
     try {
       const { data } = await api.patch<{
@@ -140,9 +142,7 @@ export function useAccount() {
         data: { accessToken: string; refreshToken?: string };
       }>(API.AUTH.CHANGE_PASSWORD, { oldPassword: oldPwd, newPassword: newPwd });
       // The backend rotates the token pair on password change — persist the new ones.
-      const writes: Record<string, string> = { [STORAGE_KEYS.ACCESS_TOKEN]: data.data.accessToken };
-      if (data.data.refreshToken) writes[STORAGE_KEYS.REFRESH_TOKEN] = data.data.refreshToken;
-      await AsyncStorage.setMany(writes);
+      if (!await rotateTokens(data.data, version)) throw new Error('Session changed. Please sign in again.');
       setOldPwd(''); setNewPwd(''); setConfirmPwd('');
       Alert.alert('Updated', 'Your password has been changed.');
     } catch (err) {
@@ -155,7 +155,7 @@ export function useAccount() {
   const signOut = (): void => {
     Alert.alert('Sign out', 'Are you sure you want to sign out?', [
       { text: 'Cancel', style: 'cancel' },
-      { text: 'Sign Out', style: 'destructive', onPress: () => { dispatch(logout()); } },
+      { text: 'Sign Out', style: 'destructive', onPress: () => { void dispatch(logout()).unwrap().catch(() => Alert.alert('Sign out failed', 'Could not clear your secure session. Please try again.')); } },
     ]);
   };
 

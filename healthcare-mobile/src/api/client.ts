@@ -1,3 +1,4 @@
+import { readTokens, rotateTokens, deleteTokens, tokenGeneration } from './sessionTokens';
 import axios, { AxiosInstance, InternalAxiosRequestConfig } from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Platform } from 'react-native';
@@ -26,7 +27,7 @@ export const api: AxiosInstance = axios.create({
 
 // Attach access token to every request
 api.interceptors.request.use(async (config: InternalAxiosRequestConfig) => {
-  const token = await AsyncStorage.getItem(STORAGE_KEYS.ACCESS_TOKEN);
+  const token = (await readTokens())?.accessToken;
   if (token && config.headers) {
     config.headers.Authorization = `Bearer ${token}`;
   }
@@ -59,7 +60,8 @@ async function refreshAccessToken(): Promise<string | null> {
 
   refreshInFlight = (async () => {
     try {
-      const refreshToken = await AsyncStorage.getItem(STORAGE_KEYS.REFRESH_TOKEN);
+      const version = tokenGeneration();
+      const refreshToken = (await readTokens())?.refreshToken;
       if (!refreshToken) return null;
 
       const { data } = await axios.post<{
@@ -72,11 +74,7 @@ async function refreshAccessToken(): Promise<string | null> {
       const newToken = data.data.accessToken;
       // The backend rotates the refresh token on every refresh — persist the new
       // one so the next refresh doesn't send a revoked token.
-      const writes: Record<string, string> = { [STORAGE_KEYS.ACCESS_TOKEN]: newToken };
-      if (data.data.refreshToken) {
-        writes[STORAGE_KEYS.REFRESH_TOKEN] = data.data.refreshToken;
-      }
-      await AsyncStorage.setMany(writes);
+      if (!await rotateTokens(data.data, version)) return null;
       return newToken;
     } catch {
       return null;
@@ -90,8 +88,7 @@ async function refreshAccessToken(): Promise<string | null> {
 
 export async function clearTokens(): Promise<void> {
   await Promise.all([
-    AsyncStorage.removeItem(STORAGE_KEYS.ACCESS_TOKEN),
-    AsyncStorage.removeItem(STORAGE_KEYS.REFRESH_TOKEN),
+    deleteTokens(),
     AsyncStorage.removeItem(STORAGE_KEYS.USER),
   ]);
 }
