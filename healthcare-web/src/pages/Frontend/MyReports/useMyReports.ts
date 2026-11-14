@@ -13,11 +13,13 @@ export function useMyReports() {
   const [error, setError] = useState<string | null>(null);
   const [typeFilter, setTypeFilter] = useState<ReportFilter>('ALL');
   const [page, setPage] = useState(1);
+  const [reloadFlag, setReloadFlag] = useState(0);
 
   useEffect(() => {
     let cancelled = false;
     const load = async (): Promise<void> => {
       setIsLoading(true);
+      setError(null);
       setError(null);
       try {
         const params = new URLSearchParams({ page: String(page), limit: '12' });
@@ -38,10 +40,11 @@ export function useMyReports() {
     };
     void load();
     return () => { cancelled = true; };
-  }, [typeFilter, page]);
+  }, [typeFilter, page, reloadFlag]);
 
   return {
     reports,
+    retry: () => setReloadFlag(n => n + 1),
     meta,
     isLoading,
     error,

@@ -66,6 +66,7 @@ export const API = {
     PRESIGN: (id: string): string => `/reports/${id}/files/presign`,
     CONFIRM: (id: string): string => `/reports/${id}/files/confirm`,
     DELETE_FILE: (id: string, fileId: string): string => `/reports/${id}/files/${fileId}`,
+    DOWNLOAD_FILE: (id: string, fileId: string): string => `/reports/${id}/files/${fileId}/download`,
   },
   REVIEWS: '/reviews',
   NOTIFICATIONS: {

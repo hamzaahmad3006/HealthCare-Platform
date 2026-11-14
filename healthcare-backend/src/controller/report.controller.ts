@@ -8,7 +8,7 @@ import { MAX_FILE_SIZE_BYTES } from '../utils/constants';
 import { getPresignedUploadUrl, deleteFile, signDeliveryUrl } from '../helper/cloudinary.helper';
 import { renderTemplate } from '../helper/template.helper';
 import { success, paginated } from '../helper/response.helper';
-import { NotFoundError, UnauthorizedError, ForbiddenError, BusinessError } from '../utils/stateMachine';
+import { NotFoundError, UnauthorizedError, ForbiddenError, BusinessError, AppError } from '../utils/stateMachine';
 import { notificationQueue } from '../../worker/notification.worker';
 import { pickParam } from '../helper/request.helper';
 import { assertReportTargetAccess, bookingAccessWhere } from '../helper/bookingAccess.helper';
@@ -146,6 +146,45 @@ export const reportController = {
         })),
       };
       success(res, signed);
+    } catch (err) { next(err); }
+  },
+
+  async downloadFile(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      if (!req.user) throw new UnauthorizedError('UNAUTHENTICATED');
+      const reportId = pickParam(req, 'id');
+      const fileId = pickParam(req, 'fileId');
+      const report = await prisma.report.findUnique({
+        where: { id: reportId }, include: { booking: { select: { customerUserId: true } } },
+      });
+      if (!report) throw new NotFoundError('REPORT_NOT_FOUND');
+      if (!canAccessReport(req.user.role, req.user.sub, report)) throw new ForbiddenError('FORBIDDEN');
+      if (req.user.role === 'STAFF') await assertReportTargetAccess(req.user, report);
+
+      const file = await prisma.reportFile.findFirst({
+        where: { id: fileId, reportId }, select: { id: true, fileUrl: true, mimeType: true, fileSizeBytes: true },
+      });
+      if (!file) throw new NotFoundError('FILE_NOT_FOUND');
+      if (file.fileSizeBytes > BigInt(MAX_FILE_SIZE_BYTES)) throw new AppError(502, 'REPORT_FILE_UNAVAILABLE');
+
+      let bytes: ArrayBuffer;
+      try {
+        const upstream = await fetch(signDeliveryUrl(file.fileUrl, file.mimeType), {
+          signal: AbortSignal.timeout(15000),
+        });
+        if (!upstream.ok || Number(upstream.headers.get('content-length') ?? 0) > MAX_FILE_SIZE_BYTES) {
+          throw new Error('Storage download failed');
+        }
+        bytes = await upstream.arrayBuffer();
+      } catch {
+        throw new AppError(502, 'REPORT_FILE_UNAVAILABLE', 'File download is temporarily unavailable');
+      }
+      if (bytes.byteLength > MAX_FILE_SIZE_BYTES) throw new AppError(502, 'REPORT_FILE_UNAVAILABLE');
+      const extension = file.mimeType === 'application/pdf' ? 'pdf' : file.mimeType === 'image/png' ? 'png' : file.mimeType === 'image/jpeg' ? 'jpg' : 'bin';
+      res.setHeader('Content-Type', 'application/octet-stream');
+      res.setHeader('Content-Disposition', `attachment; filename="report-${reportId}.${extension}"`);
+      res.setHeader('Cache-Control', 'private, no-store');
+      res.status(200).send(Buffer.from(bytes));
     } catch (err) { next(err); }
   },
 
