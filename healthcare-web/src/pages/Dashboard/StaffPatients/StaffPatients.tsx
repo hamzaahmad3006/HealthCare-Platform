@@ -1,14 +1,11 @@
-import { useEffect, useState } from 'react';
 import { HeartPulse, User, Calendar, AlertCircle } from 'lucide-react';
 import { SidebarLayout } from '../../../component/admin/SidebarLayout';
 import { EmptyState } from '../../../component/common/EmptyState';
 import { Pagination } from '../../../component/common/Pagination';
 import { Card } from '../../../constant/Card';
 import { formatDateTime } from '../../../helper/format';
-import { api, extractApiError } from '../../../helper/axios';
-import { API } from '../../../constant/apiUrls';
 import type { Patient } from '../../../types/patient.types';
-import type { PaginationMeta } from '../../../types/api.types';
+import { useStaffPatients } from './useStaffPatients';
 
 function calcAge(dob: string | null): string {
   if (!dob) return '—';
@@ -17,35 +14,15 @@ function calcAge(dob: string | null): string {
 }
 
 export function StaffPatients(): JSX.Element {
-  const [patients, setPatients] = useState<Patient[]>([]);
-  const [meta, setMeta] = useState<PaginationMeta | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [page, setPage] = useState(1);
-
-  useEffect(() => {
-    let cancelled = false;
-    setIsLoading(true);
-    api
-      .get<{ success: true; data: Patient[]; meta: PaginationMeta }>(
-        `${API.USERS.PATIENTS}?page=${page}&limit=20`,
-      )
-      .then(({ data }) => {
-        if (cancelled) return;
-        setPatients(data.data);
-        setMeta(data.meta);
-      })
-      .catch((err) => { if (!cancelled) setError(extractApiError(err).message); })
-      .finally(() => { if (!cancelled) setIsLoading(false); });
-    return () => { cancelled = true; };
-  }, [page]);
+  const { patients, meta, isLoading, error, setPage, retry } = useStaffPatients();
 
   return (
     <SidebarLayout title="My Patients" description="Patients from your assigned bookings">
       {error ? (
-        <div className="mb-6 px-4 py-3 rounded-xl bg-danger-50 ring-1 ring-danger-500/20 text-sm text-danger-700 flex items-center gap-2">
+        <div role="alert" className="mb-6 px-4 py-3 rounded-xl bg-danger-50 ring-1 ring-danger-500/20 text-sm text-danger-700 flex items-center gap-2">
           <AlertCircle className="h-4 w-4 flex-shrink-0" />
-          {error}
+          <span>{error}</span>
+          <button type="button" onClick={retry} className="ml-auto font-semibold underline">Retry</button>
         </div>
       ) : null}
 
@@ -55,7 +32,7 @@ export function StaffPatients(): JSX.Element {
             <div key={i} className="h-40 rounded-2xl bg-ink-100 animate-pulse" />
           ))}
         </div>
-      ) : patients.length === 0 ? (
+      ) : error ? null : patients.length === 0 ? (
         <EmptyState
           icon={<HeartPulse className="h-7 w-7" />}
           title="No patients yet"
