@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useRef, useEffect, useMemo, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { v4 as uuidv4 } from 'uuid';
 import toast from 'react-hot-toast';
@@ -118,8 +118,9 @@ export function useBookingForm(): UseBookingFormReturn {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [stepError, setStepError] = useState<string | null>(null);
 
-  // One idempotency key per form session — prevents double-booking on retry.
+  // Keep retries stable; changed booking details begin a new request identity.
   const [idempotencyKey] = useState<string>(() => uuidv4());
+  const submission = useRef<{ signature: string; key: string } | null>(null);
 
   // ── Initial load: services, patients, addresses ────────────────────────────
   useEffect(() => {
@@ -311,8 +312,12 @@ export function useBookingForm(): UseBookingFormReturn {
       if (selectedDoctorId && isVisitingDoctorService) payload.preferredDoctorUserId = selectedDoctorId;
       if (specialInstructions.trim()) payload.specialInstructions = specialInstructions.trim();
 
+      const signature = JSON.stringify(payload);
+      if (submission.current?.signature !== signature) {
+        submission.current = { signature, key: submission.current ? uuidv4() : idempotencyKey };
+      }
       const { data } = await api.post<{ success: true; data: Booking }>(API.BOOKINGS.LIST, payload, {
-        headers: { 'X-Idempotency-Key': idempotencyKey },
+        headers: { 'X-Idempotency-Key': submission.current.key },
       });
 
       toast.success(`Booking ${data.data.bookingNumber} created! We'll confirm shortly.`);

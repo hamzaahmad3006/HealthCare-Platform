@@ -1,3 +1,5 @@
+import { bookingIdempotency, findBookingReplay } from '../helper/bookingIdempotency.helper';
+import { IDEMPOTENCY_TTL } from '../utils/constants';
 import { Request, Response, NextFunction } from 'express';
 import { z } from 'zod';
 import { Prisma, BookingStatus } from '@prisma/client';
@@ -62,8 +64,18 @@ export const bookingController = {
       if (!['CUSTOMER', 'ADMIN'].includes(req.user.role)) throw new ForbiddenError('FORBIDDEN');
       const data = CreateBookingSchema.parse(req.body);
       const customerId = req.user.sub;
+      const idempotency = bookingIdempotency(res.locals['bookingIdempotencyScope'], data);
+      if (idempotency) {
+        const replay = await findBookingReplay(idempotency);
+        if (replay) { success(res, replay); return; }
+      }
 
       const booking = await prisma.$transaction(async (tx) => {
+        if (idempotency) {
+          await tx.bookingCreationRequest.deleteMany({
+            where: { id: idempotency.scope, expiresAt: { lte: new Date() } },
+          });
+        }
         // Serializable isolation guarantees the COUNT() → INSERT pair below is race-free.
         // Concurrent creators on the same city will retry or fail with a serialization error.
         const patient = await tx.patient.findUnique({ where: { id: data.patientId } });
@@ -154,15 +166,31 @@ export const bookingController = {
           } });
           doctorNotifLogId = doctorLog.id;
         }
+        if (idempotency) {
+          await tx.bookingCreationRequest.create({ data: {
+            id: idempotency.scope, requestHash: idempotency.requestHash, bookingId: newBooking.id,
+            expiresAt: new Date(Date.now() + IDEMPOTENCY_TTL * 1000),
+          } });
+        }
         return { booking: newBooking, notifLogId: notifLog.id, doctorNotifLogId };
-      }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable, timeout: 8000 });
+      }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable, timeout: 8000 }).catch(async (err: unknown) => {
+        if (idempotency && err instanceof Prisma.PrismaClientKnownRequestError && ['P2002', 'P2034'].includes(err.code)) {
+          // A competing transaction may have won. Its durable record is now the
+          // source of truth; the losing transaction rolled back all side effects.
+          const replay = await findBookingReplay(idempotency);
+          if (replay) return { booking: replay, notifLogId: undefined, doctorNotifLogId: undefined };
+          res.setHeader('Retry-After', '1');
+          throw new ConflictError('BOOKING_RETRY', 'A concurrent booking changed. Retry with the same idempotency key.');
+        }
+        throw err;
+      });
 
-      await notificationQueue
+      if (booking.notifLogId) await notificationQueue
         .add('send', { notificationLogId: booking.notifLogId })
         .catch(() => null);
 
       if (booking.doctorNotifLogId) await notificationQueue.add('send', { notificationLogId: booking.doctorNotifLogId }).catch(() => null);
-      success(res, booking.booking, 201);
+      success(res, booking.booking, booking.notifLogId ? 201 : 200);
     } catch (err) { next(err); }
   },
 

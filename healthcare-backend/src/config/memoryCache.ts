@@ -1,7 +1,7 @@
 // In-memory shim that implements the subset of ioredis methods this app uses.
 // Used when REDIS_URL is not set so the app can run without a Redis server.
 // LIMITATIONS:
-// - Single-process only. Rate limits and idempotency keys become per-instance.
+// - Single-process only. Rate limits and cache entries become per-instance.
 // - No persistence across restarts.
 // - Not recommended for production with >1 instance.
 
