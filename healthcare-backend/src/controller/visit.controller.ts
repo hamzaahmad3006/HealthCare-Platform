@@ -221,8 +221,10 @@ export const visitController = {
         throw new ConflictError('VISIT_NOT_CHECKED_IN', 'Cannot check out — staff has not checked in');
       }
 
+      if (visit.checkOutAt) throw new ConflictError('VISIT_ALREADY_CHECKED_OUT');
+
       const updated = await prisma.bookingVisit.update({
-        where: { id: visit.id },
+        where: { id: visit.id, status: 'CHECKED_IN', checkOutAt: null, ...(req.user.role === 'STAFF' && { assignedStaffUserId: req.user.sub }) },
         data: {
           checkOutAt: new Date(),
           checkOutLatitude: data.checkOutLatitude,
@@ -234,7 +236,10 @@ export const visitController = {
       });
 
       success(res, updated);
-    } catch (err) { next(err); }
+    } catch (err) {
+      next(err instanceof Prisma.PrismaClientKnownRequestError && err.code === 'P2025'
+        ? new ConflictError('VISIT_CHANGED', 'The visit changed. Refresh before trying again.') : err);
+    }
   },
 
   async complete(req: Request, res: Response, next: NextFunction): Promise<void> {
@@ -313,13 +318,18 @@ export const visitController = {
       const visit = await prisma.bookingVisit.findUnique({ where: { id: pickParam(req, 'id') } });
       if (!visit) throw new NotFoundError('VISIT_NOT_FOUND');
 
+      if (!['SCHEDULED', 'ASSIGNED', 'EN_ROUTE'].includes(visit.status)) throw new ConflictError('INVALID_VISIT_TRANSITION');
+
       const updated = await prisma.bookingVisit.update({
-        where: { id: visit.id },
+        where: { id: visit.id, status: visit.status },
         data: { status: 'MISSED', cancellationReason: reason },
       });
 
       success(res, updated);
-    } catch (err) { next(err); }
+    } catch (err) {
+      next(err instanceof Prisma.PrismaClientKnownRequestError && err.code === 'P2025'
+        ? new ConflictError('VISIT_CHANGED', 'The visit changed. Refresh before trying again.') : err);
+    }
   },
 
   async cancelVisit(req: Request, res: Response, next: NextFunction): Promise<void> {
