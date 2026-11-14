@@ -1,7 +1,7 @@
 {
   "name": "healthcare-backend",
   "version": "1.0.0",
-  "description": "Healthcare Home Services Platform — Backend API",
+  "description": "Healthcare Home Services Platform \u2014 Backend API",
   "main": "dist/server.js",
   "scripts": {
     "dev": "ts-node-dev --respawn --transpile-only src/server.ts",
@@ -16,7 +16,7 @@
     "typecheck": "tsc --noEmit",
     "test": "jest",
     "test:unit": "jest --testPathPattern=tests/unit",
-    "test:integration": "jest --testPathPattern=tests/integration",
+    "test:integration": "jest --config jest.integration.config.js --runInBand",
     "test:coverage": "jest --coverage"
   },
   "dependencies": {
