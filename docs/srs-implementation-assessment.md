@@ -80,3 +80,7 @@ Existing unmerged work remains tracked in `requirements-gap-review.md`; reuse th
 branches. No deployment, production data change or real message/payment was performed.
 This review supersedes that earlier document's statement that the SRS is unavailable.
 The separate PRD and actual GitHub CI/deployment/device results are still unavailable.
+
+### In review: secure mobile session storage (2026-11-14)
+
+`fix/mobile-secure-session-storage` moves access/refresh tokens from AsyncStorage to native Keychain/Keystore with guarded legacy migration and session rotation. Local mobile tests/typecheck pass; native Android build is blocked on JDK 17/toolchain download, and physical-device/iOS validation is pending. This is not a claim that encrypted offline clinical storage or release readiness is complete. See `mobile-secure-session-storage.md`.
