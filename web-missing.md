@@ -56,3 +56,10 @@ Suggested PR titles and descriptions:
 
 No production migration, real message, live payment or clinical-record deletion was run
 in this review. The new task branches were pushed and awaiting review on 2026-11-13.
+
+## PRD/SRS follow-up — 2026-11-14
+
+See [requirements gap checklist](docs/requirements-gap-review.md). Original PRD/SRS
+files are still needed for a complete requirements comparison. Two additional web
+recovery fixes were implemented and tested on separate branches; the checklist
+records their validation and preserves the previous unmerged work.
