@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import {
   Plus, Pencil, Trash2, ToggleLeft, ToggleRight,
   Settings as SettingsIcon, Package, MapPin, ChevronDown, ChevronRight,
@@ -85,25 +85,42 @@ const inputCls = 'w-full px-3 py-2 text-sm rounded-xl border border-ink-200 focu
 const btnPrimary = 'px-4 py-2 text-sm font-semibold text-white bg-brand-600 rounded-xl hover:bg-brand-700 transition-colors disabled:opacity-50';
 const btnGhost = 'px-4 py-2 text-sm font-semibold text-ink-700 rounded-xl hover:bg-ink-100 transition-colors';
 
+function LoadError({ message, onRetry }: { message: string; onRetry: () => void }): JSX.Element {
+  return (
+    <div role="alert" className="rounded-xl bg-danger-50 p-4 text-sm text-danger-700">
+      <p>{message}</p>
+      <button type="button" onClick={onRetry} className="mt-2 font-semibold underline">Retry loading settings</button>
+    </div>
+  );
+}
+
 // ── Service Types Tab ─────────────────────────────────────────────────────────
 
 function ServiceTypesTab(): JSX.Element {
   const [items, setItems] = useState<ServiceType[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const requestId = useRef(0);
   const [editing, setEditing] = useState<ServiceType | null>(null);
   const [showForm, setShowForm] = useState(false);
   const [saving, setSaving] = useState(false);
   const [form, setForm] = useState({ code: '', name: '', description: '', isActive: true });
 
   const load = useCallback(() => {
+    const current = ++requestId.current;
     setLoading(true);
+    setLoadError(null);
     api.get<{ data: ServiceType[] }>(API.ADMIN.SETTINGS.SERVICE_TYPES)
-      .then(({ data }) => setItems(data.data))
-      .catch((e) => toast.error(extractApiError(e).message))
-      .finally(() => setLoading(false));
+      .then(({ data }) => { if (current === requestId.current) setItems(data.data); })
+      .catch((e) => { if (current === requestId.current) setLoadError(extractApiError(e).message); })
+      .finally(() => { if (current === requestId.current) setLoading(false); });
   }, []);
 
-  useEffect(() => { load(); }, [load]);
+  useEffect(() => {
+    const currentRequests = requestId;
+    load();
+    return () => { currentRequests.current++; };
+  }, [load]);
 
   const openCreate = (): void => {
     setEditing(null);
@@ -149,8 +166,8 @@ function ServiceTypesTab(): JSX.Element {
   return (
     <div>
       <div className="flex items-center justify-between mb-4">
-        <p className="text-sm text-ink-500">{items.length} service type{items.length !== 1 ? 's' : ''}</p>
-        <button onClick={openCreate} className={btnPrimary + ' flex items-center gap-1.5'}>
+        <p className="text-sm text-ink-500">{loading ? 'Loading service types…' : loadError ? 'Service types unavailable' : `${items.length} service type${items.length !== 1 ? 's' : ''}`}</p>
+        <button onClick={openCreate} disabled={loading || Boolean(loadError)} className={btnPrimary + ' flex items-center gap-1.5'}>
           <Plus className="h-4 w-4" /> Add Service Type
         </button>
       </div>
@@ -159,6 +176,8 @@ function ServiceTypesTab(): JSX.Element {
         <div className="space-y-3">
           {[1, 2, 3].map((i) => <div key={i} className="h-14 rounded-xl bg-ink-100 animate-pulse" />)}
         </div>
+      ) : loadError ? (
+        <LoadError message={loadError} onRetry={load} />
       ) : items.length === 0 ? (
         <div className="text-center py-12 text-ink-400 text-sm">No service types yet.</div>
       ) : (
@@ -221,6 +240,8 @@ function PackagesTab(): JSX.Element {
   const [items, setItems] = useState<Package[]>([]);
   const [serviceTypes, setServiceTypes] = useState<ServiceType[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const requestId = useRef(0);
   const [editing, setEditing] = useState<Package | null>(null);
   const [showForm, setShowForm] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -238,21 +259,28 @@ function PackagesTab(): JSX.Element {
   });
 
   const load = useCallback(() => {
+    const current = ++requestId.current;
     setLoading(true);
+    setLoadError(null);
     const params = filterSvcType ? `?serviceTypeId=${filterSvcType}` : '';
     Promise.all([
       api.get<{ data: Package[] }>(`${API.ADMIN.SETTINGS.PACKAGES}${params}`),
       api.get<{ data: ServiceType[] }>(API.ADMIN.SETTINGS.SERVICE_TYPES),
     ])
       .then(([pkgRes, stRes]) => {
+        if (current !== requestId.current) return;
         setItems(pkgRes.data.data);
         setServiceTypes(stRes.data.data);
       })
-      .catch((e) => toast.error(extractApiError(e).message))
-      .finally(() => setLoading(false));
+      .catch((e) => { if (current === requestId.current) setLoadError(extractApiError(e).message); })
+      .finally(() => { if (current === requestId.current) setLoading(false); });
   }, [filterSvcType]);
 
-  useEffect(() => { load(); }, [load]);
+  useEffect(() => {
+    const currentRequests = requestId;
+    load();
+    return () => { currentRequests.current++; };
+  }, [load]);
 
   const openCreate = (): void => {
     setEditing(null);
@@ -325,7 +353,7 @@ function PackagesTab(): JSX.Element {
           {serviceTypes.map((st) => <option key={st.id} value={st.id}>{st.name}</option>)}
         </select>
         <div className="flex-1" />
-        <button onClick={openCreate} className={btnPrimary + ' flex items-center gap-1.5'}>
+        <button onClick={openCreate} disabled={loading || Boolean(loadError)} className={btnPrimary + ' flex items-center gap-1.5'}>
           <Plus className="h-4 w-4" /> Add Package
         </button>
       </div>
@@ -334,6 +362,8 @@ function PackagesTab(): JSX.Element {
         <div className="space-y-3">
           {[1, 2, 3].map((i) => <div key={i} className="h-16 rounded-xl bg-ink-100 animate-pulse" />)}
         </div>
+      ) : loadError ? (
+        <LoadError message={loadError} onRetry={load} />
       ) : items.length === 0 ? (
         <div className="text-center py-12 text-ink-400 text-sm">No packages yet.</div>
       ) : (
@@ -420,6 +450,8 @@ function PackagesTab(): JSX.Element {
 function CitiesTab(): JSX.Element {
   const [cities, setCities] = useState<City[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const requestId = useRef(0);
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
   const [editingCity, setEditingCity] = useState<City | null>(null);
   const [showCityForm, setShowCityForm] = useState(false);
@@ -432,14 +464,20 @@ function CitiesTab(): JSX.Element {
   const [savingZone, setSavingZone] = useState(false);
 
   const load = useCallback(() => {
+    const current = ++requestId.current;
     setLoading(true);
+    setLoadError(null);
     api.get<{ data: City[] }>(API.ADMIN.SETTINGS.CITIES)
-      .then(({ data }) => setCities(data.data))
-      .catch((e) => toast.error(extractApiError(e).message))
-      .finally(() => setLoading(false));
+      .then(({ data }) => { if (current === requestId.current) setCities(data.data); })
+      .catch((e) => { if (current === requestId.current) setLoadError(extractApiError(e).message); })
+      .finally(() => { if (current === requestId.current) setLoading(false); });
   }, []);
 
-  useEffect(() => { load(); }, [load]);
+  useEffect(() => {
+    const currentRequests = requestId;
+    load();
+    return () => { currentRequests.current++; };
+  }, [load]);
 
   const toggleExpand = (id: string): void => {
     setExpanded((prev) => {
@@ -523,8 +561,8 @@ function CitiesTab(): JSX.Element {
   return (
     <div>
       <div className="flex items-center justify-between mb-4">
-        <p className="text-sm text-ink-500">{cities.length} cit{cities.length !== 1 ? 'ies' : 'y'}</p>
-        <button onClick={openCreateCity} className={btnPrimary + ' flex items-center gap-1.5'}>
+        <p className="text-sm text-ink-500">{loading ? 'Loading cities…' : loadError ? 'Cities unavailable' : `${cities.length} cit${cities.length !== 1 ? 'ies' : 'y'}`}</p>
+        <button onClick={openCreateCity} disabled={loading || Boolean(loadError)} className={btnPrimary + ' flex items-center gap-1.5'}>
           <Plus className="h-4 w-4" /> Add City
         </button>
       </div>
@@ -533,6 +571,8 @@ function CitiesTab(): JSX.Element {
         <div className="space-y-3">
           {[1, 2].map((i) => <div key={i} className="h-14 rounded-xl bg-ink-100 animate-pulse" />)}
         </div>
+      ) : loadError ? (
+        <LoadError message={loadError} onRetry={load} />
       ) : cities.length === 0 ? (
         <div className="text-center py-12 text-ink-400 text-sm">No cities yet.</div>
       ) : (
