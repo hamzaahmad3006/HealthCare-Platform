@@ -46,6 +46,7 @@ export function useBookingDetail(): UseBookingDetailReturn {
     let cancelled = false;
     const load = async (): Promise<void> => {
       setIsLoading(true);
+      setError(null);
       try {
         const { data } = await api.get<{ success: true; data: BookingWithRelations }>(
           API.BOOKINGS.BY_ID(id),

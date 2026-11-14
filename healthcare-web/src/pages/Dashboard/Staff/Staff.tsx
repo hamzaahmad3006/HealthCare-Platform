@@ -152,8 +152,14 @@ export function Staff(): JSX.Element {
       </div>
 
       {s.error ? (
-        <div className="mt-6 px-4 py-3 rounded-xl bg-danger-50 ring-1 ring-danger-500/20 text-sm text-danger-700">
-          {s.error}
+        <div
+          role="alert"
+          className="mt-6 px-4 py-3 rounded-xl bg-danger-50 ring-1 ring-danger-500/20 text-sm text-danger-700 flex items-center justify-between gap-3"
+        >
+          <span>{s.error}</span>
+          <Button size="sm" variant="secondary" onClick={s.refresh}>
+            Retry
+          </Button>
         </div>
       ) : null}
 
@@ -179,11 +185,7 @@ export function Staff(): JSX.Element {
         onClose={() => setShowAddModal(false)}
         onCreated={() => {
           setShowAddModal(false);
-          // Trigger list refresh — useStaff watches a reloadFlag via the
-          // search/filter setters. Setting search to its current value is
-          // a no-op so we change the filter state via a known reset path:
-          // open the page anew effectively. Simplest: reload via tiny hack.
-          window.dispatchEvent(new Event('staff:refresh'));
+          s.refresh();
         }}
       />
     </SidebarLayout>

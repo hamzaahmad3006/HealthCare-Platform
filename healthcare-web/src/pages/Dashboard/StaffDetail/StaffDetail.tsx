@@ -12,7 +12,7 @@ import { useStaffDetail } from './useStaffDetail';
 export function StaffDetail(): JSX.Element {
   const d = useStaffDetail();
 
-  if (d.isLoading || !d.staff) {
+  if (d.isLoading) {
     return (
       <SidebarLayout title="Staff detail">
         <LoadingSpinner size="lg" label="Loading staff…" className="py-20" />
@@ -20,12 +20,37 @@ export function StaffDetail(): JSX.Element {
     );
   }
 
+  if (d.error || !d.staff) {
+    return (
+      <SidebarLayout
+        title="Staff detail"
+        actions={
+          <Button variant="ghost" size="sm" onClick={d.goBack} leftIcon={<ArrowLeft className="h-4 w-4" />}>
+            Back
+          </Button>
+        }
+      >
+        <div
+          role="alert"
+          className="px-4 py-3 rounded-xl bg-danger-50 ring-1 ring-danger-500/20 text-sm text-danger-700 flex items-center justify-between gap-3"
+        >
+          <span>{d.error ?? 'Staff member not found'}</span>
+          <Button size="sm" variant="secondary" onClick={d.retry}>
+            Retry
+          </Button>
+        </div>
+      </SidebarLayout>
+    );
+  }
+
   const s = d.staff;
+  const cityLabel = s.city?.name ?? 'City not set';
+  const serviceTypes = s.serviceTypes ?? [];
 
   return (
     <SidebarLayout
       title={s.user.fullName}
-      description={`${s.staffCode} · ${s.city.name}`}
+      description={`${s.staffCode} · ${cityLabel}`}
       actions={
         <Button variant="ghost" size="sm" onClick={d.goBack} leftIcon={<ArrowLeft className="h-4 w-4" />}>
           Back
@@ -60,7 +85,7 @@ export function StaffDetail(): JSX.Element {
               ) : null}
               <p className="text-sm text-ink-700 inline-flex items-center gap-2">
                 <MapPin className="h-4 w-4 text-ink-400" />
-                {s.city.name}
+                {cityLabel}
                 {s.zone ? ` · ${s.zone.name}` : ''}
               </p>
             </div>
@@ -70,7 +95,7 @@ export function StaffDetail(): JSX.Element {
                 <p className="text-2xs text-ink-500 uppercase tracking-wider mt-0.5">years exp</p>
               </div>
               <div className="p-3 rounded-xl bg-ink-50">
-                <p className="text-2xl font-bold text-ink-900">{s.serviceTypes.length}</p>
+                <p className="text-2xl font-bold text-ink-900">{serviceTypes.length}</p>
                 <p className="text-2xs text-ink-500 uppercase tracking-wider mt-0.5">services</p>
               </div>
             </div>
@@ -109,10 +134,10 @@ export function StaffDetail(): JSX.Element {
           <Card padding="md">
             <h3 className="text-sm font-semibold text-ink-800 mb-3">Service types</h3>
             <div className="flex flex-wrap gap-2">
-              {s.serviceTypes.length === 0 ? (
+              {serviceTypes.length === 0 ? (
                 <p className="text-sm text-ink-500 italic">No services assigned.</p>
               ) : (
-                s.serviceTypes.map((st) => (
+                serviceTypes.map((st) => (
                   <Badge key={st.serviceType.id} tone="brand">
                     {st.serviceType.name}
                   </Badge>

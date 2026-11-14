@@ -88,7 +88,14 @@ export function StaffRoutes(): JSX.Element {
         <Route path="patients" element={<StaffPatients />} />
         <Route path="documents" element={<StaffDocuments />} />
         <Route path="profile" element={<StaffProfile />} />
-        <Route path="doctor-requests" element={<DoctorRequests />} />
+        <Route
+          path="doctor-requests"
+          element={
+            <StaffVerificationGate>
+              <DoctorRequests />
+            </StaffVerificationGate>
+          }
+        />
         <Route path="change-password" element={<ChangePassword />} />
         {/* /staff with no suffix → send to visits */}
         <Route index element={<Navigate to="visits" replace />} />

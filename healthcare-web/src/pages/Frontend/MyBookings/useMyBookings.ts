@@ -22,12 +22,21 @@ interface UseMyBookingsReturn {
   setActiveTab: (t: MyBookingsTab) => void;
   page: number;
   setPage: (p: number) => void;
+  retry: () => void;
   handleOpen: (id: string) => void;
   handleNewBooking: () => void;
 }
 
 const STATUS_GROUPS: Record<MyBookingsTab, string[]> = {
-  ACTIVE: ['PENDING', 'CONFIRMED', 'ASSIGNED', 'IN_PROGRESS', 'RESCHEDULED'],
+  ACTIVE: [
+    'PENDING_DOCTOR',
+    'TIME_PROPOSED',
+    'PENDING',
+    'CONFIRMED',
+    'ASSIGNED',
+    'IN_PROGRESS',
+    'RESCHEDULED',
+  ],
   COMPLETED: ['COMPLETED'],
   CANCELLED: ['CANCELLED'],
 };
@@ -36,6 +45,7 @@ export function useMyBookings(): UseMyBookingsReturn {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<MyBookingsTab>('ACTIVE');
   const [page, setPage] = useState(1);
+  const [reloadFlag, setReloadFlag] = useState(0);
   const [bookings, setBookings] = useState<BookingListItem[]>([]);
   const [meta, setMeta] = useState<PaginationMeta | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -77,7 +87,7 @@ export function useMyBookings(): UseMyBookingsReturn {
     return () => {
       cancelled = true;
     };
-  }, [activeTab, page]);
+  }, [activeTab, page, reloadFlag]);
 
   const handleOpen = useCallback(
     (id: string): void => {
@@ -102,6 +112,7 @@ export function useMyBookings(): UseMyBookingsReturn {
     },
     page,
     setPage,
+    retry: () => setReloadFlag((f) => f + 1),
     handleOpen,
     handleNewBooking,
   };

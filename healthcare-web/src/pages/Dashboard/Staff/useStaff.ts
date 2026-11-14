@@ -27,6 +27,7 @@ interface UseStaffReturn {
   verifyingId: string | null;
   handleVerify: (userId: string) => Promise<void>;
   openStaff: (userId: string) => void;
+  refresh: () => void;
 }
 
 export function useStaff(): UseStaffReturn {
@@ -47,6 +48,7 @@ export function useStaff(): UseStaffReturn {
     let cancelled = false;
     const load = async (): Promise<void> => {
       setIsLoading(true);
+      setError(null);
       try {
         const params = new URLSearchParams({ page: String(page), limit: '20' });
         if (filterStatus !== 'ALL') params.set('verificationStatus', filterStatus);
@@ -116,5 +118,6 @@ export function useStaff(): UseStaffReturn {
     verifyingId,
     handleVerify,
     openStaff: (userId) => navigate(`/admin/staff/${userId}`),
+    refresh: () => setReloadFlag((f) => f + 1),
   };
 }

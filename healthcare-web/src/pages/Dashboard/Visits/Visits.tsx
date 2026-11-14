@@ -237,8 +237,18 @@ export function Visits(): JSX.Element {
       </div>
 
       {v.error ? (
-        <div className="mt-6 px-4 py-3 rounded-xl bg-danger-50 ring-1 ring-danger-500/20 text-sm text-danger-700">
-          {v.error}
+        <div
+          role="alert"
+          className="mt-6 px-4 py-3 rounded-xl bg-danger-50 ring-1 ring-danger-500/20 text-sm text-danger-700 flex items-center justify-between gap-3"
+        >
+          <span>{v.error}</span>
+          <button
+            type="button"
+            onClick={v.reload}
+            className="px-3 py-1.5 rounded-lg bg-white ring-1 ring-ink-200 text-xs font-semibold text-ink-700 hover:bg-ink-50"
+          >
+            Retry
+          </button>
         </div>
       ) : null}
 

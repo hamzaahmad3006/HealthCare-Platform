@@ -11,6 +11,7 @@ interface UseAdminBookingDetailReturn {
   booking: BookingWithRelations | null;
   isLoading: boolean;
   error: string | null;
+  retry: () => void;
 
   isConfirming: boolean;
   handleConfirm: () => Promise<void>;
@@ -61,6 +62,7 @@ export function useAdminBookingDetail(): UseAdminBookingDetailReturn {
     let cancelled = false;
     const load = async (): Promise<void> => {
       setIsLoading(true);
+      setError(null);
       try {
         const { data } = await api.get<{ success: true; data: BookingWithRelations }>(
           API.BOOKINGS.BY_ID(id),
@@ -193,6 +195,7 @@ export function useAdminBookingDetail(): UseAdminBookingDetailReturn {
     booking,
     isLoading,
     error,
+    retry: () => setReloadFlag((f) => f + 1),
     isConfirming,
     handleConfirm,
     isCancelling,

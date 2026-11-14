@@ -92,7 +92,7 @@ export function useMyPatients() {
   }, [reload]);
 
   return {
-    patients, meta, isLoading, error, page, setPage,
+    patients, meta, isLoading, error, page, setPage, reload,
     modalOpen, editing, saving, deleting,
     openAdd, openEdit, closeModal, handleSave, handleDelete,
   };

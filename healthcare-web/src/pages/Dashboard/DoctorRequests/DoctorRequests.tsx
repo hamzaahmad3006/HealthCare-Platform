@@ -36,6 +36,7 @@ export function DoctorRequests(): JSX.Element {
   const load = useCallback(() => {
     let cancelled = false;
     setIsLoading(true);
+    setError(null);
     api
       .get<{ success: true; data: DoctorBooking[]; meta: PaginationMeta }>(API.BOOKINGS.DOCTOR_REQUESTS)
       .then(({ data }) => { if (!cancelled) setRequests(data.data as DoctorBooking[]); })
@@ -82,7 +83,19 @@ export function DoctorRequests(): JSX.Element {
       description="Booking requests from patients who selected you as their doctor"
     >
       {error ? (
-        <div className="mb-6 px-4 py-3 rounded-xl bg-danger-50 ring-1 ring-danger-500/20 text-sm text-danger-700">{error}</div>
+        <div
+          role="alert"
+          className="mb-6 px-4 py-3 rounded-xl bg-danger-50 ring-1 ring-danger-500/20 text-sm text-danger-700 flex items-center justify-between gap-3"
+        >
+          <span>{error}</span>
+          <button
+            type="button"
+            onClick={() => void load()}
+            className="px-3 py-1.5 rounded-lg bg-white ring-1 ring-ink-200 text-xs font-semibold text-ink-700 hover:bg-ink-50"
+          >
+            Retry
+          </button>
+        </div>
       ) : null}
 
       {isLoading ? (
@@ -91,7 +104,7 @@ export function DoctorRequests(): JSX.Element {
             <div key={i} className="h-32 bg-ink-100 rounded-2xl animate-pulse" />
           ))}
         </div>
-      ) : requests.length === 0 ? (
+      ) : error ? null : requests.length === 0 ? (
         <Card padding="lg">
           <EmptyState
             icon={<UserSquare2 className="h-7 w-7" />}

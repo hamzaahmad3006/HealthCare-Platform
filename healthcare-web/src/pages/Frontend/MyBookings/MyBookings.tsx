@@ -56,8 +56,14 @@ export function MyBookings(): JSX.Element {
 
         {/* Content */}
         {m.error ? (
-          <div className="mt-8 px-4 py-3 rounded-xl bg-danger-50 ring-1 ring-danger-500/20 text-sm text-danger-700">
-            {m.error}
+          <div
+            role="alert"
+            className="mt-8 px-4 py-3 rounded-xl bg-danger-50 ring-1 ring-danger-500/20 text-sm text-danger-700 flex items-center justify-between gap-3"
+          >
+            <span>{m.error}</span>
+            <Button size="sm" variant="secondary" onClick={m.retry}>
+              Retry
+            </Button>
           </div>
         ) : null}
 
@@ -67,7 +73,7 @@ export function MyBookings(): JSX.Element {
               <BookingCardSkeleton key={i} />
             ))}
           </div>
-        ) : m.bookings.length === 0 ? (
+        ) : m.error ? null : m.bookings.length === 0 ? (
           <EmptyState
             icon={<CalendarPlus className="h-7 w-7" />}
             title={
