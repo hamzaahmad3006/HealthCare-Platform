@@ -63,6 +63,7 @@ function matches(row: Row, where: Row = {}): boolean {
     if (value && typeof value === 'object') {
       const filter = value as Row;
       if ('in' in filter) return (filter.in as unknown[]).includes(row[key]);
+      if ('contains' in filter) return String(row[key]).toLowerCase().includes(String(filter.contains).toLowerCase());
       if ('some' in filter) return (row[key] as Row[]).some(r => matches(r, filter.some as Row));
       return matches(row[key] as Row, filter);
     }
@@ -167,6 +168,35 @@ it('uses current assignments for patient reads, excluding unrelated or replaced 
   expect((await request(app).get('/users/patients')).body.data).toHaveLength(1);
   expect((await request(app).get('/users/patients').set('x-user', 'replaced-staff')).body.data).toHaveLength(0);
   expect((await request(app).get(`/users/patients/${patientId}`)).status).toBe(200);
+});
+
+it('searches all authorized patients before paging without exposing other customers or staff patients', async () => {
+  const rows = [
+    { id: 'a', fullName: 'Amina One', customerUserId: 'customer', bookings: [booking] },
+    { id: 'b', fullName: 'Amina Two', customerUserId: 'customer', bookings: [booking] },
+    { id: 'c', fullName: 'Amina Private', customerUserId: 'other-customer', bookings: [{ ...booking, visits: [] }] },
+    { id: 'd', fullName: 'Amina Customer', customerUserId: 'customer', bookings: [] },
+    { id: 'e', fullName: 'Zara', customerUserId: 'customer', bookings: [booking] },
+  ];
+  db.patient.findMany.mockImplementation(async ({ where, skip, take }: { where: Row; skip: number; take: number }) =>
+    rows.filter(row => matches(row, where)).sort((left, right) => left.fullName.localeCompare(right.fullName)).slice(skip, skip + take));
+  db.patient.count.mockImplementation(async ({ where }: { where: Row }) => rows.filter(row => matches(row, where)).length);
+
+  const staffPage = await request(app).get('/users/patients?search=AMINA&page=2&limit=1');
+  expect(staffPage.status).toBe(200);
+  expect(staffPage.body.data.map((row: Row) => row.id)).toEqual(['b']);
+  expect(staffPage.body.meta).toMatchObject({ total: 2, page: 2, limit: 1, hasNext: false });
+
+  const unrelatedStaff = await request(app).get('/users/patients?search=Amina').set('x-user', 'unrelated');
+  expect(unrelatedStaff.body.data).toEqual([]);
+  expect(unrelatedStaff.body.meta.total).toBe(0);
+
+  const customerPage = await request(app).get('/users/patients?search=Amina').set('x-role', 'CUSTOMER').set('x-user', 'customer');
+  expect(customerPage.body.data.map((row: Row) => row.id)).toEqual(['d', 'a', 'b']);
+  expect(customerPage.body.meta.total).toBe(3);
+
+  const adminPage = await request(app).get('/users/patients?search=Amina').set('x-role', 'ADMIN');
+  expect(adminPage.body.meta.total).toBe(4);
 });
 
 it.each(['STAFF', 'CUSTOMER'])('blocks %s cancellation of another customer booking', async role => {

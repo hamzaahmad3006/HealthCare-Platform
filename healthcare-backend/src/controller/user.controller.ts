@@ -45,6 +45,8 @@ const PaginationSchema = z.object({
   limit: z.coerce.number().min(1).max(100).default(20),
 });
 
+const PatientListQuerySchema = PaginationSchema.extend({ search: z.string().trim().min(1).max(100).optional() });
+
 export const userController = {
   async getMe(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
@@ -106,7 +108,7 @@ export const userController = {
   async getPatients(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       if (!req.user) throw new UnauthorizedError('UNAUTHENTICATED');
-      const { page, limit } = PaginationSchema.parse(req.query);
+      const { page, limit, search } = PatientListQuerySchema.parse(req.query);
 
       let where: Prisma.PatientWhereInput;
       if (req.user.role === 'ADMIN') {
@@ -117,8 +119,10 @@ export const userController = {
         where = { customerUserId: req.user.sub };
       }
 
+      if (search) where = { AND: [where, { fullName: { contains: search, mode: 'insensitive' } }] };
+
       const [patients, total] = await prisma.$transaction([
-        prisma.patient.findMany({ where, skip: (page - 1) * limit, take: limit, orderBy: { fullName: 'asc' } }),
+        prisma.patient.findMany({ where, skip: (page - 1) * limit, take: limit, orderBy: [{ fullName: 'asc' }, { id: 'asc' }] }),
         prisma.patient.count({ where }),
       ]);
 
