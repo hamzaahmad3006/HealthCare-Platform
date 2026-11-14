@@ -1,3 +1,4 @@
+import { safeRequestId } from './helper/auditPrivacy.helper';
 import './config/env'; // validate env vars on startup
 import express, { Request, Response, NextFunction } from 'express';
 import helmet from 'helmet';
@@ -28,7 +29,7 @@ app.post(
 
 // ── Request ID ────────────────────────────────────────────────────────────────
 app.use((req: Request, res: Response, next: NextFunction) => {
-  const id = (req.headers['x-request-id'] as string | undefined) ?? uuidv4();
+  const id = safeRequestId(req.headers['x-request-id']) ?? uuidv4();
   req.id = id;
   res.locals['requestId'] = id;
   res.setHeader('X-Request-ID', id);
