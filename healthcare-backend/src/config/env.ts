@@ -7,7 +7,7 @@ const envSchema = z.object({
 
   DATABASE_URL: z.string().min(1, 'DATABASE_URL is required'),
   // Optional. When unset, an in-memory cache shim takes over for rate limits,
-  // idempotency, login lockout, dashboard cache, and Stripe event dedup; the
+  // login lockout, dashboard cache, and Stripe event dedup; the
   // notification queue runs the WhatsApp send inline; the reminder job runs on
   // a setInterval. Single-process only — set REDIS_URL for any multi-instance
   // deploy.

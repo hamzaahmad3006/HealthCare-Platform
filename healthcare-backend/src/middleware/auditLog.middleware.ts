@@ -1,7 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 import { prisma } from '../config/database';
 import { logger } from '../utils/logger';
-import { redact } from '../helper/redact.helper';
+import { auditPayloadSummary, auditResource, auditUserAgent } from '../helper/auditPrivacy.helper';
 
 const AUDITED_METHODS = new Set(['POST', 'PATCH', 'PUT', 'DELETE']);
 
@@ -11,29 +11,28 @@ export function auditLogMiddleware(req: Request, res: Response, next: NextFuncti
     return;
   }
 
+  const resource = auditResource(req.path);
+  const payload = auditPayloadSummary(req.body);
+  const userAgent = auditUserAgent(req.headers['user-agent']);
+
   res.on('finish', () => {
     if (res.statusCode >= 400) return;
 
     const actorUserId = req.user?.sub ?? null;
-    const pathParts = req.path.split('/').filter(Boolean);
-
-    const entityType = pathParts[1] ?? 'unknown';
-    const entityId = pathParts[2] ?? 'unknown';
 
     prisma.auditLog
       .create({
         data: {
           actorUserId,
-          entityType,
-          entityId,
+          ...resource,
           action: req.method,
-          payload: redact(req.body),
+          payload,
           ipAddress: req.ip,
-          userAgent: req.headers['user-agent'],
+          userAgent,
         },
       })
-      .catch((err: Error) => {
-        logger.error('Audit log write failed', { err: err.message });
+      .catch(() => {
+        logger.error('Audit log write failed');
       });
   });
 

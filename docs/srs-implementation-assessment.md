@@ -84,3 +84,17 @@ The separate PRD and actual GitHub CI/deployment/device results are still unavai
 ### In review: secure mobile session storage (2026-11-14)
 
 `fix/mobile-secure-session-storage` moves access/refresh tokens from AsyncStorage to native Keychain/Keystore with guarded legacy migration and session rotation. Local mobile tests/typecheck pass; native Android build is blocked on JDK 17/toolchain download, and physical-device/iOS validation is pending. This is not a claim that encrypted offline clinical storage or release readiness is complete. See `mobile-secure-session-storage.md`.
+
+## Implementation updates — 2026-11-14
+
+The earlier code/documentation branches reached main `00ac48e` before these tasks
+started. The original percentage remains a dated assessment, not a new release score.
+
+| Checklist work | New branch | Verification / merge status |
+| --- | --- | --- |
+| Scoped booking idempotency and concurrent duplicate protection | `fix/booking-idempotency-isolation` (`150ba90`) | Implemented with web/mobile retry handling and database migration. Local unit/build/browser checks and SQL migration application passed. Native Prisma concurrency test blocked by engine-download HTTP 403; new PostgreSQL CI job must pass before merge. |
+| Clinical request data in audit/error logs | `fix/audit-patient-data-privacy` | Implemented for new mutation audits and global request errors. Backend typecheck/build and 325 tests passed. GitHub CI unobserved; historical records need separate retention review. |
+
+See [idempotency validation](https://github.com/hamzaahmad3006/HealthCare-Platform/blob/fix/booking-idempotency-isolation/docs/booking-idempotency.md) on its own branch and
+[audit privacy validation](audit-patient-data-privacy.md) on the privacy branch.
+The booking idempotency and audit privacy branches have since been merged into main (PRs #39 and #40).

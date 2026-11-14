@@ -471,6 +471,7 @@ model Booking {
   reviews       Review[]
   notifications NotificationLog[]
   payments      Payment[]
+  creationRequests BookingCreationRequest[]
 
   @@index([customerUserId, status])
   @@index([patientId])
@@ -478,6 +479,21 @@ model Booking {
   @@index([cityId, status])
   @@index([requestedStartAt])
   @@map("bookings")
+}
+
+// Request identity is committed in the same transaction as the booking. Raw
+// idempotency keys and request bodies are not retained here.
+model BookingCreationRequest {
+  id          String   @id @db.VarChar(64)
+  requestHash String   @db.VarChar(64)
+  bookingId   String
+  booking     Booking  @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  expiresAt   DateTime
+  createdAt   DateTime @default(now())
+
+  @@index([expiresAt])
+  @@index([bookingId])
+  @@map("booking_creation_requests")
 }
 
 model BookingVisit {
