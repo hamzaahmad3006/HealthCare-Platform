@@ -63,3 +63,11 @@ See [requirements gap checklist](docs/requirements-gap-review.md). Original PRD/
 files are still needed for a complete requirements comparison. Two additional web
 recovery fixes were implemented and tested on separate branches; the checklist
 records their validation and preserves the previous unmerged work.
+
+## Uploaded SRS assessment — 2026-11-14
+
+The original SRS has now been supplied and inspected. See the
+[SRS implementation assessment](docs/srs-implementation-assessment.md) for the
+32-group scorecard, approximately 55–60% evidenced launch-scope coverage, and
+prioritized security/offline/integration gaps. This supersedes the missing-SRS
+blocker above; the separate PRD and production verification remain unavailable.

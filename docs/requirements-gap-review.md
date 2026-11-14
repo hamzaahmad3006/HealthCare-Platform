@@ -1,5 +1,10 @@
 # Requirements gap review — 2026-11-14
 
+**Update:** The SRS was subsequently supplied and inspected. See
+[SRS assessment](srs-implementation-assessment.md) for the scored requirements
+review and newly confirmed gaps. The missing-document notes below describe the
+earlier snapshot; a separate PRD is still unavailable.
+
 ## Evidence and scope
 
 Latest fetched main: `08444c350e93f21c9559f3f61c632b374d8e6e6b`.
