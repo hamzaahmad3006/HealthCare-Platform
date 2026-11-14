@@ -21,6 +21,7 @@ interface UseStaffDetailReturn {
   documents: StaffDocumentRow[];
   isLoading: boolean;
   error: string | null;
+  retry: () => void;
 
   isVerifying: boolean;
   handleVerify: () => Promise<void>;
@@ -51,6 +52,7 @@ export function useStaffDetail(): UseStaffDetailReturn {
     let cancelled = false;
     const load = async (): Promise<void> => {
       setIsLoading(true);
+      setError(null);
       try {
         const [staffRes, docsRes] = await Promise.all([
           api.get<{ success: true; data: StaffWithRelations }>(API.STAFF.BY_ID(userId)),
@@ -123,6 +125,7 @@ export function useStaffDetail(): UseStaffDetailReturn {
     documents,
     isLoading,
     error,
+    retry: () => setReloadFlag((f) => f + 1),
     isVerifying,
     handleVerify,
     isTogglingAvailability,

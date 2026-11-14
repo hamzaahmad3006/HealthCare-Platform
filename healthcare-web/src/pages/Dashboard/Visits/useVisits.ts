@@ -40,6 +40,7 @@ interface UseVisitsReturn {
   setDateFilter: (d: string) => void;
   page: number;
   setPage: (p: number) => void;
+  reload: () => void;
   actionLoadingId: string | null;
   handleEnRoute: (visitId: string) => Promise<void>;
   handleCheckIn: (visitId: string, payload: CheckInPayload) => Promise<boolean>;
@@ -76,6 +77,7 @@ export function useVisits(): UseVisitsReturn {
     let cancelled = false;
     const load = async (): Promise<void> => {
       setIsLoading(true);
+      setError(null);
       try {
         const params = new URLSearchParams({ page: String(page), limit: '50' });
         if (statusFilter !== 'ALL') params.set('status', statusFilter);
@@ -256,6 +258,7 @@ export function useVisits(): UseVisitsReturn {
     },
     page,
     setPage,
+    reload,
     actionLoadingId,
     handleEnRoute,
     handleCheckIn,

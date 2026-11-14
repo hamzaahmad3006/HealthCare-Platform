@@ -32,8 +32,18 @@ export function Reviews(): JSX.Element {
       </div>
 
       {r.error ? (
-        <div className="mt-6 px-4 py-3 rounded-xl bg-danger-50 ring-1 ring-danger-500/20 text-sm text-danger-700">
-          {r.error}
+        <div
+          role="alert"
+          className="mt-6 px-4 py-3 rounded-xl bg-danger-50 ring-1 ring-danger-500/20 text-sm text-danger-700 flex items-center justify-between gap-3"
+        >
+          <span>{r.error}</span>
+          <button
+            type="button"
+            onClick={r.retry}
+            className="px-3 py-1.5 rounded-lg bg-white ring-1 ring-ink-200 text-xs font-semibold text-ink-700 hover:bg-ink-50"
+          >
+            Retry
+          </button>
         </div>
       ) : null}
 
@@ -46,7 +56,7 @@ export function Reviews(): JSX.Element {
             />
           ))}
         </div>
-      ) : r.reviews.length === 0 ? (
+      ) : r.error ? null : r.reviews.length === 0 ? (
         <EmptyState
           icon={<MessageSquare className="h-6 w-6" />}
           title="No reviews yet"

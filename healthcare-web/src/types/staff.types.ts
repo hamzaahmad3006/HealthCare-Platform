@@ -23,7 +23,7 @@ export interface StaffProfile {
 }
 
 export interface StaffWithRelations extends StaffProfile {
-  city: { name: string; slug: string };
+  city: { name: string; slug: string } | null;
   zone: { name: string; slug: string } | null;
   serviceTypes: Array<{ serviceType: { id: string; code: string; name: string } }>;
 }

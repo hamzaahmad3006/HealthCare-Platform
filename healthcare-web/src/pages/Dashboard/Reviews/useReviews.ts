@@ -9,6 +9,7 @@ interface UseReviewsReturn {
   meta: PaginationMeta | null;
   isLoading: boolean;
   error: string | null;
+  retry: () => void;
   onlyLowRating: boolean;
   setOnlyLowRating: (v: boolean) => void;
   page: number;
@@ -22,11 +23,13 @@ export function useReviews(): UseReviewsReturn {
   const [error, setError] = useState<string | null>(null);
   const [onlyLowRating, setOnlyLowRating] = useState(false);
   const [page, setPage] = useState(1);
+  const [reloadFlag, setReloadFlag] = useState(0);
 
   useEffect(() => {
     let cancelled = false;
     const load = async (): Promise<void> => {
       setIsLoading(true);
+      setError(null);
       try {
         const params = new URLSearchParams({ page: String(page), limit: '20' });
         if (onlyLowRating) params.set('isLowRating', 'true');
@@ -48,13 +51,14 @@ export function useReviews(): UseReviewsReturn {
     return () => {
       cancelled = true;
     };
-  }, [onlyLowRating, page]);
+  }, [onlyLowRating, page, reloadFlag]);
 
   return {
     reviews,
     meta,
     isLoading,
     error,
+    retry: () => setReloadFlag((f) => f + 1),
     onlyLowRating,
     setOnlyLowRating: (v) => {
       setOnlyLowRating(v);

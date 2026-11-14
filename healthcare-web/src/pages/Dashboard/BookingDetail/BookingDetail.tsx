@@ -16,10 +16,38 @@ export function AdminBookingDetail(): JSX.Element {
   const [cancelReason, setCancelReason] = useState('');
   const [showRescheduleModal, setShowRescheduleModal] = useState(false);
 
-  if (d.isLoading || !d.booking) {
+  if (d.isLoading) {
     return (
       <SidebarLayout title="Booking detail">
         <LoadingSpinner size="lg" label="Loading booking…" className="py-20" />
+      </SidebarLayout>
+    );
+  }
+
+  if (d.error || !d.booking) {
+    return (
+      <SidebarLayout
+        title="Booking detail"
+        actions={
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={d.goBack}
+            leftIcon={<ArrowLeft className="h-4 w-4" />}
+          >
+            Back
+          </Button>
+        }
+      >
+        <div
+          role="alert"
+          className="px-4 py-3 rounded-xl bg-danger-50 ring-1 ring-danger-500/20 text-sm text-danger-700 flex items-center justify-between gap-3"
+        >
+          <span>{d.error ?? 'Booking not found'}</span>
+          <Button size="sm" variant="secondary" onClick={d.retry}>
+            Retry
+          </Button>
+        </div>
       </SidebarLayout>
     );
   }

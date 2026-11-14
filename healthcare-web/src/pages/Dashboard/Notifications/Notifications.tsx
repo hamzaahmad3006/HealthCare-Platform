@@ -53,6 +53,7 @@ export function Notifications(): JSX.Element {
   const load = useCallback(() => {
     let cancelled = false;
     setIsLoading(true);
+    setError(null);
     const params = new URLSearchParams({ page: String(page), limit: '30' });
     if (statusFilter) params.set('status', statusFilter);
     api

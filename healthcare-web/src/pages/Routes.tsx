@@ -35,7 +35,19 @@ export function AppRoutes(): JSX.Element {
   const { accessToken, user } = useAppSelector((s) => s.auth);
   const isAuthenticated = !!(accessToken && user);
   const home =
-    user?.role === 'ADMIN' ? '/admin' : user?.role === 'STAFF' ? '/complete-profile' : '/my-bookings';
+    user?.role === 'ADMIN'
+      ? '/admin'
+      : user?.role === 'STAFF'
+        ? user.staffProfileCompletedAt
+          ? '/staff/visits'
+          : '/complete-profile'
+        : '/my-bookings';
+
+  const renderCustomerElement = (element: JSX.Element): JSX.Element => {
+    if (!isAuthenticated) return <Navigate to="/auth/login" replace />;
+    if (user?.role !== 'CUSTOMER') return <Navigate to={home} replace />;
+    return element;
+  };
 
   return (
     <Suspense fallback={<PageSpinner />}>
@@ -56,48 +68,38 @@ export function AppRoutes(): JSX.Element {
         <Route
           path="complete-profile"
           element={
-            isAuthenticated && user?.role === 'STAFF' ? (
+            !isAuthenticated ? (
+              <Navigate to="/auth/login" replace />
+            ) : user?.role === 'STAFF' ? (
               <CompleteProfile />
             ) : (
-              <Navigate to="/auth/login" replace />
+              <Navigate to={home} replace />
             )
           }
         />
 
         {/* Customer routes */}
+        <Route path="book" element={renderCustomerElement(<BookingForm />)} />
+        <Route path="my-bookings" element={renderCustomerElement(<MyBookings />)} />
+        <Route path="my-bookings/:id" element={renderCustomerElement(<BookingDetail />)} />
+        <Route path="my-account" element={renderCustomerElement(<Account />)} />
         <Route
-          path="book"
-          element={isAuthenticated ? <BookingForm /> : <Navigate to="/auth/login" replace />}
+          path="account"
+          element={renderCustomerElement(<Navigate to="/my-account" replace />)}
         />
-        <Route
-          path="my-bookings"
-          element={isAuthenticated ? <MyBookings /> : <Navigate to="/auth/login" replace />}
-        />
-        <Route
-          path="my-bookings/:id"
-          element={isAuthenticated ? <BookingDetail /> : <Navigate to="/auth/login" replace />}
-        />
-        <Route
-          path="my-account"
-          element={isAuthenticated ? <Account /> : <Navigate to="/auth/login" replace />}
-        />
-        <Route
-          path="my-reports"
-          element={isAuthenticated ? <MyReports /> : <Navigate to="/auth/login" replace />}
-        />
-        <Route
-          path="my-patients"
-          element={isAuthenticated ? <MyPatients /> : <Navigate to="/auth/login" replace />}
-        />
+        <Route path="my-reports" element={renderCustomerElement(<MyReports />)} />
+        <Route path="my-patients" element={renderCustomerElement(<MyPatients />)} />
 
         {/* Admin dashboard */}
         <Route
           path="admin/*"
           element={
-            isAuthenticated && user?.role === 'ADMIN' ? (
+            !isAuthenticated ? (
+              <Navigate to="/auth/login" replace />
+            ) : user?.role === 'ADMIN' ? (
               <AdminRoutes />
             ) : (
-              <Navigate to="/auth/login" replace />
+              <Navigate to={home} replace />
             )
           }
         />
@@ -106,10 +108,12 @@ export function AppRoutes(): JSX.Element {
         <Route
           path="staff/*"
           element={
-            isAuthenticated && user?.role === 'STAFF' ? (
+            !isAuthenticated ? (
+              <Navigate to="/auth/login" replace />
+            ) : user?.role === 'STAFF' ? (
               <StaffRoutes />
             ) : (
-              <Navigate to="/auth/login" replace />
+              <Navigate to={home} replace />
             )
           }
         />

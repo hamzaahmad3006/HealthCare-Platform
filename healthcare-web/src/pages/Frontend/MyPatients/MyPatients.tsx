@@ -47,8 +47,14 @@ export function MyPatients(): JSX.Element {
 
         {/* Error */}
         {p.error ? (
-          <div className="mb-6 px-4 py-3 rounded-xl bg-danger-50 ring-1 ring-danger-500/20 text-sm text-danger-700">
-            {p.error}
+          <div
+            role="alert"
+            className="mb-6 px-4 py-3 rounded-xl bg-danger-50 ring-1 ring-danger-500/20 text-sm text-danger-700 flex items-center justify-between gap-3"
+          >
+            <span>{p.error}</span>
+            <Button size="sm" variant="secondary" onClick={p.reload}>
+              Retry
+            </Button>
           </div>
         ) : null}
 
@@ -59,7 +65,7 @@ export function MyPatients(): JSX.Element {
               <Skeleton key={i} className="h-44 rounded-2xl" />
             ))}
           </div>
-        ) : p.patients.length === 0 ? (
+        ) : p.error ? null : p.patients.length === 0 ? (
           <EmptyState
             icon={<Users className="h-7 w-7" />}
             title="No patients yet"

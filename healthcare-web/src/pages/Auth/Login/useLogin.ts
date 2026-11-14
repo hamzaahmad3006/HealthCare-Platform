@@ -61,7 +61,13 @@ export function useLogin(): UseLoginReturn {
       // Default landing per role. STAFF goes to /complete-profile which
       // short-circuits to /staff/visits if the profile is already completed.
       const defaultDestination =
-        role === 'ADMIN' ? '/admin' : role === 'STAFF' ? '/complete-profile' : '/my-bookings';
+        role === 'ADMIN'
+          ? '/admin'
+          : role === 'STAFF'
+            ? data.data.user.staffProfileCompletedAt
+              ? '/staff/visits'
+              : '/complete-profile'
+            : '/my-bookings';
 
       // Only honor `from` if it points to a route this role can actually use.
       // STAFF can only reach /complete-profile and /staff/visits — every
@@ -70,7 +76,14 @@ export function useLogin(): UseLoginReturn {
       const canRoleUsePath = (path: string): boolean => {
         if (path === '/auth/login') return false;
         if (role === 'CUSTOMER') {
-          return path.startsWith('/my-bookings') || path.startsWith('/book');
+          return (
+            path.startsWith('/my-bookings') ||
+            path.startsWith('/book') ||
+            path.startsWith('/my-patients') ||
+            path.startsWith('/my-reports') ||
+            path.startsWith('/my-account') ||
+            path.startsWith('/account')
+          );
         }
         if (role === 'STAFF') {
           return path === '/complete-profile' || path.startsWith('/staff');
