@@ -80,3 +80,7 @@ Existing unmerged work remains tracked in `requirements-gap-review.md`; reuse th
 branches. No deployment, production data change or real message/payment was performed.
 This review supersedes that earlier document's statement that the SRS is unavailable.
 The separate PRD and actual GitHub CI/deployment/device results are still unavailable.
+
+### In review: review ownership and relationship integrity (2026-11-14)
+
+`fix/review-record-authorization` restricts review reads, validates booking/visit/staff targets, permits completed-visit feedback on active recurring bookings, and serializes duplicate lookup/insertion. Backend 329 tests/typecheck/build and web build pass. Real database concurrency and GitHub CI remain unverified. Client per-visit review UI is still separate remaining work; see `review-record-authorization.md`.
