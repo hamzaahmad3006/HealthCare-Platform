@@ -1,3 +1,4 @@
+import { readTokens, saveTokens } from '../../api/sessionTokens';
 import { createSlice, createAsyncThunk, type PayloadAction } from '@reduxjs/toolkit';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { api, STORAGE_KEYS, clearTokens, extractApiError } from '../../api/client';
@@ -23,11 +24,8 @@ export const ADMIN_BLOCKED_MESSAGE =
   'Admin accounts cannot sign in from the mobile app. Please use the web admin panel.';
 
 export const hydrateAuth = createAsyncThunk('auth/hydrate', async () => {
-  const stored = await AsyncStorage.getMany([
-    STORAGE_KEYS.ACCESS_TOKEN,
-    STORAGE_KEYS.USER,
-  ]);
-  const userJson = stored[STORAGE_KEYS.USER];
+  const tokens = await readTokens();
+  const userJson = await AsyncStorage.getItem(STORAGE_KEYS.USER);
   const user = userJson ? (JSON.parse(userJson) as AuthUser) : null;
 
   if (user?.role === 'ADMIN') {
@@ -36,8 +34,8 @@ export const hydrateAuth = createAsyncThunk('auth/hydrate', async () => {
   }
 
   return {
-    accessToken: stored[STORAGE_KEYS.ACCESS_TOKEN],
-    user,
+    accessToken: tokens?.accessToken ?? null,
+    user: tokens ? user : null,
   };
 });
 
@@ -60,11 +58,8 @@ export const login = createAsyncThunk(
         return rejectWithValue(ADMIN_BLOCKED_MESSAGE);
       }
 
-      await AsyncStorage.setMany({
-        [STORAGE_KEYS.ACCESS_TOKEN]: accessToken,
-        [STORAGE_KEYS.REFRESH_TOKEN]: refreshToken,
-        [STORAGE_KEYS.USER]: JSON.stringify(user),
-      });
+      await saveTokens({ accessToken, refreshToken });
+      await AsyncStorage.setItem(STORAGE_KEYS.USER, JSON.stringify(user));
       return { accessToken, user };
     } catch (err) {
       return rejectWithValue(extractApiError(err));
@@ -90,11 +85,8 @@ export const register = createAsyncThunk(
 
       const { data } = await api.post<{ success: true; data: AuthResponse }>(API.AUTH.REGISTER, body);
       const { accessToken, refreshToken, user } = data.data;
-      await AsyncStorage.setMany({
-        [STORAGE_KEYS.ACCESS_TOKEN]: accessToken,
-        [STORAGE_KEYS.REFRESH_TOKEN]: refreshToken,
-        [STORAGE_KEYS.USER]: JSON.stringify(user),
-      });
+      await saveTokens({ accessToken, refreshToken });
+      await AsyncStorage.setItem(STORAGE_KEYS.USER, JSON.stringify(user));
       return { accessToken, user };
     } catch (err) {
       return rejectWithValue(extractApiError(err));
@@ -110,11 +102,8 @@ export const resetPassword = createAsyncThunk(
       const { data } = await api.post<{ success: true; data: AuthResponse }>(API.AUTH.RESET_PASSWORD, payload);
       const { user, accessToken, refreshToken } = data.data;
       if (user.role === 'ADMIN') return rejectWithValue(ADMIN_BLOCKED_MESSAGE);
-      await AsyncStorage.setMany({
-        [STORAGE_KEYS.ACCESS_TOKEN]: accessToken,
-        [STORAGE_KEYS.REFRESH_TOKEN]: refreshToken,
-        [STORAGE_KEYS.USER]: JSON.stringify(user),
-      });
+      await saveTokens({ accessToken, refreshToken });
+      await AsyncStorage.setItem(STORAGE_KEYS.USER, JSON.stringify(user));
       return { accessToken, user };
     } catch (err) { return rejectWithValue(extractApiError(err)); }
   },

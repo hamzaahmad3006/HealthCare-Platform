@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useState, useRef } from 'react';
 import { api, extractApiError } from '../../../api/client';
 import { API } from '../../../api/endpoints';
 import type {
@@ -22,6 +22,8 @@ export function useNewBooking() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const attempt = useRef<{ signature: string; key: string } | null>(null);
+  const inFlight = useRef<{ signature: string; promise: Promise<string> } | null>(null);
 
   const load = useCallback(async (): Promise<void> => {
     setLoading(true);
@@ -81,19 +83,31 @@ export function useNewBooking() {
     const pkg = packages.find(p => p.id === draft.packageId);
     const payload = newBookingPayload(draft, pkg?.serviceTypeCode === 'VISITING_DOCTOR');
 
-    setSubmitting(true);
-    try {
-      const { data } = await api.post<{ success: true; data: { id: string } }>(
-        API.BOOKINGS.CREATE,
-        payload,
-        { headers: { 'X-Idempotency-Key': idempotencyKey() } },
-      );
-      return data.data.id;
-    } catch (err) {
-      throw new Error(extractApiError(err));
-    } finally {
-      setSubmitting(false);
+    const signature = JSON.stringify(payload);
+    if (inFlight.current) {
+      if (inFlight.current.signature === signature) return inFlight.current.promise;
+      throw new Error('Please wait for the current booking request to finish.');
     }
+    if (attempt.current?.signature !== signature) {
+      attempt.current = { signature, key: idempotencyKey() };
+    }
+    const key = attempt.current.key;
+    setSubmitting(true);
+    const promise = (async () => {
+      try {
+        const { data } = await api.post<{ success: true; data: { id: string } }>(
+          API.BOOKINGS.CREATE, payload, { headers: { 'X-Idempotency-Key': key } },
+        );
+        return data.data.id;
+      } catch (err) {
+        throw new Error(extractApiError(err));
+      } finally {
+        inFlight.current = null;
+        setSubmitting(false);
+      }
+    })();
+    inFlight.current = { signature, promise };
+    return promise;
   };
 
   return { packages, patients, addresses, loading, error, submitting, reload: load, createBooking };

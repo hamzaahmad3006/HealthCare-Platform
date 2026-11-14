@@ -1,3 +1,4 @@
+import { saveTokens } from '../src/api/sessionTokens';
 import { configureStore } from '@reduxjs/toolkit';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import authReducer, {
@@ -29,6 +30,7 @@ jest.mock('../src/api/client', () => ({
   },
   extractApiError: (err: Error) => err.message,
 }));
+jest.mock('../src/api/sessionTokens', () => ({ saveTokens: jest.fn(), readTokens: jest.fn() }));
 jest.mock('../src/utils/deviceId', () => ({
   getDeviceId: async () => 'test-device',
 }));
@@ -96,11 +98,8 @@ it.each(['CUSTOMER', 'STAFF'])(
         newPassword: 'test-only-password',
       }),
     );
-    expect(AsyncStorage.setMany).toHaveBeenCalledWith({
-      [STORAGE_KEYS.USER]: JSON.stringify(user),
-      [STORAGE_KEYS.ACCESS_TOKEN]: 'test-access',
-      [STORAGE_KEYS.REFRESH_TOKEN]: 'test-refresh',
-    });
+    expect(saveTokens).toHaveBeenCalledWith({ accessToken: 'test-access', refreshToken: 'test-refresh' });
+    expect(await AsyncStorage.getItem(STORAGE_KEYS.USER)).toBe(JSON.stringify(user));
     expect(store.getState().auth.user?.role).toBe(role);
   },
 );
@@ -126,7 +125,7 @@ it('retains the mobile admin restriction during recovery', async () => {
   );
   expect(store.getState().auth.user).toBeNull();
   expect(store.getState().auth.error).toBe(ADMIN_BLOCKED_MESSAGE);
-  expect(AsyncStorage.setMany).not.toHaveBeenCalled();
+  expect(saveTokens).not.toHaveBeenCalled();
 });
 it('does not store tokens after an invalid/expired code response', async () => {
   jest
@@ -141,7 +140,7 @@ it('does not store tokens after an invalid/expired code response', async () => {
     }),
   );
   expect(store.getState().auth.error).toBe('Invalid or expired reset code');
-  expect(AsyncStorage.setMany).not.toHaveBeenCalled();
+  expect(saveTokens).not.toHaveBeenCalled();
 });
 
 const draft: StaffProfileDraft = {
