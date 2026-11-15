@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { Link, useLocation } from 'react-router-dom';
 import {
   ShieldCheck,
   BadgeCheck,
@@ -186,9 +186,22 @@ const FAQS = [
 ] as const;
 
 export function Landing(): JSX.Element {
+  const location = useLocation();
   const { services, isLoading, handleBookNow, handleWhatsApp } = useLanding();
   const [openFaq, setOpenFaq] = useState<number | null>(0);
   const [activeCategory, setActiveCategory] = useState<string>('ALL');
+
+  useEffect(() => {
+    if (location.hash) {
+      const targetId = location.hash.replace('#', '');
+      const el = document.getElementById(targetId);
+      if (el) {
+        setTimeout(() => {
+          el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }, 100);
+      }
+    }
+  }, [location.hash]);
 
   const toggleFaq = (index: number) => {
     setOpenFaq((prev) => (prev === index ? null : index));
@@ -459,7 +472,7 @@ export function Landing(): JSX.Element {
       </section>
 
       {/* ───── Trust & Accreditation Bar ───── */}
-      <section id="trust" className="border-y border-ink-100 bg-ink-50/50 py-10">
+      <section id="trust" className="scroll-mt-20 border-y border-ink-100 bg-ink-50/50 py-10">
         <div className="max-w-7xl mx-auto px-6">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
             <TrustCard
@@ -487,7 +500,7 @@ export function Landing(): JSX.Element {
       </section>
 
       {/* ───── Comprehensive Services Grid ───── */}
-      <section id="services" className="py-20 lg:py-28 bg-white">
+      <section id="services" className="scroll-mt-20 py-20 lg:py-28 bg-white">
         <div className="max-w-7xl mx-auto px-6">
           <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-12">
             <div className="max-w-2xl">
@@ -551,7 +564,7 @@ export function Landing(): JSX.Element {
       </section>
 
       {/* ───── How It Works ───── */}
-      <section id="how" className="py-20 lg:py-28 bg-gradient-to-b from-brand-50/50 via-white to-brand-50/30 border-y border-brand-100">
+      <section id="how" className="scroll-mt-20 py-20 lg:py-28 bg-gradient-to-b from-brand-50/50 via-white to-brand-50/30 border-y border-brand-100">
         <div className="max-w-7xl mx-auto px-6">
           <div className="max-w-2xl mx-auto text-center mb-16">
             <Badge tone="brand" size="md">
@@ -589,7 +602,7 @@ export function Landing(): JSX.Element {
       </section>
 
       {/* ───── Why Choose Us (Clinical Safety Pillars) ───── */}
-      <section className="py-20 lg:py-28 bg-white">
+      <section id="why" className="scroll-mt-20 py-20 lg:py-28 bg-white">
         <div className="max-w-7xl mx-auto px-6">
           <div className="max-w-3xl mx-auto text-center mb-16">
             <Badge tone="brand" size="md">
@@ -640,7 +653,7 @@ export function Landing(): JSX.Element {
       </section>
 
       {/* ───── Patient Testimonials ───── */}
-      <section className="py-20 lg:py-28 bg-ink-50/60 border-t border-ink-100">
+      <section id="testimonials" className="scroll-mt-20 py-20 lg:py-28 bg-ink-50/60 border-t border-ink-100">
         <div className="max-w-7xl mx-auto px-6">
           <div className="max-w-2xl mx-auto text-center mb-14">
             <Badge tone="accent" size="md">
@@ -694,7 +707,7 @@ export function Landing(): JSX.Element {
       </section>
 
       {/* ───── Frequently Asked Questions (Accordion) ───── */}
-      <section id="faq" className="py-20 lg:py-28 bg-white">
+      <section id="faq" className="scroll-mt-20 py-20 lg:py-28 bg-white">
         <div className="max-w-4xl mx-auto px-6">
           <div className="text-center mb-14">
             <Badge tone="brand" size="md">

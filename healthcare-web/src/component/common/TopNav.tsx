@@ -18,7 +18,8 @@ interface NavLinkSpec {
 const PUBLIC_LINKS: NavLinkSpec[] = [
   { to: '/#services', label: 'Services', hash: true },
   { to: '/#how', label: 'How it works', hash: true },
-  { to: '/#trust', label: 'Why us', hash: true },
+  { to: '/#why', label: 'Why us', hash: true },
+  { to: '/#faq', label: 'FAQ', hash: true },
 ];
 
 const AUTH_LINKS: NavLinkSpec[] = [
@@ -46,6 +47,26 @@ export function TopNav({ variant = 'solid' }: TopNavProps): JSX.Element {
     await logout('/');
   };
 
+  const handleNavClick = (
+    e: React.MouseEvent<HTMLAnchorElement>,
+    to: string,
+    isHash?: boolean,
+  ): void => {
+    if (isHash || to.includes('#')) {
+      const hash = to.split('#')[1];
+      if (hash) {
+        if (location.pathname === '/') {
+          e.preventDefault();
+          const target = document.getElementById(hash);
+          if (target) {
+            target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            window.history.pushState(null, '', `#${hash}`);
+          }
+        }
+      }
+    }
+  };
+
   const wrapperClass = clsx(
     'sticky top-0 z-40 transition-colors',
     variant === 'transparent'
@@ -68,9 +89,10 @@ export function TopNav({ variant = 'solid' }: TopNavProps): JSX.Element {
             <Link
               key={link.to}
               to={link.to}
+              onClick={(e) => handleNavClick(e, link.to, link.hash)}
               className={clsx(
-                'transition-colors',
-                isActive(link.to) ? 'text-ink-900' : 'hover:text-ink-900',
+                'transition-colors cursor-pointer',
+                isActive(link.to) ? 'text-ink-900 font-semibold' : 'hover:text-ink-900',
               )}
             >
               {link.label}
@@ -121,7 +143,10 @@ export function TopNav({ variant = 'solid' }: TopNavProps): JSX.Element {
               <Link
                 key={link.to}
                 to={link.to}
-                onClick={() => setMobileOpen(false)}
+                onClick={(e) => {
+                  setMobileOpen(false);
+                  handleNavClick(e, link.to, link.hash);
+                }}
                 className="flex items-center gap-3 py-2 text-sm font-medium text-ink-700 hover:text-ink-900"
               >
                 {link.hash ? null : <Calendar className="h-4 w-4 text-ink-400" />}
