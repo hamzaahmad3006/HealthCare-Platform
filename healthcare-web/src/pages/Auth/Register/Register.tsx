@@ -4,6 +4,7 @@ import { User, Mail, Lock } from 'lucide-react';
 import { Button } from '../../../constant/Button';
 import { Input } from '../../../constant/Input';
 import { PhoneInput } from '../../../component/common/PhoneInput';
+import { BrandLogo } from '../../../component/common/BrandLogo';
 import { useRegister } from './useRegister';
 
 export function Register(): JSX.Element {
@@ -13,18 +14,9 @@ export function Register(): JSX.Element {
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-mesh px-6 py-12">
       <div className="w-full max-w-lg">
-        <Link to="/" className="inline-flex items-center gap-2.5 mb-8">
-          <img
-            src="/assets/logo-icon.jpg"
-            alt=""
-            aria-hidden
-            className="h-11 w-11 object-contain"
-          />
-          <div>
-            <p className="font-bold text-ink-900 text-lg leading-tight">HomeHealth</p>
-            <p className="text-xs text-ink-500">Create your account</p>
-          </div>
-        </Link>
+        <div className="mb-8">
+          <BrandLogo asLink to="/" size="lg" subtitleText="PAKISTAN" />
+        </div>
 
         <div className="bg-white rounded-3xl shadow-card-hover ring-1 ring-ink-100 p-8 sm:p-10 animate-slide-up">
           <h1 className="text-3xl font-bold text-ink-900 tracking-tight">Create account</h1>

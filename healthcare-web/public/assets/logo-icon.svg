@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="100" height="100">
+  <defs>
+    <linearGradient id="hh-emerald-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#10B981" />
+      <stop offset="50%" stop-color="#059669" />
+      <stop offset="100%" stop-color="#047857" />
+    </linearGradient>
+    <filter id="hh-shadow" x="-10%" y="-10%" width="125%" height="125%">
+      <feDropShadow dx="0" dy="4" stdDeviation="6" flood-color="#047857" flood-opacity="0.3" />
+    </filter>
+  </defs>
+  <!-- Squircle container -->
+  <rect x="6" y="6" width="88" height="88" rx="26" ry="26" fill="url(#hh-emerald-grad)" filter="url(#hh-shadow)" />
+  <!-- Medical Cross Horizontal Bar -->
+  <rect x="23" y="42" width="54" height="16" rx="8" ry="8" fill="#FFFFFF" />
+  <!-- Medical Cross Vertical Bar -->
+  <rect x="42" y="23" width="16" height="54" rx="8" ry="8" fill="#FFFFFF" />
+</svg>

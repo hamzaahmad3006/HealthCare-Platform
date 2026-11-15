@@ -4,6 +4,7 @@ import { useSelector } from 'react-redux';
 import { Menu, X, LogOut, User as UserIcon, Calendar, Settings, ChevronDown, FileText, Users } from 'lucide-react';
 import clsx from 'clsx';
 import { Button } from '../../constant/Button';
+import { BrandLogo } from './BrandLogo';
 import { NotificationBell } from './NotificationBell';
 import type { RootState } from '../../redux/store';
 import { useLogout } from '../../hooks/useLogout';
@@ -60,18 +61,7 @@ export function TopNav({ variant = 'solid' }: TopNavProps): JSX.Element {
   return (
     <header className={wrapperClass}>
       <div className="max-w-7xl mx-auto px-6 py-3.5 flex items-center justify-between gap-4">
-        <Link to="/" className="flex items-center gap-2.5">
-          <img
-            src="/assets/logo-icon.jpg"
-            alt=""
-            aria-hidden
-            className="h-10 w-10 object-contain"
-          />
-          <div className="leading-tight">
-            <p className="font-bold text-ink-900">HomeHealth</p>
-            <p className="text-2xs text-ink-500 -mt-0.5">Faisalabad</p>
-          </div>
-        </Link>
+        <BrandLogo asLink to="/" size="md" subtitleText="PAKISTAN" />
 
         <nav className="hidden md:flex items-center gap-7 text-sm font-medium text-ink-600">
           {links.map((link) => (

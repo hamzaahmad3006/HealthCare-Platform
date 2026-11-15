@@ -4,6 +4,7 @@ import { CheckCircle2, CreditCard, MapPin, Briefcase, Siren } from 'lucide-react
 import { Button } from '../../../constant/Button';
 import { Input } from '../../../constant/Input';
 import { LoadingSpinner } from '../../../component/common/LoadingSpinner';
+import { BrandLogo } from '../../../component/common/BrandLogo';
 import { useCompleteProfile } from './useCompleteProfile';
 
 const GENDERS: Array<{ id: 'MALE' | 'FEMALE' | 'OTHER'; label: string }> = [
@@ -28,12 +29,8 @@ export function CompleteProfile(): JSX.Element {
     <div className="min-h-screen bg-gradient-mesh px-6 py-10">
       <div className="max-w-2xl mx-auto">
         {/* Brand header */}
-        <div className="flex items-center gap-2.5 mb-6">
-          <img src="/assets/logo-icon.jpg" alt="" aria-hidden className="h-10 w-10 object-contain" />
-          <div>
-            <p className="font-bold text-ink-900 leading-tight">HomeHealth</p>
-            <p className="text-2xs text-ink-500">Staff onboarding</p>
-          </div>
+        <div className="mb-6">
+          <BrandLogo asLink to="/" size="md" subtitleText="STAFF ONBOARDING" />
         </div>
 
         <div className="bg-white rounded-3xl shadow-card ring-1 ring-ink-100 p-8 sm:p-10 animate-slide-up">

@@ -4,6 +4,7 @@ import { Lock, Eye, EyeOff, ShieldCheck, BadgeCheck, Star } from 'lucide-react';
 import { Button } from '../../../constant/Button';
 import { Input } from '../../../constant/Input';
 import { PhoneInput } from '../../../component/common/PhoneInput';
+import { BrandLogo } from '../../../component/common/BrandLogo';
 import { useLogin } from './useLogin';
 
 export function Login(): JSX.Element {
@@ -15,18 +16,9 @@ export function Login(): JSX.Element {
       {/* Left — form */}
       <div className="flex-1 flex flex-col justify-center px-6 py-10 sm:px-12 lg:px-20 xl:px-28">
         <div className="mx-auto w-full max-w-md">
-          <Link to="/" className="inline-flex items-center gap-2.5 mb-10">
-            <img
-              src="/assets/logo-icon.jpg"
-              alt=""
-              aria-hidden
-              className="h-11 w-11 object-contain"
-            />
-            <div>
-              <p className="font-bold text-ink-900 text-lg leading-tight">HomeHealth</p>
-              <p className="text-xs text-ink-500">Healthcare at your doorstep</p>
-            </div>
-          </Link>
+          <div className="mb-10">
+            <BrandLogo asLink to="/" size="lg" subtitleText="PAKISTAN" />
+          </div>
 
           <div className="mb-8 animate-slide-up">
             <h1 className="text-3xl font-bold text-ink-900 tracking-tight">Welcome back</h1>

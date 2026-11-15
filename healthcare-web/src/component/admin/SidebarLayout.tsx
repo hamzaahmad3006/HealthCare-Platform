@@ -25,6 +25,7 @@ import clsx from 'clsx';
 import { useAppSelector } from '../../redux/store';
 import { useLogout } from '../../hooks/useLogout';
 import { NotificationBell } from '../common/NotificationBell';
+import { BrandLogo } from '../common/BrandLogo';
 
 interface SidebarLayoutProps {
   children: ReactNode;
@@ -135,18 +136,12 @@ function SidebarContent({
   return (
     <>
       <div className="flex items-center justify-between p-6 border-b border-ink-100">
-        <div className="flex items-center gap-2.5">
-          <img
-            src="/assets/logo-icon.jpg"
-            alt=""
-            aria-hidden
-            className="h-10 w-10 object-contain"
-          />
-          <div>
-            <p className="font-bold text-ink-900 leading-tight">HomeHealth</p>
-            <p className="text-2xs text-ink-500">{isStaff ? 'Staff Portal' : 'Admin Console'}</p>
-          </div>
-        </div>
+        <BrandLogo
+          asLink
+          to={isStaff ? '/staff/dashboard' : '/admin'}
+          size="md"
+          subtitleText={isStaff ? 'STAFF PORTAL' : 'ADMIN CONSOLE'}
+        />
         <button
           className="lg:hidden p-1.5 rounded-lg hover:bg-ink-100 text-ink-500"
           onClick={onNavigate}
