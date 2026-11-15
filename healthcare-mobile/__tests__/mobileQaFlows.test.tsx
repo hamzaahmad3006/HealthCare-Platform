@@ -510,7 +510,7 @@ it('renders BookingDetail safely when urgencyLevel and visits are omitted from t
   });
 
   const nav = { setOptions: jest.fn(), navigate: jest.fn(), goBack: jest.fn() } as never;
-  const route = { key: 'BookingDetail-1', name: 'BookingDetail' as const, params: { bookingId: 'booking-partial-1' } };
+  const route = { key: 'BookingDetail-1', name: 'BookingDetail' as const, params: { id: 'booking-partial-1' } };
 
   await act(async () => {
     tree = TestRenderer.create(<BookingDetail navigation={nav} route={route} />);
