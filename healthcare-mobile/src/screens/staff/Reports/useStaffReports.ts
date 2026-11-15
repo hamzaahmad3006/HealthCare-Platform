@@ -22,15 +22,19 @@ export function useStaffReports() {
   const [reports, setReports] = useState<StaffReport[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   // Backend auto-scopes STAFF to reports they personally uploaded
   // (uploadedByUserId === self) — no query params needed.
   const fetchReports = useCallback(async (): Promise<void> => {
     try {
+      setError(null);
       const { data } = await api.get<{ success: true; data: ApiStaffReport[] }>(API.REPORTS.LIST);
       setReports(data.data.map(mapReport));
     } catch (err) {
-      Alert.alert('Error', extractApiError(err));
+      const msg = extractApiError(err);
+      setError(msg);
+      Alert.alert('Error', msg);
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -44,5 +48,10 @@ export function useStaffReports() {
     fetchReports();
   };
 
-  return { reports, loading, refreshing, onRefresh };
+  const retry = (): void => {
+    setLoading(true);
+    fetchReports();
+  };
+
+  return { reports, loading, refreshing, error, onRefresh, retry };
 }

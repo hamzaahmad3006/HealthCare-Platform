@@ -25,7 +25,7 @@ const STATUS_COLORS: Record<BookingStatus, string> = {
 };
 
 export function MyBookings(): JSX.Element {
-  const { bookings, loading, refreshing, onRefresh, goToDetail } = useMyBookings();
+  const { bookings, loading, refreshing, error, onRefresh, retry, goToDetail } = useMyBookings();
 
   if (loading) {
     return (
@@ -49,7 +49,7 @@ export function MyBookings(): JSX.Element {
           tintColor={Colors.primary}
         />
       }
-      ListEmptyComponent={<EmptyState />}
+      ListEmptyComponent={error ? <ErrorState error={error} onRetry={retry} /> : <EmptyState />}
       renderItem={({ item }) => (
         <BookingCard booking={item} onPress={() => goToDetail(item.id)} />
       )}
@@ -64,6 +64,16 @@ function EmptyState() {
       <Text style={styles.emptyTitle}>No bookings yet</Text>
       <Text style={styles.emptyHint}>Book a nurse, doctor, or caregiver in under a minute.</Text>
     </View>
+  );
+}
+
+function ErrorState({ error, onRetry }: { error: string; onRetry: () => void }) {
+  return (
+    <TouchableOpacity style={styles.centered} onPress={onRetry} accessibilityRole="button">
+      <Text style={styles.emptyTitle}>Could not load bookings</Text>
+      <Text style={styles.emptyHint}>{error}</Text>
+      <Text style={styles.retryText}>Retry</Text>
+    </TouchableOpacity>
   );
 }
 
@@ -126,6 +136,12 @@ const styles = StyleSheet.create({
     color: Colors.textMuted,
     textAlign: 'center',
     lineHeight: 20,
+  },
+  retryText: {
+    marginTop: Spacing.sm,
+    fontSize: FontSize.md,
+    fontWeight: '700',
+    color: Colors.primary,
   },
   card: {
     backgroundColor: Colors.white,

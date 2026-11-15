@@ -2,7 +2,7 @@ import type { JSX } from 'react';
 import { useState } from 'react';
 import {
   View, Text, FlatList, TouchableOpacity, StyleSheet,
-  StatusBar, SafeAreaView, ActivityIndicator, Linking,
+  StatusBar, SafeAreaView, ActivityIndicator, Linking, Alert,
 } from 'react-native';
 import { MaterialDesignIcons } from '@react-native-vector-icons/material-design-icons/static';
 import { Colors, FontSize, Spacing, Radius } from '../../../constants/theme';
@@ -20,9 +20,15 @@ const FILTERS: { id: Filter; label: string }[] = [
   { id: 'PROGRESS_IMAGE', label: 'Progress Images' },
 ];
 
+function openReportUrl(url: string): void {
+  Linking.openURL(url).catch(() => {
+    Alert.alert('Unable to open file', 'Could not open this report file on your device.');
+  });
+}
+
 export function MyReports(): JSX.Element {
   const [activeFilter, setActiveFilter] = useState<Filter>('ALL');
-  const { reports, loading, refreshing, onRefresh } = useMyReports();
+  const { reports, loading, refreshing, error, onRefresh, retry } = useMyReports();
 
   const filtered = activeFilter === 'ALL'
     ? reports
@@ -72,6 +78,13 @@ export function MyReports(): JSX.Element {
             <View style={styles.emptyBox}>
               <ActivityIndicator size="large" color={Colors.primary} />
             </View>
+          ) : error ? (
+            <TouchableOpacity style={styles.emptyBox} onPress={retry} accessibilityRole="button">
+              <MaterialDesignIcons name="alert-circle-outline" size={48} color={Colors.danger} />
+              <Text style={styles.emptyTitle}>Could not load reports</Text>
+              <Text style={styles.emptyHint}>{error}</Text>
+              <Text style={styles.retryText}>Retry</Text>
+            </TouchableOpacity>
           ) : (
             <View style={styles.emptyBox}>
               <MaterialDesignIcons name="file-document-outline" size={48} color={Colors.neutralBorder} />
@@ -120,11 +133,11 @@ function ReportCard({ report }: { report: Report }) {
 
         {report.hasFile && report.fileUrl ? (
           <View style={styles.cardActions}>
-            <TouchableOpacity style={styles.viewBtn} activeOpacity={0.7} onPress={() => Linking.openURL(report.fileUrl!)}>
+            <TouchableOpacity style={styles.viewBtn} activeOpacity={0.7} accessibilityRole="button" onPress={() => openReportUrl(report.fileUrl!)}>
               <MaterialDesignIcons name="open-in-new" size={14} color={Colors.textSecondary} />
               <Text style={styles.viewBtnText}>View</Text>
             </TouchableOpacity>
-            <TouchableOpacity style={styles.downloadBtn} activeOpacity={0.7} onPress={() => Linking.openURL(report.fileUrl!)}>
+            <TouchableOpacity style={styles.downloadBtn} activeOpacity={0.7} accessibilityRole="button" onPress={() => openReportUrl(report.fileUrl!)}>
               <MaterialDesignIcons name="download" size={14} color={Colors.primary} />
               <Text style={styles.downloadBtnText}>Download</Text>
             </TouchableOpacity>
@@ -159,6 +172,7 @@ const styles = StyleSheet.create({
   emptyBox: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: Spacing.xl, gap: Spacing.sm },
   emptyTitle: { fontSize: FontSize.lg, fontWeight: '700', color: Colors.textPrimary },
   emptyHint: { fontSize: FontSize.sm, color: Colors.textMuted, textAlign: 'center', lineHeight: 20 },
+  retryText: { fontSize: FontSize.md, fontWeight: '700', color: Colors.primary },
   card: {
     backgroundColor: Colors.white, borderRadius: Radius.lg, overflow: 'hidden',
     shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 8, elevation: 2,

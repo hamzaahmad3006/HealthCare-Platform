@@ -26,6 +26,7 @@ async function ensurePermission(): Promise<boolean> {
 
 // Resolves to null (rather than throwing) on denied permission, timeout, or
 // disabled GPS — callers decide whether the coordinates are required.
+// Falls back to network/coarse location when high-accuracy GPS times out indoors.
 export async function getCurrentCoords(): Promise<Coords | null> {
   const allowed = await ensurePermission();
   if (!allowed) return null;
@@ -33,8 +34,14 @@ export async function getCurrentCoords(): Promise<Coords | null> {
   return new Promise((resolve) => {
     Geolocation.getCurrentPosition(
       (pos) => resolve({ latitude: pos.coords.latitude, longitude: pos.coords.longitude }),
-      () => resolve(null),
-      { enableHighAccuracy: true, timeout: 8000, maximumAge: 30_000 },
+      () => {
+        Geolocation.getCurrentPosition(
+          (pos) => resolve({ latitude: pos.coords.latitude, longitude: pos.coords.longitude }),
+          () => resolve(null),
+          { enableHighAccuracy: false, timeout: 8000, maximumAge: 600_000 },
+        );
+      },
+      { enableHighAccuracy: true, timeout: 5000, maximumAge: 30_000 },
     );
   });
 }

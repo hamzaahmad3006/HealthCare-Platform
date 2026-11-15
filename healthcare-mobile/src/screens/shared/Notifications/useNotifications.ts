@@ -9,9 +9,11 @@ export function useNotifications() {
   const [notifications, setNotifications] = useState<NotificationItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const fetchNotifications = useCallback(async (): Promise<void> => {
     try {
+      setError(null);
       const previousCutoff = await getLastViewedAt();
       const { data } = await api.get<{ success: true; data: AppNotification[] }>(API.NOTIFICATIONS.LIST);
       const items: NotificationItem[] = data.data
@@ -20,7 +22,9 @@ export function useNotifications() {
       setNotifications(items);
       await markNotificationsViewedNow();
     } catch (err) {
-      Alert.alert('Error', extractApiError(err));
+      const msg = extractApiError(err);
+      setError(msg);
+      Alert.alert('Error', msg);
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -34,5 +38,10 @@ export function useNotifications() {
     fetchNotifications();
   };
 
-  return { notifications, loading, refreshing, onRefresh };
+  const retry = (): void => {
+    setLoading(true);
+    fetchNotifications();
+  };
+
+  return { notifications, loading, refreshing, error, onRefresh, retry };
 }

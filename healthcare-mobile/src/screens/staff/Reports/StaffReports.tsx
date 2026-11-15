@@ -2,7 +2,7 @@ import type { JSX } from 'react';
 import { useState } from 'react';
 import {
   View, Text, FlatList, TouchableOpacity, StyleSheet,
-  StatusBar, SafeAreaView, ActivityIndicator, Linking,
+  StatusBar, SafeAreaView, ActivityIndicator, Linking, Alert,
 } from 'react-native';
 import { MaterialDesignIcons } from '@react-native-vector-icons/material-design-icons/static';
 import { Colors, FontSize, Spacing, Radius } from '../../../constants/theme';
@@ -22,7 +22,7 @@ const FILTERS: { id: Filter; label: string }[] = [
 
 export function StaffReports(): JSX.Element {
   const [activeFilter, setActiveFilter] = useState<Filter>('ALL');
-  const { reports, loading, refreshing, onRefresh } = useStaffReports();
+  const { reports, loading, refreshing, error, onRefresh, retry } = useStaffReports();
 
   const filtered = activeFilter === 'ALL'
     ? reports
@@ -69,6 +69,13 @@ export function StaffReports(): JSX.Element {
             <View style={styles.emptyBox}>
               <ActivityIndicator size="large" color={Colors.primary} />
             </View>
+          ) : error ? (
+            <TouchableOpacity style={styles.emptyBox} onPress={retry} accessibilityRole="button">
+              <MaterialDesignIcons name="alert-circle-outline" size={48} color={Colors.danger} />
+              <Text style={styles.emptyTitle}>Could not load reports</Text>
+              <Text style={styles.emptyHint}>{error}</Text>
+              <Text style={styles.retryText}>Retry</Text>
+            </TouchableOpacity>
           ) : (
             <View style={styles.emptyBox}>
               <MaterialDesignIcons name="file-document-outline" size={48} color={Colors.neutralBorder} />
@@ -110,7 +117,13 @@ function ReportCard({ report }: { report: StaffReport }) {
             <TouchableOpacity
               style={styles.fileBadge}
               activeOpacity={0.7}
-              onPress={() => report.fileUrl && Linking.openURL(report.fileUrl)}
+              onPress={() => {
+                if (report.fileUrl) {
+                  Linking.openURL(report.fileUrl).catch(() => {
+                    Alert.alert('Unable to open file', 'Could not open this report file on your device.');
+                  });
+                }
+              }}
             >
               <Text style={styles.fileBadgeText}>File attached</Text>
             </TouchableOpacity>
@@ -143,6 +156,7 @@ const styles = StyleSheet.create({
   emptyBox: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: Spacing.xl, gap: Spacing.sm },
   emptyTitle: { fontSize: FontSize.lg, fontWeight: '700', color: Colors.textPrimary },
   emptyHint: { fontSize: FontSize.sm, color: Colors.textMuted, textAlign: 'center', lineHeight: 20 },
+  retryText: { fontSize: FontSize.md, fontWeight: '700', color: Colors.primary },
   card: {
     flexDirection: 'row', alignItems: 'flex-start', gap: Spacing.sm,
     backgroundColor: Colors.white, borderRadius: Radius.md, padding: Spacing.md,

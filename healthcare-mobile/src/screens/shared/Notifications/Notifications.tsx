@@ -1,7 +1,7 @@
 import type { MaterialIconName } from '../../../types/icons.types';
 import type { JSX } from 'react';
 import {
-  View, Text, FlatList, StyleSheet, Pressable,
+  View, Text, FlatList, StyleSheet, Pressable, TouchableOpacity,
   StatusBar, SafeAreaView, ActivityIndicator, RefreshControl,
 } from 'react-native';
 import { MaterialDesignIcons } from '@react-native-vector-icons/material-design-icons/static';
@@ -27,7 +27,7 @@ function formatWhen(iso: string): string {
 }
 
 export function Notifications(): JSX.Element {
-  const { notifications, loading, refreshing, onRefresh } = useNotifications();
+  const { notifications, loading, refreshing, error, onRefresh, retry } = useNotifications();
   const role = useAppSelector((s) => s.auth.user?.role);
 
   return (
@@ -52,11 +52,20 @@ export function Notifications(): JSX.Element {
             <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[Colors.primary]} tintColor={Colors.primary} />
           }
           ListEmptyComponent={
-            <View style={styles.emptyBox}>
-              <MaterialDesignIcons name="bell-outline" size={48} color={Colors.neutralBorder} />
-              <Text style={styles.emptyTitle}>No notifications yet</Text>
-              <Text style={styles.emptyHint}>Updates about your bookings will show up here.</Text>
-            </View>
+            error ? (
+              <TouchableOpacity style={styles.emptyBox} onPress={retry} accessibilityRole="button">
+                <MaterialDesignIcons name="alert-circle-outline" size={48} color={Colors.danger} />
+                <Text style={styles.emptyTitle}>Could not load notifications</Text>
+                <Text style={styles.emptyHint}>{error}</Text>
+                <Text style={styles.retryText}>Retry</Text>
+              </TouchableOpacity>
+            ) : (
+              <View style={styles.emptyBox}>
+                <MaterialDesignIcons name="bell-outline" size={48} color={Colors.neutralBorder} />
+                <Text style={styles.emptyTitle}>No notifications yet</Text>
+                <Text style={styles.emptyHint}>Updates about your bookings will show up here.</Text>
+              </View>
+            )
           }
           renderItem={({ item }) => (
             <NotificationRow
@@ -114,6 +123,7 @@ const styles = StyleSheet.create({
   emptyBox: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: Spacing.xl, gap: Spacing.sm },
   emptyTitle: { fontSize: FontSize.lg, fontWeight: '700', color: Colors.textPrimary },
   emptyHint: { fontSize: FontSize.sm, color: Colors.textMuted, textAlign: 'center', lineHeight: 20 },
+  retryText: { fontSize: FontSize.md, fontWeight: '700', color: Colors.primary },
   row: {
     flexDirection: 'row', alignItems: 'flex-start', gap: Spacing.sm,
     backgroundColor: Colors.white, borderRadius: Radius.md, padding: Spacing.md,

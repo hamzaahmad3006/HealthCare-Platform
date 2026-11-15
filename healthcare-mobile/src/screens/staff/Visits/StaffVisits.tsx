@@ -22,7 +22,7 @@ const TABS: { id: TabFilter; label: string }[] = [
 
 export function StaffVisits(): JSX.Element {
   const navigation = useNavigation<Nav>();
-  const { activeTab, setActiveTab, visits, loading, refreshing, onRefresh } = useStaffVisits();
+  const { activeTab, setActiveTab, visits, loading, refreshing, error, onRefresh, retry } = useStaffVisits();
 
   return (
     <SafeAreaView style={styles.root}>
@@ -62,13 +62,22 @@ export function StaffVisits(): JSX.Element {
             <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[Colors.primary]} tintColor={Colors.primary} />
           }
           ListEmptyComponent={
-            <View style={styles.emptyBox}>
-              <MaterialDesignIcons name="calendar-blank" size={48} color={Colors.neutralBorder} />
-              <Text style={styles.emptyTitle}>No visits</Text>
-              <Text style={styles.emptyHint}>
-                {activeTab === 'TODAY' ? "You have no visits scheduled for today." : "No visits found."}
-              </Text>
-            </View>
+            error ? (
+              <TouchableOpacity style={styles.emptyBox} onPress={retry} accessibilityRole="button">
+                <MaterialDesignIcons name="alert-circle-outline" size={48} color={Colors.danger} />
+                <Text style={styles.emptyTitle}>Could not load visits</Text>
+                <Text style={styles.emptyHint}>{error}</Text>
+                <Text style={styles.retryText}>Retry</Text>
+              </TouchableOpacity>
+            ) : (
+              <View style={styles.emptyBox}>
+                <MaterialDesignIcons name="calendar-blank" size={48} color={Colors.neutralBorder} />
+                <Text style={styles.emptyTitle}>No visits</Text>
+                <Text style={styles.emptyHint}>
+                  {activeTab === 'TODAY' ? "You have no visits scheduled for today." : "No visits found."}
+                </Text>
+              </View>
+            )
           }
           renderItem={({ item }) => (
             <VisitCard visit={item} onPress={() => navigation.navigate('VisitDetail', { id: item.id })} />
@@ -137,6 +146,7 @@ const styles = StyleSheet.create({
   emptyBox: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: Spacing.xl, gap: Spacing.sm },
   emptyTitle: { fontSize: FontSize.lg, fontWeight: '700', color: Colors.textPrimary },
   emptyHint: { fontSize: FontSize.sm, color: Colors.textMuted, textAlign: 'center' },
+  retryText: { fontSize: FontSize.md, fontWeight: '700', color: Colors.primary },
   card: {
     backgroundColor: Colors.white, borderRadius: Radius.md, padding: Spacing.md,
     borderLeftWidth: 4, shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 8, elevation: 2,

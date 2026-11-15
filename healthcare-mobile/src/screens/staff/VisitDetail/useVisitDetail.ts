@@ -40,6 +40,7 @@ export function useVisitDetail() {
   const [visit, setVisit] = useState<ApiVisit | null>(null);
   const [booking, setBooking] = useState<BookingDetail | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [actionLoading, setActionLoading] = useState(false);
 
   const [beforeCondition, setBeforeCondition] = useState('');
@@ -55,6 +56,7 @@ export function useVisitDetail() {
 
   const load = useCallback(async (): Promise<void> => {
     try {
+      setError(null);
       const { data: visitRes } = await api.get<{ success: true; data: ApiVisit }>(API.VISITS.DETAIL(id));
       setVisit(visitRes.data);
       setBeforeCondition(visitRes.data.beforeConditionText ?? '');
@@ -66,13 +68,20 @@ export function useVisitDetail() {
       );
       setBooking(bookingRes.data);
     } catch (err) {
-      Alert.alert('Error', extractApiError(err));
+      const msg = extractApiError(err);
+      setError(msg);
+      Alert.alert('Error', msg);
     } finally {
       setLoading(false);
     }
   }, [id]);
 
   useEffect(() => { load(); }, [load]);
+
+  const reload = useCallback(() => {
+    setLoading(true);
+    void load();
+  }, [load]);
 
   const reloadVisit = async (): Promise<void> => {
     try {
@@ -260,6 +269,8 @@ export function useVisitDetail() {
     visit,
     booking,
     loading,
+    error,
+    reload,
     actionLoading,
     patientName,
     serviceLabel,

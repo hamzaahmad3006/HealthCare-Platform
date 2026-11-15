@@ -35,7 +35,7 @@ export function VisitDetail(): JSX.Element {
   const navigation = useNavigation<Nav>();
   const unreadCount = useUnreadBadge();
   const {
-    visit, booking, loading, actionLoading,
+    visit, booking, loading, error, reload, actionLoading,
     patientName, serviceLabel, addressLine, addressCity,
     beforeCondition, afterCondition, visitNotes,
     setBeforeCondition, setAfterCondition, setVisitNotes,
@@ -56,7 +56,10 @@ export function VisitDetail(): JSX.Element {
   if (!visit) {
     return (
       <SafeAreaView style={[styles.root, styles.centered]}>
-        <Text style={styles.notFound}>Visit not found.</Text>
+        <Text style={styles.notFound}>{error ?? 'Visit not found.'}</Text>
+        <TouchableOpacity onPress={reload} accessibilityRole="button" style={{ marginTop: Spacing.sm }}>
+          <Text style={{ color: Colors.primary, fontWeight: '700', fontSize: FontSize.md }}>Retry</Text>
+        </TouchableOpacity>
       </SafeAreaView>
     );
   }
@@ -257,7 +260,7 @@ function PrimaryAction({
   }
 
   return (
-    <TouchableOpacity style={styles.enRouteBtn} activeOpacity={0.85} onPress={onPress} disabled={actionLoading}>
+    <TouchableOpacity style={styles.enRouteBtn} activeOpacity={0.85} onPress={onPress} disabled={actionLoading} accessibilityRole="button">
       {actionLoading ? (
         <ActivityIndicator color={Colors.white} />
       ) : (

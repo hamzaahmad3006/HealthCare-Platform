@@ -24,8 +24,6 @@ import type { StaffStackParamList } from '../../../navigation/types';
 
 type Nav = NativeStackNavigationProp<StaffStackParamList>;
 
-const SPECIALIZATIONS = ['Nursing', 'Caregiver'];
-
 function initialsOf(name?: string): string {
   if (!name) return '–';
   return name.trim().split(/\s+/).slice(0, 2).map((w) => w.charAt(0).toUpperCase()).join('');
@@ -35,7 +33,7 @@ export function StaffProfile(): JSX.Element {
   const navigation = useNavigation<Nav>();
   const unreadCount = useUnreadBadge();
   const {
-    user, staffCode, experienceYears, locationLabel, verified, available, togglingDuty, toggleDuty,
+    user, staffCode, experienceYears, locationLabel, verified, specializations, available, togglingDuty, toggleDuty,
     passwordModalVisible, openPasswordModal, closePasswordModal,
     oldPwd, setOldPwd, newPwd, setNewPwd, confirmPwd, setConfirmPwd,
     updatingPwd, updatePassword,
@@ -113,7 +111,7 @@ export function StaffProfile(): JSX.Element {
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Specializations</Text>
           <View style={styles.chipsRow}>
-            {SPECIALIZATIONS.map((s) => (
+            {specializations.map((s) => (
               <View key={s} style={styles.chip}>
                 <Text style={styles.chipText}>{s}</Text>
               </View>
@@ -387,6 +385,7 @@ const styles = StyleSheet.create({
   },
   chipsRow: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
     gap: Spacing.sm,
   },
   chip: {

@@ -1,5 +1,6 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useState } from 'react';
 import { Alert } from 'react-native';
+import { useFocusEffect } from '@react-navigation/native';
 import { api, extractApiError } from '../../../api/client';
 import { API } from '../../../api/endpoints';
 import type { ApiVisit } from '../../../types/visit.types';
@@ -24,9 +25,11 @@ export function useStaffVisits() {
   const [all, setAll] = useState<Visit[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const fetchVisits = useCallback(async (): Promise<void> => {
     try {
+      setError(null);
       const { data } = await api.get<{ success: true; data: ApiVisit[] }>(API.VISITS.LIST, {
         params: { limit: 100 },
       });
@@ -51,7 +54,9 @@ export function useStaffVisits() {
           .sort((a, b) => new Date(a.scheduledTime).getTime() - new Date(b.scheduledTime).getTime()),
       );
     } catch (err) {
-      Alert.alert('Error', extractApiError(err));
+      const msg = extractApiError(err);
+      setError(msg);
+      Alert.alert('Error', msg);
       setAll([]);
     } finally {
       setLoading(false);
@@ -59,10 +64,15 @@ export function useStaffVisits() {
     }
   }, []);
 
-  useEffect(() => { fetchVisits(); }, [fetchVisits]);
+  useFocusEffect(useCallback(() => { void fetchVisits(); }, [fetchVisits]));
 
   const onRefresh = (): void => {
     setRefreshing(true);
+    fetchVisits();
+  };
+
+  const retry = (): void => {
+    setLoading(true);
     fetchVisits();
   };
 
@@ -80,5 +90,5 @@ export function useStaffVisits() {
     return v.status === 'COMPLETED';
   });
 
-  return { activeTab, setActiveTab, visits, loading, refreshing, onRefresh };
+  return { activeTab, setActiveTab, visits, loading, refreshing, error, onRefresh, retry };
 }
