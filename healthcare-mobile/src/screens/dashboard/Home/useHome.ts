@@ -1,6 +1,6 @@
 import type { MaterialIconName } from '../../../types/icons.types';
 import { useCallback, useEffect, useState } from 'react';
-import { useNavigation } from '@react-navigation/native';
+import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { api } from '../../../api/client';
 import { API } from '../../../api/endpoints';
 import { useAppSelector } from '../../../store';
@@ -10,7 +10,7 @@ import type { ApiServiceType } from '../../../types/useNewBooking.types';
 
 type HomeNavProp = CustomerTabNavigationProp<'Home'>;
 
-const UPCOMING_STATUSES = ['PENDING', 'CONFIRMED', 'ASSIGNED', 'IN_PROGRESS', 'TIME_PROPOSED', 'PENDING_DOCTOR'];
+const UPCOMING_STATUSES = ['PENDING', 'CONFIRMED', 'ASSIGNED', 'IN_PROGRESS', 'RESCHEDULED', 'TIME_PROPOSED', 'PENDING_DOCTOR'];
 
 // Backend seeds these fixed codes (prisma/seed.ts) — map each to an icon since
 // the ServiceType model itself has no icon field.
@@ -77,7 +77,7 @@ export function useHome() {
     }
   }, []);
 
-  useEffect(() => { fetchNext(); }, [fetchNext]);
+  useFocusEffect(useCallback(() => { void fetchNext(); }, [fetchNext]));
   useEffect(() => { fetchServices(); }, [fetchServices]);
 
   const firstName = user?.fullName?.trim().split(/\s+/)[0] ?? 'there';

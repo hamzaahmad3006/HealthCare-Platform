@@ -1,5 +1,6 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useState } from 'react';
 import { Alert } from 'react-native';
+import { useFocusEffect } from '@react-navigation/native';
 import { api, extractApiError } from '../../../api/client';
 import { API } from '../../../api/endpoints';
 import { useAppSelector } from '../../../store';
@@ -119,7 +120,7 @@ export function useStaffHome() {
     }
   }, []);
 
-  useEffect(() => { load(); }, [load]);
+  useFocusEffect(useCallback(() => { void load(); }, [load]));
 
   const toggleDuty = async (): Promise<void> => {
     if (!user || togglingDuty) return;

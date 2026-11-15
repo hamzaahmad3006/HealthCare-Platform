@@ -1,10 +1,13 @@
 import { rotateTokens, tokenGeneration } from '../../../api/sessionTokens';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useState } from 'react';
 import { Alert } from 'react-native';
+import { useFocusEffect } from '@react-navigation/native';
 import { api, extractApiError } from '../../../api/client';
 import { API } from '../../../api/endpoints';
 import { useAppDispatch, useAppSelector } from '../../../store';
 import { logout } from '../../../store/slices/authSlice';
+
+const DEFAULT_SPECIALIZATIONS = ['Nursing', 'Caregiver'];
 
 export function useStaffProfile() {
   const dispatch = useAppDispatch();
@@ -16,6 +19,7 @@ export function useStaffProfile() {
   const [experienceYears, setExperienceYears] = useState<number | null>(null);
   const [locationLabel, setLocationLabel] = useState<string | null>(null);
   const [verified, setVerified] = useState(false);
+  const [specializations, setSpecializations] = useState<string[]>(DEFAULT_SPECIALIZATIONS);
 
   const loadProfile = useCallback(async (): Promise<void> => {
     if (!user) return;
@@ -29,6 +33,7 @@ export function useStaffProfile() {
           verificationStatus: string;
           city: { name: string } | null;
           zone: { name: string } | null;
+          serviceTypes?: { serviceType: { id: string; name: string; code: string } }[];
         };
       }>(API.STAFF.ME);
       setStaffCode(data.data.staffCode);
@@ -38,12 +43,16 @@ export function useStaffProfile() {
       setLocationLabel(
         [data.data.city?.name, data.data.zone?.name].filter(Boolean).join(', ') || null,
       );
+      const names = data.data.serviceTypes?.map((s) => s.serviceType.name).filter(Boolean) ?? [];
+      if (names.length > 0) {
+        setSpecializations(names);
+      }
     } catch {
       // Non-fatal — keeps the default local state.
     }
   }, [user]);
 
-  useEffect(() => { loadProfile(); }, [loadProfile]);
+  useFocusEffect(useCallback(() => { void loadProfile(); }, [loadProfile]));
 
   const toggleDuty = async (): Promise<void> => {
     if (!user || togglingDuty) return;
@@ -117,6 +126,7 @@ export function useStaffProfile() {
     experienceYears,
     locationLabel,
     verified,
+    specializations,
     available,
     togglingDuty,
     toggleDuty,

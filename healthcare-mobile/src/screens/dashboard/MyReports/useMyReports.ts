@@ -22,13 +22,17 @@ export function useMyReports() {
   const [reports, setReports] = useState<Report[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const fetchReports = useCallback(async (): Promise<void> => {
     try {
+      setError(null);
       const { data } = await api.get<{ success: true; data: ApiReport[] }>(API.REPORTS.LIST);
       setReports(data.data.map(mapReport));
     } catch (err) {
-      Alert.alert('Error', extractApiError(err));
+      const msg = extractApiError(err);
+      setError(msg);
+      Alert.alert('Error', msg);
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -42,5 +46,10 @@ export function useMyReports() {
     fetchReports();
   };
 
-  return { reports, loading, refreshing, onRefresh };
+  const retry = (): void => {
+    setLoading(true);
+    fetchReports();
+  };
+
+  return { reports, loading, refreshing, error, onRefresh, retry };
 }

@@ -109,11 +109,11 @@ export function BookingDetail({ navigation, route }: Props): JSX.Element {
             dateStyle: 'medium', timeStyle: 'short',
           })}
         </Text>
-        <Text style={styles.sub}>Urgency: {booking.urgencyLevel.toLowerCase()}</Text>
+        <Text style={styles.sub}>Urgency: {(booking.urgencyLevel ?? 'ROUTINE').toLowerCase()}</Text>
       </Section>
 
       {/* Visits */}
-      {booking.visits.length > 0 && (
+      {(booking.visits?.length ?? 0) > 0 && (
         <Section title={`Visits (${booking.visits.length})`}>
           {booking.visits.map((v, i) => (
             <View key={v.id} style={styles.visitRow}>
