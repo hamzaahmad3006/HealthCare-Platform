@@ -31,11 +31,11 @@ export function Login(): JSX.Element {
       {/* ───── Left Column: Authentication Form ───── */}
       <div className="flex-1 flex flex-col justify-between p-6 sm:p-10 lg:p-12 xl:p-16 bg-gradient-to-b from-ink-50/80 via-white to-brand-50/20">
         {/* Top bar */}
-        <div className="flex items-center justify-between mb-8 sm:mb-12">
+        <div className="flex items-center justify-between mb-8 sm:mb-12 animate-fade-in">
           <BrandLogo asLink to="/" size="md" subtitleText="PAKISTAN" />
           <Link
             to="/"
-            className="inline-flex items-center gap-1.5 text-xs sm:text-sm font-semibold text-ink-600 hover:text-brand-700 transition-colors px-3 py-1.5 rounded-xl hover:bg-ink-100/70"
+            className="inline-flex items-center gap-1.5 text-xs sm:text-sm font-semibold text-ink-600 hover:text-brand-700 transition-all px-3 py-1.5 rounded-xl hover:bg-ink-100/70 hover:-translate-x-0.5"
           >
             <ArrowLeft className="h-4 w-4" />
             <span>Back to Home</span>
@@ -43,11 +43,11 @@ export function Login(): JSX.Element {
         </div>
 
         {/* Centered Elevated Form Card */}
-        <div className="w-full max-w-md mx-auto my-auto animate-slide-up">
-          <div className="bg-white rounded-3xl p-8 sm:p-10 shadow-xl ring-1 ring-ink-100/80">
+        <div className="w-full max-w-md mx-auto my-auto animate-fade-in-up">
+          <div className="bg-white rounded-3xl p-8 sm:p-10 shadow-xl ring-1 ring-ink-100/80 hover:shadow-2xl transition-shadow duration-300">
             {/* Header info */}
             <div className="mb-6">
-              <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-brand-50 text-brand-700 ring-1 ring-brand-200 text-2xs font-bold uppercase tracking-wider mb-3">
+              <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-brand-50 text-brand-700 ring-1 ring-brand-200 text-2xs font-bold uppercase tracking-wider mb-3 animate-pulse-soft">
                 <Sparkles className="h-3 w-3 text-brand-600" />
                 <span>Single Secure Portal</span>
               </div>
@@ -140,8 +140,8 @@ export function Login(): JSX.Element {
                 size="lg"
                 isLoading={isSubmitting}
                 fullWidth
-                rightIcon={<ArrowRight className="h-4 w-4" />}
-                className="bg-gradient-to-r from-brand-600 to-brand-700 hover:from-brand-700 hover:to-brand-800 text-white font-bold py-3.5 rounded-xl shadow-brand-lg transition-all"
+                rightIcon={<ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />}
+                className="bg-gradient-to-r from-brand-600 to-brand-700 hover:from-brand-700 hover:to-brand-800 text-white font-bold py-3.5 rounded-xl shadow-brand-lg transition-all duration-200 hover:scale-[1.01] active:scale-[0.99]"
               >
                 Sign in to Account
               </Button>
@@ -176,24 +176,28 @@ export function Login(): JSX.Element {
 
       {/* ───── Right Column: Visual Clinical Proof & Showcase ───── */}
       <div className="hidden lg:flex flex-1 relative overflow-hidden bg-gradient-to-br from-brand-950 via-brand-900 to-teal-950 text-white p-12 xl:p-16 flex-col justify-between">
-        {/* Soft background ambient blurs */}
-        <div className="absolute top-0 right-0 -mt-16 -mr-16 h-80 w-80 rounded-full bg-brand-500/20 blur-3xl pointer-events-none" />
-        <div className="absolute bottom-0 left-0 -mb-16 -ml-16 h-80 w-80 rounded-full bg-teal-400/15 blur-3xl pointer-events-none" />
+        {/* Soft background ambient blurs with smooth floating animation */}
+        <div className="absolute top-0 right-0 -mt-16 -mr-16 h-80 w-80 rounded-full bg-brand-500/20 blur-3xl pointer-events-none animate-float-slow" />
+        <div className="absolute bottom-0 left-0 -mb-16 -ml-16 h-80 w-80 rounded-full bg-teal-400/15 blur-3xl pointer-events-none animate-float-reverse" />
 
         {/* Top active status pill */}
-        <div className="relative z-10">
-          <span className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white/10 ring-1 ring-white/20 backdrop-blur-md text-xs font-semibold text-emerald-200">
+        <div className="relative z-10 flex items-center justify-between">
+          <span className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white/10 ring-1 ring-white/20 backdrop-blur-md text-xs font-semibold text-emerald-200 shadow-sm animate-fade-in">
             <span className="relative flex h-2 w-2">
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
               <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-400" />
             </span>
             <span>Live Dispatch Active · Faisalabad &amp; Punjab</span>
           </span>
+
+          <span className="text-2xs font-bold text-white/60 bg-white/10 px-2.5 py-1 rounded-full uppercase tracking-wider backdrop-blur-sm hidden xl:inline">
+            Verified Healthcare
+          </span>
         </div>
 
         {/* Center content & clinical dispatch card */}
         <div className="relative z-10 max-w-lg space-y-6 my-auto py-8">
-          <div className="space-y-3">
+          <div className="space-y-3 animate-fade-in">
             <h2 className="text-3xl sm:text-4xl xl:text-5xl font-extrabold tracking-tight leading-[1.12]">
               Hospital-Grade Healthcare,{' '}
               <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-300 via-teal-200 to-white block sm:inline">
@@ -206,8 +210,16 @@ export function Login(): JSX.Element {
             </p>
           </div>
 
-          {/* Interactive Clinical Specialist Preview Card */}
-          <div className="p-6 rounded-3xl bg-white/10 backdrop-blur-md ring-1 ring-white/20 shadow-2xl space-y-4">
+          {/* Floating Arrival Notification Badge */}
+          <div className="flex justify-end -mb-2">
+            <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-2xl bg-white/15 backdrop-blur-md ring-1 ring-white/25 text-2xs font-semibold text-white shadow-lg animate-float-reverse">
+              <span className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse" />
+              <span>HMS-FSD-0082 · Confirmed · Visit in 45m</span>
+            </div>
+          </div>
+
+          {/* Interactive Clinical Specialist Preview Card with Float Animation */}
+          <div className="p-6 rounded-3xl bg-white/10 backdrop-blur-md ring-1 ring-white/20 shadow-2xl space-y-4 animate-float">
             <div className="flex items-start gap-3.5">
               <div className="relative">
                 <div className="h-12 w-12 rounded-2xl bg-gradient-to-br from-brand-400 to-emerald-600 text-white flex items-center justify-center font-bold text-lg shadow-brand">
@@ -263,7 +275,7 @@ export function Login(): JSX.Element {
 
         {/* Bottom Key Metric Indicators */}
         <div className="relative z-10 pt-6 border-t border-white/10 grid grid-cols-3 gap-4">
-          <div>
+          <div className="hover:translate-y-[-2px] transition-transform">
             <div className="flex items-center gap-1 text-emerald-300 mb-1">
               <BadgeCheck className="h-4 w-4" />
               <span className="text-xs font-bold text-white">100% Verified</span>
@@ -271,7 +283,7 @@ export function Login(): JSX.Element {
             <p className="text-2xs text-brand-200">PNC &amp; PMDC certified</p>
           </div>
 
-          <div>
+          <div className="hover:translate-y-[-2px] transition-transform">
             <div className="flex items-center gap-1 text-amber-300 mb-1">
               <Star className="h-4 w-4 fill-amber-300" />
               <span className="text-xs font-bold text-white">4.9 / 5 Rating</span>
@@ -279,7 +291,7 @@ export function Login(): JSX.Element {
             <p className="text-2xs text-brand-200">2,500+ happy families</p>
           </div>
 
-          <div>
+          <div className="hover:translate-y-[-2px] transition-transform">
             <div className="flex items-center gap-1 text-emerald-300 mb-1">
               <Clock className="h-4 w-4" />
               <span className="text-xs font-bold text-white">&lt; 60m Arrival</span>

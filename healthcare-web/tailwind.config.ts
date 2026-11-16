@@ -103,16 +103,25 @@ const config: Config = {
       },
       animation: {
         'fade-in': 'fadeIn 0.4s ease-out',
+        'fade-in-up': 'fadeInUp 0.5s cubic-bezier(0.16, 1, 0.3, 1)',
         'slide-up': 'slideUp 0.4s ease-out',
         'slide-down': 'slideDown 0.3s ease-out',
         'scale-in': 'scaleIn 0.2s ease-out',
         'pulse-soft': 'pulseSoft 2s cubic-bezier(0.4, 0, 0.6, 1) infinite',
         'shimmer': 'shimmer 2s linear infinite',
+        'float': 'float 4s ease-in-out infinite',
+        'float-slow': 'floatSlow 7s ease-in-out infinite',
+        'float-reverse': 'floatReverse 5s ease-in-out infinite',
+        'pulse-glow': 'pulseGlow 3s ease-in-out infinite',
       },
       keyframes: {
         fadeIn: {
           '0%': { opacity: '0' },
           '100%': { opacity: '1' },
+        },
+        fadeInUp: {
+          '0%': { opacity: '0', transform: 'translateY(16px)' },
+          '100%': { opacity: '1', transform: 'translateY(0)' },
         },
         slideUp: {
           '0%': { opacity: '0', transform: 'translateY(12px)' },
@@ -133,6 +142,22 @@ const config: Config = {
         shimmer: {
           '0%': { backgroundPosition: '-200% 0' },
           '100%': { backgroundPosition: '200% 0' },
+        },
+        float: {
+          '0%, 100%': { transform: 'translateY(0px)' },
+          '50%': { transform: 'translateY(-8px)' },
+        },
+        floatSlow: {
+          '0%, 100%': { transform: 'translateY(0px) rotate(0deg)' },
+          '50%': { transform: 'translateY(-14px) rotate(1.5deg)' },
+        },
+        floatReverse: {
+          '0%, 100%': { transform: 'translateY(0px)' },
+          '50%': { transform: 'translateY(8px)' },
+        },
+        pulseGlow: {
+          '0%, 100%': { boxShadow: '0 0 15px rgba(16, 185, 129, 0.20)' },
+          '50%': { boxShadow: '0 0 30px rgba(16, 185, 129, 0.40)' },
         },
       },
       borderRadius: {

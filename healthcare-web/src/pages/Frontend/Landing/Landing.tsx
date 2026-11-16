@@ -309,15 +309,15 @@ export function Landing(): JSX.Element {
 
       {/* ───── Modern Hero Section ───── */}
       <section className="relative overflow-hidden bg-gradient-to-b from-brand-50/60 via-white to-white pt-10 pb-20 lg:pt-16 lg:pb-28">
-        {/* Soft clinical background ambient lights */}
-        <div className="absolute top-0 right-1/4 -z-10 h-96 w-96 rounded-full bg-brand-200/35 blur-3xl" />
-        <div className="absolute top-1/3 left-0 -z-10 h-80 w-80 rounded-full bg-accent-200/25 blur-3xl" />
-        <div className="absolute bottom-10 right-0 -z-10 h-72 w-72 rounded-full bg-brand-100/40 blur-3xl" />
+        {/* Soft clinical background ambient lights with smooth float */}
+        <div className="absolute top-0 right-1/4 -z-10 h-96 w-96 rounded-full bg-brand-200/35 blur-3xl animate-float-slow pointer-events-none" />
+        <div className="absolute top-1/3 left-0 -z-10 h-80 w-80 rounded-full bg-accent-200/25 blur-3xl animate-float-reverse pointer-events-none" />
+        <div className="absolute bottom-10 right-0 -z-10 h-72 w-72 rounded-full bg-brand-100/40 blur-3xl animate-float-slow pointer-events-none" />
 
         <div className="max-w-7xl mx-auto px-6 grid lg:grid-cols-12 gap-12 lg:gap-8 items-center">
           {/* Left Column: Clinical Value Proposition */}
-          <div className="lg:col-span-7 space-y-6">
-            <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-brand-100/80 ring-1 ring-brand-300/60 text-brand-800 text-xs font-semibold backdrop-blur-sm">
+          <div className="lg:col-span-7 space-y-6 animate-fade-in-up">
+            <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-brand-100/80 ring-1 ring-brand-300/60 text-brand-800 text-xs font-semibold backdrop-blur-sm animate-pulse-soft">
               <Sparkles className="h-3.5 w-3.5 text-brand-600" />
               <span>Pakistan’s Trusted Home Healthcare Platform</span>
             </div>
@@ -339,8 +339,8 @@ export function Landing(): JSX.Element {
               <Button
                 size="lg"
                 onClick={() => handleBookNow()}
-                rightIcon={<ArrowRight className="h-4 w-4" />}
-                className="bg-gradient-to-r from-brand-600 to-brand-700 hover:from-brand-700 hover:to-brand-800 text-white shadow-brand-lg px-8 py-3.5 rounded-xl font-bold"
+                rightIcon={<ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />}
+                className="bg-gradient-to-r from-brand-600 to-brand-700 hover:from-brand-700 hover:to-brand-800 text-white shadow-brand-lg px-8 py-3.5 rounded-xl font-bold hover:scale-[1.02] active:scale-[0.98] transition-all"
               >
                 Book an Appointment
               </Button>
@@ -348,7 +348,7 @@ export function Landing(): JSX.Element {
               <button
                 type="button"
                 onClick={handleWhatsApp}
-                className="inline-flex items-center gap-2 px-6 py-3.5 rounded-xl font-bold text-sm bg-emerald-50 text-emerald-800 ring-1 ring-emerald-300 hover:bg-emerald-100 active:bg-emerald-200 transition-all shadow-soft"
+                className="inline-flex items-center gap-2 px-6 py-3.5 rounded-xl font-bold text-sm bg-emerald-50 text-emerald-800 ring-1 ring-emerald-300 hover:bg-emerald-100 active:bg-emerald-200 transition-all shadow-soft hover:scale-[1.02]"
               >
                 <MessageCircle className="h-4 w-4 text-emerald-600" />
                 <span>WhatsApp Coordinator</span>
@@ -357,15 +357,15 @@ export function Landing(): JSX.Element {
 
             {/* Key Trust Counters */}
             <div className="pt-8 border-t border-ink-100/80 grid grid-cols-2 sm:grid-cols-4 gap-4">
-              <div>
+              <div className="hover:-translate-y-0.5 transition-transform">
                 <div className="flex items-center gap-1.5 text-brand-700 font-bold text-2xl lg:text-3xl">
                   <span>100%</span>
                   <BadgeCheck className="h-5 w-5 text-brand-600" />
                 </div>
-                <p className="text-xs text-ink-500 font-medium mt-0.5">PNC & PMDC Verified</p>
+                <p className="text-xs text-ink-500 font-medium mt-0.5">PNC &amp; PMDC Verified</p>
               </div>
 
-              <div>
+              <div className="hover:-translate-y-0.5 transition-transform">
                 <div className="flex items-center gap-1.5 text-brand-700 font-bold text-2xl lg:text-3xl">
                   <span>4.9</span>
                   <Star className="h-5 w-5 fill-amber-400 text-amber-400" />
@@ -373,7 +373,7 @@ export function Landing(): JSX.Element {
                 <p className="text-xs text-ink-500 font-medium mt-0.5">2,500+ Happy Families</p>
               </div>
 
-              <div>
+              <div className="hover:-translate-y-0.5 transition-transform">
                 <div className="flex items-center gap-1.5 text-brand-700 font-bold text-2xl lg:text-3xl">
                   <span>&lt; 60m</span>
                   <Clock className="h-5 w-5 text-brand-600" />
@@ -381,7 +381,7 @@ export function Landing(): JSX.Element {
                 <p className="text-xs text-ink-500 font-medium mt-0.5">Rapid Doorstep Arrival</p>
               </div>
 
-              <div>
+              <div className="hover:-translate-y-0.5 transition-transform">
                 <div className="flex items-center gap-1.5 text-brand-700 font-bold text-2xl lg:text-3xl">
                   <span>PKR 0</span>
                   <ShieldCheck className="h-5 w-5 text-brand-600" />
@@ -391,9 +391,21 @@ export function Landing(): JSX.Element {
             </div>
           </div>
 
-          {/* Right Column: Live Clinical Care Preview Interface */}
+          {/* Right Column: Live Clinical Care Preview Interface with Floating Animation */}
           <div className="lg:col-span-5 relative">
-            <div className="relative mx-auto max-w-md bg-white rounded-3xl p-6 shadow-2xl ring-1 ring-ink-100">
+            {/* Satellite Floating Badge Top-Right */}
+            <div className="hidden sm:flex absolute -top-4 -right-2 z-20 items-center gap-2 px-3.5 py-1.5 rounded-2xl bg-white/95 backdrop-blur-md shadow-xl ring-1 ring-brand-500/20 text-xs font-bold text-ink-900 animate-float-reverse">
+              <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
+              <span>HMS-FSD-0082 Confirmed</span>
+            </div>
+
+            {/* Satellite Floating Badge Bottom-Left */}
+            <div className="hidden sm:flex absolute -bottom-4 -left-3 z-20 items-center gap-2 px-3.5 py-1.5 rounded-2xl bg-white/95 backdrop-blur-md shadow-xl ring-1 ring-emerald-500/20 text-xs font-bold text-emerald-800 animate-float">
+              <BadgeCheck className="h-4 w-4 text-emerald-600" />
+              <span>100% Sterile Single-Use Kit</span>
+            </div>
+
+            <div className="relative mx-auto max-w-md bg-white rounded-3xl p-6 shadow-2xl ring-1 ring-ink-100 animate-float hover:shadow-brand-lg transition-all duration-300">
               {/* Header Status */}
               <div className="flex items-center justify-between pb-4 border-b border-ink-100">
                 <div className="flex items-center gap-2">
@@ -455,7 +467,7 @@ export function Landing(): JSX.Element {
                 <div className="grid grid-cols-2 gap-2">
                   <button
                     onClick={() => handleBookNow('NURSING')}
-                    className="flex items-center gap-2.5 p-3 rounded-xl border border-ink-100 hover:border-brand-500 hover:bg-brand-50/50 text-left transition-all group"
+                    className="flex items-center gap-2.5 p-3 rounded-xl border border-ink-100 hover:border-brand-500 hover:bg-brand-50/50 text-left transition-all group hover:-translate-y-0.5"
                   >
                     <div className="h-8 w-8 rounded-lg bg-brand-100 text-brand-700 flex items-center justify-center group-hover:bg-brand-600 group-hover:text-white transition-colors">
                       <Stethoscope className="h-4 w-4" />
@@ -468,20 +480,20 @@ export function Landing(): JSX.Element {
 
                   <button
                     onClick={() => handleBookNow('VISITING_DOCTOR')}
-                    className="flex items-center gap-2.5 p-3 rounded-xl border border-ink-100 hover:border-brand-500 hover:bg-brand-50/50 text-left transition-all group"
+                    className="flex items-center gap-2.5 p-3 rounded-xl border border-ink-100 hover:border-brand-500 hover:bg-brand-50/50 text-left transition-all group hover:-translate-y-0.5"
                   >
                     <div className="h-8 w-8 rounded-lg bg-sky-100 text-sky-700 flex items-center justify-center group-hover:bg-sky-600 group-hover:text-white transition-colors">
                       <UserSquare2 className="h-4 w-4" />
                     </div>
                     <div className="min-w-0">
                       <p className="text-xs font-bold text-ink-900 group-hover:text-brand-800">Doctor Visit</p>
-                      <p className="text-2xs text-ink-500 truncate">Checkup & prescription</p>
+                      <p className="text-2xs text-ink-500 truncate">Checkup &amp; prescription</p>
                     </div>
                   </button>
 
                   <button
                     onClick={() => handleBookNow('LAB_SAMPLING')}
-                    className="flex items-center gap-2.5 p-3 rounded-xl border border-ink-100 hover:border-brand-500 hover:bg-brand-50/50 text-left transition-all group"
+                    className="flex items-center gap-2.5 p-3 rounded-xl border border-ink-100 hover:border-brand-500 hover:bg-brand-50/50 text-left transition-all group hover:-translate-y-0.5"
                   >
                     <div className="h-8 w-8 rounded-lg bg-teal-100 text-teal-700 flex items-center justify-center group-hover:bg-teal-600 group-hover:text-white transition-colors">
                       <TestTube2 className="h-4 w-4" />
@@ -494,7 +506,7 @@ export function Landing(): JSX.Element {
 
                   <button
                     onClick={() => handleBookNow('PHYSIOTHERAPY')}
-                    className="flex items-center gap-2.5 p-3 rounded-xl border border-ink-100 hover:border-brand-500 hover:bg-brand-50/50 text-left transition-all group"
+                    className="flex items-center gap-2.5 p-3 rounded-xl border border-ink-100 hover:border-brand-500 hover:bg-brand-50/50 text-left transition-all group hover:-translate-y-0.5"
                   >
                     <div className="h-8 w-8 rounded-lg bg-emerald-100 text-emerald-700 flex items-center justify-center group-hover:bg-emerald-600 group-hover:text-white transition-colors">
                       <Activity className="h-4 w-4" />

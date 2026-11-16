@@ -135,10 +135,10 @@ export function AdminDashboard(): JSX.Element {
       ) : null}
 
       {/* Top Welcome & Telemetry Strip */}
-      <div className="mb-6 rounded-3xl bg-gradient-to-r from-brand-950 via-brand-900 to-ink-900 text-white p-6 sm:p-7 shadow-xl shadow-brand-950/10 relative overflow-hidden">
-        {/* Subtle decorative background curves */}
-        <div className="absolute -right-12 -top-12 w-64 h-64 rounded-full bg-brand-500/10 blur-3xl pointer-events-none" />
-        <div className="absolute right-40 -bottom-16 w-52 h-52 rounded-full bg-accent-500/10 blur-2xl pointer-events-none" />
+      <div className="mb-6 rounded-3xl bg-gradient-to-r from-brand-950 via-brand-900 to-ink-900 text-white p-6 sm:p-7 shadow-xl shadow-brand-950/10 relative overflow-hidden animate-fade-in-up">
+        {/* Subtle decorative background curves with smooth ambient float */}
+        <div className="absolute -right-12 -top-12 w-64 h-64 rounded-full bg-brand-500/10 blur-3xl pointer-events-none animate-float-slow" />
+        <div className="absolute right-40 -bottom-16 w-52 h-52 rounded-full bg-accent-500/10 blur-2xl pointer-events-none animate-float-reverse" />
 
         <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-5">
           <div className="space-y-1.5">
@@ -235,14 +235,14 @@ export function AdminDashboard(): JSX.Element {
           )}
 
           {/* KPI Strip — 4 Hero Stat Cards */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-5">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-5 animate-fade-in-up">
             {/* Card 1: Total Bookings */}
-            <div className="rounded-2xl bg-white border border-ink-100 p-5 shadow-card hover:shadow-card-hover transition-all duration-200 relative group overflow-hidden">
-              <div className="absolute top-0 right-0 w-24 h-24 bg-brand-50 rounded-bl-full -mr-4 -mt-4 transition-transform group-hover:scale-110 pointer-events-none" />
+            <div className="rounded-2xl bg-white border border-ink-100 p-5 shadow-card hover:shadow-card-hover hover:-translate-y-1.5 transition-all duration-300 relative group overflow-hidden">
+              <div className="absolute top-0 right-0 w-24 h-24 bg-brand-50 rounded-bl-full -mr-4 -mt-4 transition-transform group-hover:scale-125 pointer-events-none" />
               <div className="relative z-10">
                 <div className="flex items-center justify-between">
                   <span className="text-xs font-bold uppercase tracking-wider text-ink-400">Total Bookings</span>
-                  <div className="h-10 w-10 rounded-xl bg-gradient-brand text-white flex items-center justify-center shadow-brand">
+                  <div className="h-10 w-10 rounded-xl bg-gradient-brand text-white flex items-center justify-center shadow-brand group-hover:scale-105 transition-transform duration-300">
                     <CalendarClock className="h-5 w-5" />
                   </div>
                 </div>
@@ -262,12 +262,12 @@ export function AdminDashboard(): JSX.Element {
             </div>
 
             {/* Card 2: Fulfillment Rate */}
-            <div className="rounded-2xl bg-white border border-ink-100 p-5 shadow-card hover:shadow-card-hover transition-all duration-200 relative group overflow-hidden">
-              <div className="absolute top-0 right-0 w-24 h-24 bg-accent-50 rounded-bl-full -mr-4 -mt-4 transition-transform group-hover:scale-110 pointer-events-none" />
+            <div className="rounded-2xl bg-white border border-ink-100 p-5 shadow-card hover:shadow-card-hover hover:-translate-y-1.5 transition-all duration-300 relative group overflow-hidden">
+              <div className="absolute top-0 right-0 w-24 h-24 bg-accent-50 rounded-bl-full -mr-4 -mt-4 transition-transform group-hover:scale-125 pointer-events-none" />
               <div className="relative z-10">
                 <div className="flex items-center justify-between">
                   <span className="text-xs font-bold uppercase tracking-wider text-ink-400">Completion Rate</span>
-                  <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-accent-500 to-accent-700 text-white flex items-center justify-center shadow-accent">
+                  <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-accent-500 to-accent-700 text-white flex items-center justify-center shadow-accent group-hover:scale-105 transition-transform duration-300">
                     <Activity className="h-5 w-5" />
                   </div>
                 </div>
@@ -293,12 +293,12 @@ export function AdminDashboard(): JSX.Element {
             </div>
 
             {/* Card 3: Staff Utilization & Fleet */}
-            <div className="rounded-2xl bg-white border border-ink-100 p-5 shadow-card hover:shadow-card-hover transition-all duration-200 relative group overflow-hidden">
-              <div className="absolute top-0 right-0 w-24 h-24 bg-purple-50 rounded-bl-full -mr-4 -mt-4 transition-transform group-hover:scale-110 pointer-events-none" />
+            <div className="rounded-2xl bg-white border border-ink-100 p-5 shadow-card hover:shadow-card-hover hover:-translate-y-1.5 transition-all duration-300 relative group overflow-hidden">
+              <div className="absolute top-0 right-0 w-24 h-24 bg-purple-50 rounded-bl-full -mr-4 -mt-4 transition-transform group-hover:scale-125 pointer-events-none" />
               <div className="relative z-10">
                 <div className="flex items-center justify-between">
                   <span className="text-xs font-bold uppercase tracking-wider text-ink-400">Field Staff Roster</span>
-                  <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-purple-500 to-indigo-600 text-white flex items-center justify-center shadow-md shadow-purple-500/20">
+                  <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-purple-500 to-indigo-600 text-white flex items-center justify-center shadow-md shadow-purple-500/20 group-hover:scale-105 transition-transform duration-300">
                     <Users className="h-5 w-5" />
                   </div>
                 </div>
@@ -319,12 +319,12 @@ export function AdminDashboard(): JSX.Element {
             </div>
 
             {/* Card 4: Patient Rating */}
-            <div className="rounded-2xl bg-white border border-ink-100 p-5 shadow-card hover:shadow-card-hover transition-all duration-200 relative group overflow-hidden">
-              <div className="absolute top-0 right-0 w-24 h-24 bg-amber-50 rounded-bl-full -mr-4 -mt-4 transition-transform group-hover:scale-110 pointer-events-none" />
+            <div className="rounded-2xl bg-white border border-ink-100 p-5 shadow-card hover:shadow-card-hover hover:-translate-y-1.5 transition-all duration-300 relative group overflow-hidden">
+              <div className="absolute top-0 right-0 w-24 h-24 bg-amber-50 rounded-bl-full -mr-4 -mt-4 transition-transform group-hover:scale-125 pointer-events-none" />
               <div className="relative z-10">
                 <div className="flex items-center justify-between">
                   <span className="text-xs font-bold uppercase tracking-wider text-ink-400">Patient Satisfaction</span>
-                  <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-amber-400 to-amber-600 text-white flex items-center justify-center shadow-md shadow-amber-500/20">
+                  <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-amber-400 to-amber-600 text-white flex items-center justify-center shadow-md shadow-amber-500/20 group-hover:scale-105 transition-transform duration-300">
                     <Star className="h-5 w-5 fill-white" />
                   </div>
                 </div>
