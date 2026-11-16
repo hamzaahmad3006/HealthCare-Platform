@@ -1,0 +1,16 @@
+User-agent: *
+Allow: /
+Allow: /services
+Allow: /services/
+Allow: /locations/
+Disallow: /admin
+Disallow: /admin/
+Disallow: /staff
+Disallow: /staff/
+Disallow: /my-bookings
+Disallow: /my-reports
+Disallow: /my-patients
+Disallow: /my-account
+Disallow: /complete-profile
+
+Sitemap: https://homehealth.pk/sitemap.xml

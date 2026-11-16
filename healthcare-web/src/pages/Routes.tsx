@@ -30,6 +30,11 @@ const MyReports = lazy(() =>
 const MyPatients = lazy(() =>
   import('./Frontend/MyPatients/MyPatients').then((m) => ({ default: m.MyPatients })),
 );
+const ServiceCityLanding = lazy(() =>
+  import('./Frontend/SeoLanding/ServiceCityLanding').then((m) => ({
+    default: m.ServiceCityLanding,
+  })),
+);
 
 export function AppRoutes(): JSX.Element {
   const { accessToken, user } = useAppSelector((s) => s.auth);
@@ -57,6 +62,12 @@ export function AppRoutes(): JSX.Element {
           path="/"
           element={!isAuthenticated ? <Landing /> : <Navigate to={home} replace />}
         />
+
+        {/* Public SEO Service & City Landing Routes */}
+        <Route path="services" element={<ServiceCityLanding />} />
+        <Route path="services/:serviceSlug" element={<ServiceCityLanding />} />
+        <Route path="services/:serviceSlug/:citySlug" element={<ServiceCityLanding />} />
+        <Route path="locations/:citySlug" element={<ServiceCityLanding />} />
 
         {/* Auth section — /auth/login, /auth/register — blocked when signed in */}
         <Route

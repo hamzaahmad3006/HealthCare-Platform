@@ -99,10 +99,9 @@ These are configured jobs, not evidence that a particular GitHub run passed.
 
 ## Project status
 
-See [verified web/backend progress](web-missing.md) and
-[mobile progress](task.md) for the 2026-11-13 review. The earlier recovery,
-onboarding and security fixes are now in main. The documents distinguish source
-implementation from local tests, GitHub CI, provider integration and device checks.
+See [remaining tasks & production checklist](REMAINING_TASKS.md) and
+[SRS implementation assessment](docs/srs-implementation-assessment.md) for current
+progress, verified capabilities, and remaining SRS/production gaps.
 The project is not declared production ready based only on builds or unit tests.
 
 ## Contributing

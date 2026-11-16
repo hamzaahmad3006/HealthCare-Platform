@@ -33,6 +33,8 @@ import { Badge } from '../../../constant/Badge';
 import { ServiceCardSkeleton } from '../../../component/common/Skeleton';
 import { TopNav } from '../../../component/common/TopNav';
 import { BrandLogo } from '../../../component/common/BrandLogo';
+import { SeoHead } from '../../../component/common/SeoHead';
+import { findSeoService, SEO_CITIES, SITE_BASE_URL } from '../../../constant/seoCatalog';
 import { useLanding } from './useLanding';
 import type { ServiceType } from '../../../types/booking.types';
 
@@ -217,8 +219,58 @@ export function Landing(): JSX.Element {
     return true;
   });
 
+  const landingJsonLd = [
+    {
+      '@context': 'https://schema.org',
+      '@type': 'MedicalOrganization',
+      name: 'HomeHealth Pakistan',
+      url: SITE_BASE_URL,
+      logo: `${SITE_BASE_URL}/assets/logo-icon.svg`,
+      telephone: '+92-300-1234567',
+      description:
+        'Hospital-grade home healthcare across Pakistan — PNC-registered nurses, PMDC visiting doctors, ISO lab sample collection, physiotherapy, and patient attendants.',
+      address: {
+        '@type': 'PostalAddress',
+        addressLocality: 'Faisalabad',
+        addressRegion: 'Punjab',
+        addressCountry: 'PK',
+      },
+      areaServed: SEO_CITIES.map((c) => ({
+        '@type': 'City',
+        name: c.name,
+      })),
+    },
+    {
+      '@context': 'https://schema.org',
+      '@type': 'FAQPage',
+      mainEntity: FAQS.map((faq) => ({
+        '@type': 'Question',
+        name: faq.q,
+        acceptedAnswer: {
+          '@type': 'Answer',
+          text: faq.a,
+        },
+      })),
+    },
+  ];
+
   return (
     <div className="min-h-screen bg-white text-ink-900 font-sans selection:bg-brand-100 selection:text-brand-900">
+      <SeoHead
+        title="HomeHealth Pakistan — Hospital-Grade Home Nursing, Visiting Doctors & Lab Tests"
+        description="Book PNC-verified home nurses, PMDC visiting doctors, bedside blood tests, physiotherapy, and patient attendants in Faisalabad, Lahore, Islamabad & across Pakistan."
+        canonicalPath="/"
+        keywords={[
+          'home healthcare pakistan',
+          'home nursing service faisalabad',
+          'visiting doctor at home faisalabad',
+          'home blood sample collection',
+          'physiotherapy at home faisalabad',
+          'home patient attendant pakistan',
+        ]}
+        jsonLd={landingJsonLd}
+      />
+
       {/* ───── Urgent Care / Hotline Top Ribbon ───── */}
       <div className="bg-gradient-to-r from-brand-900 via-brand-800 to-brand-900 text-white text-xs py-2 px-4 border-b border-brand-700/50">
         <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-2">
@@ -850,73 +902,71 @@ export function Landing(): JSX.Element {
             <h4 className="text-white font-bold text-sm tracking-wider uppercase mb-4">Services</h4>
             <ul className="space-y-2.5 text-sm">
               <li>
-                <button
-                  onClick={() => handleBookNow('NURSING')}
+                <Link
+                  to="/services/nursing/faisalabad"
                   className="hover:text-white transition-colors"
                 >
                   Home Nursing Care
-                </button>
+                </Link>
               </li>
               <li>
-                <button
-                  onClick={() => handleBookNow('VISITING_DOCTOR')}
+                <Link
+                  to="/services/visiting-doctor/faisalabad"
                   className="hover:text-white transition-colors"
                 >
                   Visiting Doctor Checkup
-                </button>
+                </Link>
               </li>
               <li>
-                <button
-                  onClick={() => handleBookNow('LAB_SAMPLING')}
+                <Link
+                  to="/services/lab-sampling/faisalabad"
                   className="hover:text-white transition-colors"
                 >
                   Bedside Lab Sampling
-                </button>
+                </Link>
               </li>
               <li>
-                <button
-                  onClick={() => handleBookNow('PHYSIOTHERAPY')}
+                <Link
+                  to="/services/physiotherapy/faisalabad"
                   className="hover:text-white transition-colors"
                 >
                   Home Physiotherapy
-                </button>
+                </Link>
               </li>
               <li>
-                <button
-                  onClick={() => handleBookNow('CAREGIVER')}
+                <Link
+                  to="/services/caregiver/faisalabad"
                   className="hover:text-white transition-colors"
                 >
                   Elderly Caregiver Support
-                </button>
+                </Link>
+              </li>
+              <li>
+                <Link
+                  to="/services"
+                  className="text-brand-400 font-semibold hover:text-white transition-colors"
+                >
+                  All Services Directory →
+                </Link>
               </li>
             </ul>
           </div>
 
           {/* Coverage Areas */}
           <div>
-            <h4 className="text-white font-bold text-sm tracking-wider uppercase mb-4">Coverage Areas</h4>
+            <h4 className="text-white font-bold text-sm tracking-wider uppercase mb-4">City Hubs & Areas</h4>
             <ul className="space-y-2 text-xs text-ink-400">
-              <li className="flex items-center gap-1.5">
-                <MapPin className="h-3.5 w-3.5 text-brand-400" />
-                Peoples Colony (1 & 2)
-              </li>
-              <li className="flex items-center gap-1.5">
-                <MapPin className="h-3.5 w-3.5 text-brand-400" />
-                Madina Town & Susan Rd
-              </li>
-              <li className="flex items-center gap-1.5">
-                <MapPin className="h-3.5 w-3.5 text-brand-400" />
-                Gulberg & Jinnah Colony
-              </li>
-              <li className="flex items-center gap-1.5">
-                <MapPin className="h-3.5 w-3.5 text-brand-400" />
-                Kohinoor & D Ground
-              </li>
-              <li className="flex items-center gap-1.5">
-                <MapPin className="h-3.5 w-3.5 text-brand-400" />
-                Canal Road & Eden Valley
-              </li>
-              <li className="text-2xs text-ink-500 pt-1">+ All major sectors of Faisalabad</li>
+              {SEO_CITIES.map((city) => (
+                <li key={city.slug}>
+                  <Link
+                    to={`/locations/${city.slug}`}
+                    className="flex items-center gap-1.5 hover:text-white transition-colors"
+                  >
+                    <MapPin className="h-3.5 w-3.5 text-brand-400" />
+                    <span>{city.name} Home Care</span>
+                  </Link>
+                </li>
+              ))}
             </ul>
           </div>
 
@@ -1054,6 +1104,8 @@ function ServiceCard({
     'Digital visit report and follow-up support',
   ];
   const price = SERVICE_PRICING[service.code] ?? 'Flat Transparent Pricing';
+  const seoSpec = findSeoService(service.code);
+  const detailPath = seoSpec ? `/services/${seoSpec.slug}/faisalabad` : '/services';
 
   return (
     <article
@@ -1071,7 +1123,9 @@ function ServiceCard({
         </div>
 
         <h3 className="text-xl font-bold text-ink-900 group-hover:text-brand-800 transition-colors">
-          {service.name}
+          <Link to={detailPath} className="hover:underline">
+            {service.name}
+          </Link>
         </h3>
 
         <p className="mt-2 text-sm text-ink-600 leading-relaxed min-h-[2.75rem]">
@@ -1089,7 +1143,13 @@ function ServiceCard({
         </ul>
       </div>
 
-      <div className="mt-7 pt-4 border-t border-ink-100">
+      <div className="mt-7 pt-4 border-t border-ink-100 flex items-center gap-2.5">
+        <Link
+          to={detailPath}
+          className="px-4 py-2.5 rounded-xl text-xs font-bold text-ink-700 bg-ink-50 hover:bg-ink-100 transition-colors"
+        >
+          Details
+        </Link>
         <Button
           fullWidth
           size="md"
@@ -1097,7 +1157,7 @@ function ServiceCard({
           rightIcon={<ArrowRight className="h-4 w-4" />}
           className="bg-brand-50 text-brand-800 hover:bg-brand-700 hover:text-white font-bold transition-all border border-brand-200 hover:border-brand-700"
         >
-          Book This Service
+          Book Now
         </Button>
       </div>
     </article>
