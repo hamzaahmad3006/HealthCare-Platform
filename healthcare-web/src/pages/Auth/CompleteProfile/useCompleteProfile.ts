@@ -13,9 +13,8 @@ const CompleteProfileSchema = z.object({
   gender: z.enum(['MALE', 'FEMALE', 'OTHER']).optional(),
   cnic: z
     .string()
-    .min(13, 'CNIC must be at least 13 digits')
-    .max(25)
-    .regex(/^[0-9-]+$/, 'CNIC must be digits and dashes only'),
+    .length(13, 'CNIC must be exactly 13 digits')
+    .regex(/^[0-9]{13}$/, 'CNIC must contain numbers only (13 digits)'),
   dateOfBirth: z.string().optional().or(z.literal('').transform(() => undefined)),
   experienceYears: z.coerce.number().int().min(0).max(60).default(0),
   serviceTypeIds: z.array(z.string().uuid()).min(1, 'Pick at least one service'),
@@ -120,7 +119,7 @@ export function useCompleteProfile(): UseCompleteProfileReturn {
           cityId: meData.cityId ?? faisalabadId,
           zoneId: meData.zoneId ?? '',
           gender: meData.gender ?? undefined,
-          cnic: meData.cnic ?? '',
+          cnic: meData.cnic ? meData.cnic.replace(/\D/g, '').slice(0, 13) : '',
           dateOfBirth: meData.dateOfBirth ? meData.dateOfBirth.slice(0, 10) : '',
           experienceYears: meData.experienceYears ?? 0,
           serviceTypeIds: meData.serviceTypes.map((s) => s.serviceType.id),

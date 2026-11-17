@@ -52,11 +52,47 @@ export function CompleteProfile(): JSX.Element {
           >
             <SectionHeader icon={<CreditCard className="h-4 w-4" />} title="Identity" />
             <div className="grid sm:grid-cols-2 gap-4">
-              <Input
-                label="CNIC *"
-                placeholder="35201-1234567-1"
-                error={formState.errors.cnic?.message}
-                {...register('cnic')}
+              <Controller
+                control={control}
+                name="cnic"
+                render={({ field }) => {
+                  const val = field.value ?? '';
+                  const isComplete = val.length === 13;
+                  return (
+                    <div>
+                      <Input
+                        label="CNIC (National ID Card) *"
+                        placeholder="e.g. 3520112345671"
+                        inputMode="numeric"
+                        maxLength={13}
+                        value={val}
+                        onChange={(e) => {
+                          const digitsOnly = e.target.value.replace(/\D/g, '').slice(0, 13);
+                          field.onChange(digitsOnly);
+                        }}
+                        onPaste={(e) => {
+                          e.preventDefault();
+                          const pasted = e.clipboardData.getData('text');
+                          const digitsOnly = pasted.replace(/\D/g, '').slice(0, 13);
+                          field.onChange(digitsOnly);
+                        }}
+                        error={formState.errors.cnic?.message}
+                      />
+                      <div className="flex items-center justify-between text-2xs mt-1.5 px-0.5 font-medium">
+                        <span className="text-ink-400">Exact 13 digits (numbers only)</span>
+                        <span
+                          className={
+                            isComplete
+                              ? 'text-emerald-600 font-bold'
+                              : 'text-ink-500 font-medium'
+                          }
+                        >
+                          {isComplete ? '✓ 13/13 digits' : `${val.length}/13 digits`}
+                        </span>
+                      </div>
+                    </div>
+                  );
+                }}
               />
               <Input
                 label="Date of birth"
