@@ -4,6 +4,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import toast from 'react-hot-toast';
+import { useAppSelector } from '../../../redux/store';
 import { api, extractApiError } from '../../../helper/axios';
 import { API } from '../../../constant/apiUrls';
 
@@ -95,6 +96,7 @@ interface UseCompleteProfileReturn {
 
 export function useCompleteProfile(): UseCompleteProfileReturn {
   const navigate = useNavigate();
+  const currentUser = useAppSelector((s) => s.auth.user);
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [me, setMe] = useState<StaffMe | null>(null);
@@ -155,9 +157,9 @@ export function useCompleteProfile(): UseCompleteProfileReturn {
           const meData = meResult.value.data.data;
           setMe(meData);
 
-          // Already completed? Skip the form entirely.
+          // Already completed? Send to documents upload if not verified, or visits if verified.
           if (meData.profileCompletedAt) {
-            navigate('/staff/visits', { replace: true });
+            navigate(currentUser?.staffVerificationStatus === 'VERIFIED' ? '/staff/visits' : '/staff/documents', { replace: true });
             return;
           }
 

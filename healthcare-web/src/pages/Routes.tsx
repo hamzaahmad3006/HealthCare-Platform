@@ -44,7 +44,9 @@ export function AppRoutes(): JSX.Element {
       ? '/admin'
       : user?.role === 'STAFF'
         ? user.staffProfileCompletedAt
-          ? '/staff/visits'
+          ? user.staffVerificationStatus === 'VERIFIED'
+            ? '/staff/visits'
+            : '/staff/documents'
           : '/complete-profile'
         : '/my-bookings';
 
