@@ -23,6 +23,12 @@ export function useRegister(navigation: RegisterNavProp) {
       Alert.alert('Required', 'Please enter your name, phone number, and password.');
       return;
     }
+    const digitsOnly = phone.replace(/\D/g, '');
+    const cleanPhone = digitsOnly.startsWith('92') ? digitsOnly.slice(2) : digitsOnly.replace(/^0/, '');
+    if (cleanPhone.length !== 10) {
+      Alert.alert('Invalid Phone', 'Phone number must be exactly 10 digits (e.g. 3001234567).');
+      return;
+    }
     if (fullName.trim().length < 2) {
       Alert.alert('Invalid name', 'Full name must be at least 2 characters.');
       return;

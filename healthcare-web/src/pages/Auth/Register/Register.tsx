@@ -99,12 +99,13 @@ export function Register(): JSX.Element {
                   name="phone"
                   render={({ field }) => (
                     <PhoneInput
-                      label="Phone number"
+                      label="Phone number *"
                       value={field.value}
                       onChange={field.onChange}
                       onBlur={field.onBlur}
                       name={field.name}
                       autoComplete="tel-national"
+                      showCounter
                       error={formState.errors.phone?.message}
                     />
                   )}

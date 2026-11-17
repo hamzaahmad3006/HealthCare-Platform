@@ -82,10 +82,27 @@ export function Register({ navigation }: Props): JSX.Element {
             placeholder="3001234567"
             placeholderTextColor={Colors.neutralMuted}
             keyboardType="phone-pad"
+            maxLength={10}
             value={phone}
-            onChangeText={setPhone}
+            onChangeText={(text) => {
+              const digits = text.replace(/\D/g, '');
+              const withoutLeading = digits.startsWith('0') ? digits.slice(1) : digits;
+              setPhone(withoutLeading.slice(0, 10));
+            }}
             autoComplete="tel"
           />
+        </View>
+        <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginTop: 4, paddingHorizontal: 2 }}>
+          <Text style={{ fontSize: 11, color: Colors.neutralMuted }}>Strictly 10 digits</Text>
+          <Text
+            style={{
+              fontSize: 11,
+              fontWeight: '700',
+              color: phone.length === 10 ? Colors.primary : Colors.neutralMuted,
+            }}
+          >
+            {phone.length === 10 ? '✓ 10/10 complete' : `${phone.length}/10 digits`}
+          </Text>
         </View>
 
         {/* Email (optional) */}

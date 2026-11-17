@@ -93,6 +93,7 @@ export function Login(): JSX.Element {
                     onBlur={field.onBlur}
                     name={field.name}
                     autoComplete="tel-national"
+                    showCounter
                     error={formState.errors.phone?.message}
                   />
                 )}

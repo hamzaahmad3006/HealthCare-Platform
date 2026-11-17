@@ -5,6 +5,7 @@ interface PhoneInputProps {
   label?: string;
   error?: string;
   helperText?: string;
+  showCounter?: boolean;
   // Value must be the 10-digit local portion (no +92). The form is the source
   // of truth; the +92 prefix is rendered visually only and prepended at submit.
   value: string;
@@ -38,6 +39,7 @@ export const PhoneInput = forwardRef<HTMLInputElement, PhoneInputProps>(
       label,
       error,
       helperText,
+      showCounter = false,
       value,
       onChange,
       onBlur,
@@ -54,6 +56,7 @@ export const PhoneInput = forwardRef<HTMLInputElement, PhoneInputProps>(
     const messageId = `${inputId}-msg`;
     const hasError = Boolean(error);
     const hasMessage = hasError || Boolean(helperText);
+    const isComplete = value.length === MAX_DIGITS;
 
     return (
       <div className="flex flex-col gap-1.5">
@@ -68,6 +71,8 @@ export const PhoneInput = forwardRef<HTMLInputElement, PhoneInputProps>(
             'focus-within:ring-2',
             hasError
               ? 'border-danger-500 focus-within:border-danger-500 focus-within:ring-danger-500/20'
+              : isComplete
+              ? 'border-emerald-500 focus-within:border-emerald-500 focus-within:ring-emerald-500/20'
               : 'border-ink-200 hover:border-ink-300 focus-within:border-brand-500 focus-within:ring-brand-500/20',
             disabled && 'opacity-60 cursor-not-allowed',
           )}
@@ -101,6 +106,29 @@ export const PhoneInput = forwardRef<HTMLInputElement, PhoneInputProps>(
             className="flex-1 bg-transparent text-ink-900 placeholder:text-ink-400 px-3 py-2.5 text-sm outline-none rounded-r-xl"
           />
         </div>
+        {showCounter ? (
+          <div className="flex items-center justify-between text-[11px] px-0.5 font-medium">
+            <span className="text-ink-400">Strictly 10 digits (no dashes)</span>
+            <span
+              className={
+                isComplete
+                  ? 'text-emerald-600 font-bold flex items-center gap-1 transition-all'
+                  : 'text-ink-500 font-medium'
+              }
+            >
+              {isComplete ? (
+                <>
+                  <svg className="w-3.5 h-3.5 stroke-[3]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                  </svg>
+                  10/10 complete
+                </>
+              ) : (
+                `${value.length}/${MAX_DIGITS} digits`
+              )}
+            </span>
+          </div>
+        ) : null}
         {hasError ? (
           <p id={messageId} role="alert" className="text-xs font-medium text-danger-700 animate-slide-down">
             {error}

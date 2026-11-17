@@ -16,7 +16,7 @@ const RegisterSchema = z
     fullName: z.string().min(2, 'Enter your full name').max(150),
     phone: z
       .string()
-      .length(10, 'Phone must be exactly 10 digits after +92')
+      .length(10, 'Phone number must be exactly 10 digits (e.g. 3001234567)')
       .regex(/^[0-9]{10}$/, 'Digits only'),
     email: z.string().email('Enter a valid email').optional().or(z.literal('')),
     password: z.string().min(8, 'Minimum 8 characters'),
