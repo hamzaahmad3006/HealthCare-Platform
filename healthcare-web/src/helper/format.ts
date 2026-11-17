@@ -34,7 +34,24 @@ export function formatCurrency(amount: string | number, currency = 'PKR'): strin
 
 export function formatPhone(phone: string | null | undefined): string {
   if (!phone) return '—';
-  return phone;
+  const clean = phone.trim();
+  let digits = clean.replace(/\D/g, '');
+  // Strip repeated country code prefixes if present
+  while (digits.startsWith('92') && digits.length > 12) {
+    digits = digits.slice(2);
+  }
+  if (digits.startsWith('92') && digits.length === 12) {
+    const local = digits.slice(2);
+    return `+92 ${local.slice(0, 3)} ${local.slice(3)}`;
+  }
+  if (digits.length === 11 && digits.startsWith('0')) {
+    const local = digits.slice(1);
+    return `+92 ${local.slice(0, 3)} ${local.slice(3)}`;
+  }
+  if (digits.length === 10) {
+    return `+92 ${digits.slice(0, 3)} ${digits.slice(3)}`;
+  }
+  return clean;
 }
 
 export function truncate(text: string, max = 60): string {

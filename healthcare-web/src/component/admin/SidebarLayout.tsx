@@ -28,6 +28,7 @@ import { useAppSelector } from '../../redux/store';
 import { useLogout } from '../../hooks/useLogout';
 import { NotificationBell } from '../common/NotificationBell';
 import { BrandLogo } from '../common/BrandLogo';
+import { formatPhone } from '../../helper/format';
 
 interface SidebarLayoutProps {
   children: ReactNode;
@@ -306,7 +307,7 @@ function SidebarContent({
               </div>
               <p className="text-2xs text-ink-400 truncate flex items-center gap-1 mt-0.5">
                 <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
-                {userPhone ? `+92 ${userPhone.replace(/^0+/, '')}` : 'Active session'}
+                {userPhone ? formatPhone(userPhone) : 'Active session'}
               </p>
             </div>
           </div>
