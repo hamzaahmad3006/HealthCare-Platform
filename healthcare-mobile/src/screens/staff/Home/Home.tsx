@@ -18,6 +18,7 @@ import {
 import { MaterialDesignIcons } from '@react-native-vector-icons/material-design-icons/static';
 import { Colors, FontSize, Spacing, Radius } from '../../../constants/theme';
 import { useStaffHome } from './useStaffHome';
+import { useUnreadBadge } from '../../shared/Notifications/useUnreadBadge';
 
 function initialsOf(name: string): string {
   return name.trim().split(/\s+/).slice(0, 2).map((w) => w.charAt(0).toUpperCase()).join('');
@@ -41,6 +42,7 @@ export function StaffHome(): JSX.Element {
     available, togglingDuty, toggleDuty, staffCode, fullName,
   } = useStaffHome();
   const onDuty = available;
+  const unreadCount = useUnreadBadge();
   const navigation = useNavigation<NativeStackNavigationProp<StaffStackParamList>>();
   const [doctorEligible, setDoctorEligible] = useState(false);
   const [doctorError, setDoctorError] = useState(false);
@@ -63,7 +65,20 @@ export function StaffHome(): JSX.Element {
           <Text style={styles.headerTitle}>Care Portal</Text>
         </View>
         <View style={styles.headerRight}>
-          <Text style={styles.staffId}>{staffCode ? `ID: ${staffCode}` : ''}</Text>
+          <TouchableOpacity
+            style={styles.notifBtn}
+            activeOpacity={0.7}
+            onPress={() => navigation.navigate('Notifications')}
+            accessibilityRole="button"
+            accessibilityLabel="Notifications"
+          >
+            <MaterialDesignIcons name="bell-outline" size={24} color={Colors.white} />
+            {unreadCount > 0 && (
+              <View style={styles.notifBadge}>
+                <Text style={styles.notifBadgeText}>{unreadCount > 9 ? '9+' : unreadCount}</Text>
+              </View>
+            )}
+          </TouchableOpacity>
           <TouchableOpacity
             style={[styles.dutyBadge, !onDuty && styles.dutyBadgeOff]}
             onPress={toggleDuty}
@@ -228,8 +243,34 @@ const styles = StyleSheet.create({
     color: Colors.white,
   },
   headerRight: {
-    alignItems: 'flex-end',
-    gap: 4,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.xs,
+  },
+  notifBtn: {
+    width: 38,
+    height: 38,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  notifBadge: {
+    position: 'absolute',
+    top: 2,
+    right: 2,
+    minWidth: 16,
+    height: 16,
+    paddingHorizontal: 3,
+    borderRadius: 8,
+    backgroundColor: Colors.danger,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1.5,
+    borderColor: Colors.primary,
+  },
+  notifBadgeText: {
+    fontSize: 9,
+    fontWeight: '700',
+    color: Colors.white,
   },
   staffId: {
     fontSize: FontSize.xs,

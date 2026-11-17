@@ -42,6 +42,9 @@ const DoctorRequests = lazy(() =>
 const Notifications = lazy(() =>
   import('./Notifications/Notifications').then((m) => ({ default: m.Notifications })),
 );
+const StaffNotifications = lazy(() =>
+  import('./StaffNotifications/StaffNotifications').then((m) => ({ default: m.StaffNotifications })),
+);
 
 // Paths here are RELATIVE to the parent route match (/admin/*).
 // React Router v6 nested <Routes> strips the parent's matched prefix and
@@ -88,6 +91,7 @@ export function StaffRoutes(): JSX.Element {
         <Route path="patients" element={<StaffPatients />} />
         <Route path="documents" element={<StaffDocuments />} />
         <Route path="profile" element={<StaffProfile />} />
+        <Route path="notifications" element={<StaffNotifications />} />
         <Route
           path="doctor-requests"
           element={

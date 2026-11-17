@@ -6,6 +6,7 @@ import {
 } from 'react-native';
 import { MaterialDesignIcons } from '@react-native-vector-icons/material-design-icons/static';
 import { Colors, FontSize, Spacing, Radius } from '../../../constants/theme';
+import { useNavigation } from '@react-navigation/native';
 import { useNotifications } from './useNotifications';
 import { useAppSelector } from '../../../store';
 import { navigateToNotification } from '../../../utils/notificationNavigation';
@@ -27,6 +28,7 @@ function formatWhen(iso: string): string {
 }
 
 export function Notifications(): JSX.Element {
+  const navigation = useNavigation();
   const { notifications, loading, refreshing, error, onRefresh, retry } = useNotifications();
   const role = useAppSelector((s) => s.auth.user?.role);
 
@@ -35,7 +37,19 @@ export function Notifications(): JSX.Element {
       <StatusBar backgroundColor={Colors.white} barStyle="dark-content" />
 
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>Notifications</Text>
+        <View style={styles.headerTopRow}>
+          {navigation.canGoBack() && (
+            <TouchableOpacity
+              style={styles.backBtn}
+              onPress={() => navigation.goBack()}
+              accessibilityRole="button"
+              accessibilityLabel="Go back"
+            >
+              <MaterialDesignIcons name="arrow-left" size={24} color={Colors.textPrimary} />
+            </TouchableOpacity>
+          )}
+          <Text style={styles.headerTitle}>Notifications</Text>
+        </View>
         <Text style={styles.headerSubtitle}>Updates about your bookings and visits.</Text>
       </View>
 
@@ -114,6 +128,15 @@ const styles = StyleSheet.create({
   header: {
     backgroundColor: Colors.white, paddingHorizontal: Spacing.xl, paddingTop: Spacing.md,
     paddingBottom: Spacing.sm, borderBottomWidth: 1, borderBottomColor: Colors.neutralBorder,
+  },
+  headerTopRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
+  },
+  backBtn: {
+    padding: Spacing.xs,
+    marginLeft: -Spacing.xs,
   },
   headerTitle: { fontSize: FontSize.xxl, fontWeight: '800', color: Colors.textPrimary },
   headerSubtitle: { fontSize: FontSize.sm, color: Colors.textMuted, marginTop: 2 },

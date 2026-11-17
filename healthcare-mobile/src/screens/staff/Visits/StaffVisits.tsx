@@ -11,6 +11,7 @@ import { VISIT_STATUS_COLOR, VISIT_STATUS_LABEL } from '../../../constants/visit
 import type { TabFilter, Visit } from '../../../types/StaffVisits.types';
 import type { StaffStackParamList } from '../../../navigation/types';
 import { useStaffVisits } from './useStaffVisits';
+import { useUnreadBadge } from '../../shared/Notifications/useUnreadBadge';
 
 type Nav = NativeStackNavigationProp<StaffStackParamList>;
 
@@ -22,6 +23,7 @@ const TABS: { id: TabFilter; label: string }[] = [
 
 export function StaffVisits(): JSX.Element {
   const navigation = useNavigation<Nav>();
+  const unreadCount = useUnreadBadge();
   const { activeTab, setActiveTab, visits, loading, refreshing, error, onRefresh, retry } = useStaffVisits();
 
   return (
@@ -29,8 +31,26 @@ export function StaffVisits(): JSX.Element {
       <StatusBar backgroundColor={Colors.white} barStyle="dark-content" />
 
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>My Visits</Text>
-        <Text style={styles.headerSubtitle}>Your assigned patient visits.</Text>
+        <View style={styles.headerTopRow}>
+          <View style={styles.headerTitleBox}>
+            <Text style={styles.headerTitle}>My Visits</Text>
+            <Text style={styles.headerSubtitle}>Your assigned patient visits.</Text>
+          </View>
+          <TouchableOpacity
+            style={styles.notifBtn}
+            activeOpacity={0.7}
+            onPress={() => navigation.navigate('Notifications')}
+            accessibilityRole="button"
+            accessibilityLabel="Notifications"
+          >
+            <MaterialDesignIcons name="bell-outline" size={24} color={Colors.textPrimary} />
+            {unreadCount > 0 && (
+              <View style={styles.notifBadge}>
+                <Text style={styles.notifBadgeText}>{unreadCount > 9 ? '9+' : unreadCount}</Text>
+              </View>
+            )}
+          </TouchableOpacity>
+        </View>
       </View>
 
       {/* Tabs */}
@@ -130,6 +150,39 @@ const styles = StyleSheet.create({
   header: {
     backgroundColor: Colors.white, paddingHorizontal: Spacing.xl, paddingTop: Spacing.md,
     paddingBottom: Spacing.sm, borderBottomWidth: 1, borderBottomColor: Colors.neutralBorder,
+  },
+  headerTopRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  headerTitleBox: {
+    flex: 1,
+  },
+  notifBtn: {
+    width: 40,
+    height: 40,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  notifBadge: {
+    position: 'absolute',
+    top: 3,
+    right: 3,
+    minWidth: 16,
+    height: 16,
+    paddingHorizontal: 3,
+    borderRadius: 8,
+    backgroundColor: Colors.danger,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1.5,
+    borderColor: Colors.white,
+  },
+  notifBadgeText: {
+    fontSize: 9,
+    fontWeight: '700',
+    color: Colors.white,
   },
   headerTitle: { fontSize: FontSize.xxl, fontWeight: '800', color: Colors.textPrimary },
   headerSubtitle: { fontSize: FontSize.sm, color: Colors.textMuted, marginTop: 2 },
