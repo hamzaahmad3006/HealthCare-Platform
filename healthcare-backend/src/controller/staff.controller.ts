@@ -8,7 +8,7 @@ import { getPresignedUploadUrl } from '../helper/cloudinary.helper';
 import { maskCnic } from '../helper/mask.helper';
 import { sendWhatsAppMessage } from '../helper/axios';
 import { sendEmail } from '../helper/email.helper';
-import { renderTemplate } from '../helper/template.helper';
+import { renderTemplate, renderStaffInviteEmailHtml } from '../helper/template.helper';
 import { success, paginated } from '../helper/response.helper';
 import { logger } from '../utils/logger';
 import { NotFoundError, UnauthorizedError, ForbiddenError, AppError } from '../utils/stateMachine';
@@ -123,11 +123,19 @@ export const staffController = {
         return { user, profile };
       });
 
-      // Compose the invite once — same body to WhatsApp and email.
+      // Compose the invite — text for WhatsApp/SMS, rich branded HTML for email.
       const inviteText = renderTemplate('STAFF_INVITE', {
         fullName: result.user.fullName,
         phone: result.user.phone,
         tempPassword,
+        loginUrl: env.STAFF_LOGIN_URL,
+      });
+
+      const inviteHtml = renderStaffInviteEmailHtml({
+        fullName: result.user.fullName,
+        phone: result.user.phone,
+        tempPassword,
+        staffCode: result.profile.staffCode,
         loginUrl: env.STAFF_LOGIN_URL,
       });
 
@@ -141,6 +149,7 @@ export const staffController = {
               to: result.user.email,
               subject: 'Welcome to HomeHealth — your staff account',
               text: inviteText,
+              html: inviteHtml,
             })
           : Promise.resolve({ delivered: false, error: 'NO_EMAIL_ON_FILE' as const }),
       ]);
