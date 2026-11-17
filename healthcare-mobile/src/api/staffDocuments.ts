@@ -41,10 +41,11 @@ export async function uploadStaffDocument(
     throw new Error('Document upload failed. Please try again.');
   const uploaded: { secure_url?: string; public_id?: string } =
     await response.json();
-  if (
-    !uploaded.secure_url?.startsWith('https://') ||
-    uploaded.public_id !== fileKey
-  )
+  const uploadedPublicId = uploaded.public_id ?? '';
+  const matchesPublicId =
+    uploadedPublicId === fileKey ||
+    uploadedPublicId.replace(/\.[^/.]+$/, '') === fileKey;
+  if (!uploaded.secure_url?.startsWith('https://') || !matchesPublicId)
     throw new Error('The upload could not be verified. Please try again.');
   await api.post(API.STAFF.DOC_CONFIRM(userId), {
     ...metadata,

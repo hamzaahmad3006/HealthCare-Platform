@@ -29,6 +29,12 @@ it('propagates HTTP and network failures so callers cannot confirm an unsuccessf
   fetchMock.mockRejectedValueOnce(new Error('Offline'));
   await expect(uploadSignedFile(file, signed)).rejects.toThrow('Offline');
 });
+it('accepts valid response when Cloudinary appends file extension to public_id', async () => {
+  const withExtension = { ...valid, public_id: `${signed.fileKey}.pdf` };
+  fetchMock.mockResolvedValue({ ok: true, json: async () => withExtension });
+  expect(await uploadSignedFile(file, signed)).toBe(valid.secure_url);
+});
+
 it.each([null, {}, { ...valid, public_id: 'another-user/file' }, { ...valid, secure_url: undefined }, { ...valid, secure_url: 'http://res.cloudinary.com/test' }, { ...valid, secure_url: 'https://other.example/file' }])('rejects malformed or mismatched storage responses: %j', async data => {
   fetchMock.mockResolvedValue({ ok: true, json: async () => data });
   await expect(uploadSignedFile(file, signed)).rejects.toThrow();

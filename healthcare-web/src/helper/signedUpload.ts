@@ -22,14 +22,30 @@ export async function uploadSignedFile(file: File, signed: SignedUpload): Promis
   const response = await fetch(signed.uploadUrl, { method: 'POST', body: form });
   if (!response.ok) throw new Error('File upload failed. Please try again.');
   const uploaded: unknown = await response.json();
-  if (!uploaded || typeof uploaded !== 'object' ||
-      !('secure_url' in uploaded) || typeof uploaded.secure_url !== 'string' ||
-      !('public_id' in uploaded) || uploaded.public_id !== signed.fileKey) {
+  if (
+    !uploaded ||
+    typeof uploaded !== 'object' ||
+    !('secure_url' in uploaded) ||
+    typeof (uploaded as { secure_url: unknown }).secure_url !== 'string' ||
+    !('public_id' in uploaded) ||
+    typeof (uploaded as { public_id: unknown }).public_id !== 'string'
+  ) {
     throw new Error('Storage returned an invalid upload response. Please try again.');
   }
-  const url = new URL(uploaded.secure_url);
+
+  const uploadResult = uploaded as { secure_url: string; public_id: string };
+  const uploadedPublicId = uploadResult.public_id;
+  const matchesPublicId =
+    uploadedPublicId === signed.fileKey ||
+    uploadedPublicId.replace(/\.[^/.]+$/, '') === signed.fileKey;
+
+  if (!matchesPublicId) {
+    throw new Error('Storage returned an invalid upload response. Please try again.');
+  }
+
+  const url = new URL(uploadResult.secure_url);
   if (url.protocol !== 'https:' || url.hostname !== 'res.cloudinary.com') {
     throw new Error('Storage returned an invalid file URL. Please try again.');
   }
-  return uploaded.secure_url;
+  return uploadResult.secure_url;
 }
