@@ -16,8 +16,16 @@ export interface UploadReportPayload {
   patientId: string;
 }
 
-interface VisitRow extends BookingVisit {
-  booking?: { bookingNumber: string; customerUserId: string; patientId: string; serviceType?: { code: string } | null; reviews?: { rating: number; reviewText: string | null; createdAt: string }[] };
+export interface VisitRow extends BookingVisit {
+  booking?: {
+    bookingNumber: string;
+    customerUserId: string;
+    patientId: string;
+    patient?: { fullName?: string };
+    address?: { area?: string; line1?: string };
+    serviceType?: { code: string; name?: string } | null;
+    reviews?: { rating: number; reviewText: string | null; createdAt: string }[];
+  };
 }
 
 export interface CheckInPayload {
