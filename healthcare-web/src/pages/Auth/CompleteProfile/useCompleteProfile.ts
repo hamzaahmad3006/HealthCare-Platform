@@ -7,24 +7,38 @@ import toast from 'react-hot-toast';
 import { api, extractApiError } from '../../../helper/axios';
 import { API } from '../../../constant/apiUrls';
 
-const CompleteProfileSchema = z.object({
-  cityId: z.string().uuid('Select a city'),
-  zoneId: z.string().uuid().optional().or(z.literal('').transform(() => undefined)),
-  gender: z.enum(['MALE', 'FEMALE', 'OTHER']).optional(),
-  cnic: z
-    .string()
-    .length(13, 'CNIC must be exactly 13 digits')
-    .regex(/^[0-9]{13}$/, 'CNIC must contain numbers only (13 digits)'),
-  dateOfBirth: z.string().optional().or(z.literal('').transform(() => undefined)),
-  experienceYears: z.coerce.number().int().min(0).max(60).default(0),
-  serviceTypeIds: z.array(z.string().uuid()).min(1, 'Pick at least one service'),
-  ambulanceNumber: z
-    .string()
-    .max(20, 'Ambulance number is too long')
-    .regex(/^[A-Za-z0-9\- ]*$/, 'Letters, digits, dashes, and spaces only')
-    .optional()
-    .or(z.literal('').transform(() => undefined)),
-});
+const CompleteProfileSchema = z
+  .object({
+    cityId: z.string().uuid('Select a city'),
+    zoneId: z.string().optional().or(z.literal('').transform(() => undefined)),
+    customZoneName: z.string().optional().or(z.literal('').transform(() => undefined)),
+    gender: z.enum(['MALE', 'FEMALE', 'OTHER']).optional(),
+    cnic: z
+      .string()
+      .length(13, 'CNIC must be exactly 13 digits')
+      .regex(/^[0-9]{13}$/, 'CNIC must contain numbers only (13 digits)'),
+    dateOfBirth: z.string().optional().or(z.literal('').transform(() => undefined)),
+    experienceYears: z.coerce.number().int().min(0).max(60).default(0),
+    serviceTypeIds: z.array(z.string().uuid()).min(1, 'Pick at least one service'),
+    ambulanceNumber: z
+      .string()
+      .max(20, 'Ambulance number is too long')
+      .regex(/^[A-Za-z0-9\- ]*$/, 'Letters, digits, dashes, and spaces only')
+      .optional()
+      .or(z.literal('').transform(() => undefined)),
+  })
+  .refine(
+    (data) => {
+      if (data.zoneId === 'OTHER' && (!data.customZoneName || data.customZoneName.trim().length === 0)) {
+        return false;
+      }
+      return true;
+    },
+    {
+      message: 'Please enter your zone or area name',
+      path: ['customZoneName'],
+    },
+  );
 
 export type CompleteProfileFormValues = z.infer<typeof CompleteProfileSchema>;
 
@@ -92,6 +106,7 @@ export function useCompleteProfile(): UseCompleteProfileReturn {
     defaultValues: {
       cityId: '',
       zoneId: '',
+      customZoneName: '',
       gender: undefined,
       cnic: '',
       dateOfBirth: '',
@@ -214,12 +229,17 @@ export function useCompleteProfile(): UseCompleteProfileReturn {
     try {
       // Backend treats empty strings as invalid for optional fields — strip
       // them so the request omits the key entirely instead.
+      const isOtherZone = values.zoneId === 'OTHER';
       const payload = {
         cityId: values.cityId,
         cnic: values.cnic,
         experienceYears: values.experienceYears,
         serviceTypeIds: values.serviceTypeIds,
-        ...(values.zoneId ? { zoneId: values.zoneId } : {}),
+        ...(isOtherZone
+          ? { customZoneName: values.customZoneName?.trim() }
+          : values.zoneId
+          ? { zoneId: values.zoneId }
+          : {}),
         ...(values.gender ? { gender: values.gender } : {}),
         ...(values.dateOfBirth ? { dateOfBirth: values.dateOfBirth } : {}),
         ...(values.ambulanceNumber ? { ambulanceNumber: values.ambulanceNumber } : {}),

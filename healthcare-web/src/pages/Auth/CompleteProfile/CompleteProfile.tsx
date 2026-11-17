@@ -143,7 +143,7 @@ export function CompleteProfile(): JSX.Element {
               </Select>
               <Select
                 label="Zone"
-                disabled={c.zonesForSelectedCity.length === 0}
+                disabled={!c.form.watch('cityId')}
                 error={formState.errors.zoneId?.message}
                 {...register('zoneId')}
               >
@@ -153,13 +153,21 @@ export function CompleteProfile(): JSX.Element {
                     {zone.name}
                   </option>
                 ))}
+                <option value="OTHER">Other (Specify below)</option>
               </Select>
-              {c.form.watch('cityId') && c.zonesForSelectedCity.length === 0 ? (
-                <p className="text-xs text-ink-500">
-                  No active zones are configured for this city yet. Please contact admin or select a different city.
-                </p>
-              ) : null}
             </div>
+
+            {c.form.watch('zoneId') === 'OTHER' ? (
+              <div className="animate-fade-in-up">
+                <Input
+                  label="Your Zone / Area Name *"
+                  placeholder="e.g. Sargodha Road, Millat Town, Jhang Road..."
+                  helperText="Specify your local area or town in Faisalabad"
+                  error={formState.errors.customZoneName?.message}
+                  {...register('customZoneName')}
+                />
+              </div>
+            ) : null}
 
             <SectionHeader icon={<Briefcase className="h-4 w-4" />} title="Experience &amp; services" />
             <Input

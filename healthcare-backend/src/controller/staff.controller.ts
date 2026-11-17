@@ -33,6 +33,7 @@ const CreateStaffSchema = z.object({
 const CompleteProfileSchema = z.object({
   cityId: z.string().uuid(),
   zoneId: z.string().uuid().optional(),
+  customZoneName: z.string().trim().max(100).optional().or(z.literal('').transform(() => undefined)),
   gender: z.enum(['MALE', 'FEMALE', 'OTHER']).optional(),
   cnic: z
     .string()
@@ -549,12 +550,42 @@ export const staffController = {
 
         const city = await tx.city.findFirst({ where: { id: data.cityId, isActive: true }, select: { id: true } });
         if (!city) throw new NotFoundError('CITY_NOT_FOUND');
-        if (data.zoneId && !await tx.zone.findFirst({ where: { id: data.zoneId, cityId: data.cityId, isActive: true }, select: { id: true } })) {
-          throw new AppError(400, 'ZONE_CITY_MISMATCH', 'Select a zone belonging to your city');
+        let resolvedZoneId = data.zoneId;
+        if (data.customZoneName && data.customZoneName.trim().length > 0) {
+          const trimmed = data.customZoneName.trim();
+          const slugBase = trimmed.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+          const slug = slugBase || `zone-${Date.now()}`;
+
+          let zone = await tx.zone.findFirst({
+            where: {
+              cityId: data.cityId,
+              OR: [
+                { name: { equals: trimmed, mode: 'insensitive' } },
+                { slug },
+              ],
+            },
+          });
+
+          if (!zone) {
+            zone = await tx.zone.create({
+              data: {
+                cityId: data.cityId,
+                name: trimmed,
+                slug,
+                isActive: true,
+              },
+            });
+          }
+          resolvedZoneId = zone.id;
+        } else if (resolvedZoneId) {
+          if (!await tx.zone.findFirst({ where: { id: resolvedZoneId, cityId: data.cityId, isActive: true }, select: { id: true } })) {
+            throw new AppError(400, 'ZONE_CITY_MISMATCH', 'Select a zone belonging to your city');
+          }
         }
+
         const current = await tx.staffProfile.findUnique({ where: { userId }, include: { serviceTypes: true } });
         if (!current) throw new NotFoundError('PROFILE_NOT_FOUND');
-        const changed = current.cityId !== data.cityId || current.zoneId !== (data.zoneId ?? null)
+        const changed = current.cityId !== data.cityId || current.zoneId !== (resolvedZoneId ?? null)
           || current.gender !== (data.gender ?? null) || current.cnic !== data.cnic
           || (current.dateOfBirth?.toISOString().slice(0, 10) ?? null) !== (data.dateOfBirth ?? null)
           || current.experienceYears !== data.experienceYears
@@ -565,7 +596,7 @@ export const staffController = {
           where: { userId },
           data: {
             cityId: data.cityId,
-            zoneId: data.zoneId ?? null,
+            zoneId: resolvedZoneId ?? null,
             gender: data.gender ?? null,
             cnic: data.cnic,
             dateOfBirth: data.dateOfBirth ? new Date(data.dateOfBirth) : null,
