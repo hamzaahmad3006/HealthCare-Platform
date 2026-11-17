@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -9,7 +9,13 @@ import { useAppDispatch, useAppSelector } from '../../../redux/store';
 import { setAuth } from '../../../redux/slices/authSlice';
 
 const ProfileSchema = z.object({
-  fullName: z.string().min(2, 'Name must be at least 2 characters').max(150),
+  fullName: z.string().trim().min(2, 'Name must be at least 2 characters').max(150),
+  email: z
+    .string()
+    .trim()
+    .email('Enter a valid email address')
+    .optional()
+    .or(z.literal('')),
 });
 
 const ChangePasswordSchema = z
@@ -48,9 +54,16 @@ export function useAccount() {
 
   const profileForm = useForm<ProfileFormValues>({
     resolver: zodResolver(ProfileSchema),
-    defaultValues: { fullName: user?.fullName ?? '' },
+    defaultValues: { fullName: user?.fullName ?? '', email: user?.email ?? '' },
     mode: 'onBlur',
   });
+
+  useEffect(() => {
+    profileForm.reset({
+      fullName: user?.fullName ?? '',
+      email: user?.email ?? '',
+    });
+  }, [user, profileForm]);
 
   const passwordForm = useForm<ChangePasswordFormValues>({
     resolver: zodResolver(ChangePasswordSchema),
@@ -62,9 +75,15 @@ export function useAccount() {
     setIsSavingProfile(true);
     setProfileError(null);
     try {
+      const payload: { fullName: string; email?: string } = {
+        fullName: values.fullName.trim(),
+      };
+      if (values.email && values.email.trim()) {
+        payload.email = values.email.trim().toLowerCase();
+      }
       const { data } = await api.patch<{ success: true; data: UpdateMeResponse }>(
         API.USERS.ME,
-        { fullName: values.fullName },
+        payload,
       );
       if (user && accessToken) {
         dispatch(setAuth({

@@ -34,6 +34,7 @@ export function StaffProfile(): JSX.Element {
   const unreadCount = useUnreadBadge();
   const {
     user, staffCode, experienceYears, locationLabel, verified, specializations, available, togglingDuty, toggleDuty,
+    editModalVisible, editFullName, setEditFullName, editEmail, setEditEmail, savingEdit, openEditModal, closeEditModal, saveEdit,
     passwordModalVisible, openPasswordModal, closePasswordModal,
     oldPwd, setOldPwd, newPwd, setNewPwd, confirmPwd, setConfirmPwd,
     updatingPwd, updatePassword,
@@ -73,6 +74,15 @@ export function StaffProfile(): JSX.Element {
 
           <Text style={styles.profileName}>{user?.fullName ?? 'Staff Member'}</Text>
           <Text style={styles.profileId}>ID: {staffCode ?? (user?.id ? user.id.slice(0, 8).toUpperCase() : '—')}</Text>
+
+          <TouchableOpacity
+            style={styles.editProfileBtn}
+            activeOpacity={0.8}
+            onPress={openEditModal}
+          >
+            <MaterialDesignIcons name="account-edit-outline" size={16} color={Colors.primary} />
+            <Text style={styles.editProfileBtnText}>Edit Name &amp; Contact</Text>
+          </TouchableOpacity>
 
           <View style={styles.phoneRow}>
             <MaterialDesignIcons name="phone" size={15} color={Colors.primary} />
@@ -179,6 +189,49 @@ export function StaffProfile(): JSX.Element {
           <Text style={styles.logoutText}>Logout</Text>
         </TouchableOpacity>
       </ScrollView>
+
+      {/* ── Edit Personal Details Modal ── */}
+      <Modal visible={editModalVisible} animationType="slide" transparent onRequestClose={closeEditModal}>
+        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.modalOverlay}>
+          <View style={styles.modalSheet}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Edit Personal Details</Text>
+              <TouchableOpacity onPress={closeEditModal} activeOpacity={0.7}>
+                <MaterialDesignIcons name="close" size={22} color={Colors.textMuted} />
+              </TouchableOpacity>
+            </View>
+
+            <Text style={styles.modalLabel}>Full Name</Text>
+            <TextInput
+              style={styles.modalInput}
+              value={editFullName}
+              onChangeText={setEditFullName}
+              placeholder="Your full name"
+              placeholderTextColor={Colors.neutralMuted}
+            />
+
+            <Text style={styles.modalLabel}>Email Address</Text>
+            <TextInput
+              style={styles.modalInput}
+              keyboardType="email-address"
+              autoCapitalize="none"
+              value={editEmail}
+              onChangeText={setEditEmail}
+              placeholder="your.email@example.com"
+              placeholderTextColor={Colors.neutralMuted}
+            />
+
+            <TouchableOpacity
+              style={[styles.submitBtn, savingEdit && styles.submitBtnDisabled]}
+              activeOpacity={0.85}
+              disabled={savingEdit}
+              onPress={saveEdit}
+            >
+              {savingEdit ? <ActivityIndicator color={Colors.white} /> : <Text style={styles.submitBtnText}>Save Details</Text>}
+            </TouchableOpacity>
+          </View>
+        </KeyboardAvoidingView>
+      </Modal>
 
       {/* ── Change Password modal ── */}
       <Modal visible={passwordModalVisible} animationType="slide" transparent onRequestClose={closePasswordModal}>
@@ -332,6 +385,23 @@ const styles = StyleSheet.create({
     fontSize: FontSize.sm,
     color: Colors.textMuted,
     fontWeight: '500',
+  },
+  editProfileBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: Radius.full,
+    backgroundColor: Colors.primarySurface,
+    borderWidth: 1,
+    borderColor: Colors.primaryLight,
+    marginTop: 2,
+  },
+  editProfileBtnText: {
+    fontSize: FontSize.xs,
+    fontWeight: '700',
+    color: Colors.primary,
   },
   phoneRow: {
     flexDirection: 'row',

@@ -3,13 +3,14 @@ import { z } from 'zod';
 import { Prisma } from '@prisma/client';
 import { prisma } from '../config/database';
 import { success, paginated } from '../helper/response.helper';
-import { NotFoundError, UnauthorizedError, ForbiddenError, BusinessError } from '../utils/stateMachine';
+import { NotFoundError, UnauthorizedError, ForbiddenError, BusinessError, ConflictError } from '../utils/stateMachine';
 import { pickParam } from '../helper/request.helper';
 import { authorizedBookingWhere } from '../helper/bookingAccess.helper';
 
 const UpdateProfileSchema = z.object({
-  fullName: z.string().min(1).max(150).optional(),
-  email: z.string().email().optional(),
+  fullName: z.string().trim().min(2, 'Name must be at least 2 characters').max(150).optional(),
+  email: z.string().trim().email('Invalid email address').toLowerCase().optional().or(z.literal('').transform(() => undefined)),
+  avatarUrl: z.string().url().optional(),
 });
 
 const CreatePatientSchema = z.object({
@@ -74,11 +75,16 @@ export const userController = {
       const user = await prisma.user.update({
         where: { id: req.user.sub },
         data,
-        select: { id: true, fullName: true, email: true, phone: true, updatedAt: true },
+        select: { id: true, fullName: true, email: true, phone: true, avatarUrl: true, updatedAt: true },
       });
 
       success(res, user);
-    } catch (err) { next(err); }
+    } catch (err) {
+      if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === 'P2002') {
+        return next(new ConflictError('EMAIL_ALREADY_EXISTS', 'This email is already registered to another account'));
+      }
+      next(err);
+    }
   },
 
   async createPatient(req: Request, res: Response, next: NextFunction): Promise<void> {

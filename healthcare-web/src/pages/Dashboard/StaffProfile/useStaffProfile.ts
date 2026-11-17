@@ -36,6 +36,8 @@ interface UseStaffProfileReturn {
   uploadAvatar: (file: File) => Promise<void>;
   isTogglingAvailability: boolean;
   toggleAvailability: () => Promise<void>;
+  isUpdatingProfile: boolean;
+  updateProfile: (data: { fullName: string; email?: string }) => Promise<boolean>;
 }
 
 const MAX_AVATAR_BYTES = 5 * 1024 * 1024;
@@ -133,5 +135,47 @@ export function useStaffProfile(): UseStaffProfileReturn {
     }
   }, [profile]);
 
-  return { profile, isLoading, error, isUploadingAvatar, uploadAvatar, isTogglingAvailability, toggleAvailability };
+  const [isUpdatingProfile, setIsUpdatingProfile] = useState(false);
+
+  const updateProfile = useCallback(
+    async (data: { fullName: string; email?: string }): Promise<boolean> => {
+      setIsUpdatingProfile(true);
+      try {
+        const payload: { fullName: string; email?: string } = {
+          fullName: data.fullName.trim(),
+        };
+        if (data.email && data.email.trim()) {
+          payload.email = data.email.trim().toLowerCase();
+        }
+        const { data: res } = await api.patch<{ success: true; data: { fullName: string; email: string | null } }>(
+          API.USERS.ME,
+          payload,
+        );
+        if (reduxUser) {
+          dispatch(setUser({ ...reduxUser, fullName: res.data.fullName, email: res.data.email }));
+        }
+        setReloadFlag((f) => f + 1);
+        toast.success('Profile updated successfully');
+        return true;
+      } catch (err) {
+        toast.error(extractApiError(err).message);
+        return false;
+      } finally {
+        setIsUpdatingProfile(false);
+      }
+    },
+    [reduxUser, dispatch],
+  );
+
+  return {
+    profile,
+    isLoading,
+    error,
+    isUploadingAvatar,
+    uploadAvatar,
+    isTogglingAvailability,
+    toggleAvailability,
+    isUpdatingProfile,
+    updateProfile,
+  };
 }

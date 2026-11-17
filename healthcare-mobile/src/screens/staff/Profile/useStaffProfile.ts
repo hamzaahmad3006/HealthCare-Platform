@@ -1,8 +1,9 @@
 import { rotateTokens, tokenGeneration } from '../../../api/sessionTokens';
-import { useCallback, useState } from 'react';
+import { useCallback, useState, useEffect } from 'react';
 import { Alert } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useFocusEffect } from '@react-navigation/native';
-import { api, extractApiError } from '../../../api/client';
+import { api, extractApiError, STORAGE_KEYS } from '../../../api/client';
 import { API } from '../../../api/endpoints';
 import { useAppDispatch, useAppSelector } from '../../../store';
 import { logout } from '../../../store/slices/authSlice';
@@ -69,6 +70,57 @@ export function useStaffProfile() {
     }
   };
 
+  // edit personal profile
+  const [editModalVisible, setEditModalVisible] = useState(false);
+  const [editFullName, setEditFullName] = useState(user?.fullName ?? '');
+  const [editEmail, setEditEmail] = useState(user?.email ?? '');
+  const [savingEdit, setSavingEdit] = useState(false);
+
+  useEffect(() => {
+    setEditFullName(user?.fullName ?? '');
+    setEditEmail(user?.email ?? '');
+  }, [user]);
+
+  const openEditModal = (): void => {
+    setEditFullName(user?.fullName ?? '');
+    setEditEmail(user?.email ?? '');
+    setEditModalVisible(true);
+  };
+  const closeEditModal = (): void => setEditModalVisible(false);
+
+  const saveEdit = async (): Promise<void> => {
+    if (!editFullName.trim()) {
+      Alert.alert('Required', 'Please enter your full name.');
+      return;
+    }
+    setSavingEdit(true);
+    try {
+      const payload: { fullName: string; email?: string } = {
+        fullName: editFullName.trim(),
+      };
+      if (editEmail.trim()) payload.email = editEmail.trim();
+      const { data } = await api.patch<{ success: true; data: { fullName: string; email: string | null } }>(
+        API.USERS.ME,
+        payload,
+      );
+      const cached = await AsyncStorage.getItem(STORAGE_KEYS.USER);
+      if (cached) {
+        const parsed = JSON.parse(cached);
+        await AsyncStorage.setItem(
+          STORAGE_KEYS.USER,
+          JSON.stringify({ ...parsed, fullName: data.data.fullName, email: data.data.email }),
+        );
+      }
+      setEditModalVisible(false);
+      Alert.alert('Saved', 'Your personal details have been updated.');
+      await loadProfile();
+    } catch (err) {
+      Alert.alert('Error', extractApiError(err));
+    } finally {
+      setSavingEdit(false);
+    }
+  };
+
   // password fields
   const [passwordModalVisible, setPasswordModalVisible] = useState(false);
   const [oldPwd, setOldPwd] = useState('');
@@ -130,6 +182,11 @@ export function useStaffProfile() {
     available,
     togglingDuty,
     toggleDuty,
+    editModalVisible,
+    editFullName, setEditFullName,
+    editEmail, setEditEmail,
+    savingEdit,
+    openEditModal, closeEditModal, saveEdit,
     passwordModalVisible,
     openPasswordModal,
     closePasswordModal,

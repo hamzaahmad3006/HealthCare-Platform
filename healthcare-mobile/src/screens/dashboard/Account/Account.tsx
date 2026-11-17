@@ -13,7 +13,9 @@ import { useAccount } from './useAccount';
 export function Account(): JSX.Element {
   const {
     user,
-    fullName, setFullName, savingProfile, saveProfile,
+    fullName, setFullName,
+    email, setEmail,
+    savingProfile, saveProfile,
     oldPwd, setOldPwd, newPwd, setNewPwd, confirmPwd, setConfirmPwd,
     updatingPwd, updatePassword,
     addresses, loadingAddresses,
@@ -35,7 +37,6 @@ export function Account(): JSX.Element {
   const [aCityId, setACityId]       = useState<string | null>(null);
   const [aZoneId, setAZoneId]       = useState<string | null>(null);
 
-  const email = user?.email ?? '—';
   const phone = user?.phone ?? '—';
 
   const openAddress = () => {
@@ -100,10 +101,17 @@ export function Account(): JSX.Element {
 
           <View style={styles.fieldGroup}>
             <Text style={styles.label}>Email Address</Text>
-            <View style={styles.readonlyRow}>
+            <View style={styles.inputRow}>
               <MaterialDesignIcons name="email-outline" size={16} color={Colors.neutral} style={styles.inputIcon} />
-              <Text style={styles.readonlyText}>{email}</Text>
-              <Text style={styles.readonlyNote}>Cannot be changed</Text>
+              <TextInput
+                style={styles.input}
+                keyboardType="email-address"
+                autoCapitalize="none"
+                value={email}
+                onChangeText={setEmail}
+                placeholder="your.email@example.com"
+                placeholderTextColor={Colors.neutralMuted}
+              />
             </View>
           </View>
 

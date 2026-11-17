@@ -13,6 +13,7 @@ export function useAccount() {
   const user = useAppSelector((s) => s.auth.user);
 
   const [fullName, setFullName] = useState(user?.fullName ?? '');
+  const [email, setEmail] = useState(user?.email ?? '');
   const [savingProfile, setSavingProfile] = useState(false);
 
   // password fields
@@ -31,7 +32,8 @@ export function useAccount() {
 
   useEffect(() => {
     setFullName(user?.fullName ?? '');
-  }, [user?.fullName]);
+    setEmail(user?.email ?? '');
+  }, [user]);
 
   const fetchAddresses = useCallback(async (): Promise<void> => {
     try {
@@ -103,14 +105,21 @@ export function useAccount() {
     }
     setSavingProfile(true);
     try {
-      await api.patch(API.USERS.ME, { fullName: fullName.trim() });
+      const payload: { fullName: string; email?: string } = {
+        fullName: fullName.trim(),
+      };
+      if (email.trim()) payload.email = email.trim();
+      const { data } = await api.patch<{ success: true; data: { fullName: string; email: string | null } }>(
+        API.USERS.ME,
+        payload,
+      );
       // keep the cached user in sync
       const cached = await AsyncStorage.getItem(STORAGE_KEYS.USER);
       if (cached) {
         const parsed = JSON.parse(cached);
         await AsyncStorage.setItem(
           STORAGE_KEYS.USER,
-          JSON.stringify({ ...parsed, fullName: fullName.trim() }),
+          JSON.stringify({ ...parsed, fullName: data.data.fullName, email: data.data.email }),
         );
       }
       Alert.alert('Saved', 'Your profile has been updated.');
@@ -161,7 +170,9 @@ export function useAccount() {
 
   return {
     user,
-    fullName, setFullName, savingProfile, saveProfile,
+    fullName, setFullName,
+    email, setEmail,
+    savingProfile, saveProfile,
     oldPwd, setOldPwd, newPwd, setNewPwd, confirmPwd, setConfirmPwd,
     updatingPwd, updatePassword,
     addresses, loadingAddresses,
