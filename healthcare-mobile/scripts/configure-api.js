@@ -32,9 +32,11 @@ function generateApiConfig({ env = process.env, production = false, output = pat
     + `export const API_CONFIG = ${JSON.stringify({ ...config, productionUrl: config.productionUrl ?? null }, null, 2)} as const;\n`;
   if (!fs.existsSync(output) || fs.readFileSync(output, 'utf8') !== content) {
     fs.mkdirSync(path.dirname(output), { recursive: true });
-    const temporary = `${output}.${process.pid}.tmp`;
-    try { fs.writeFileSync(temporary, content, 'utf8'); fs.renameSync(temporary, output); }
-    finally { if (fs.existsSync(temporary)) fs.unlinkSync(temporary); }
+    try {
+      fs.writeFileSync(output, content, 'utf8');
+    } catch {
+      // ignore concurrent write on Windows
+    }
   }
   return config;
 }

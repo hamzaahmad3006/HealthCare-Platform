@@ -45,6 +45,8 @@ export const API = {
     DELETE: (id: string) => `/users/addresses/${id}`,
   },
   STAFF: {
+    LIST: '/staff',
+    CONVERT_CUSTOMER: '/staff/convert-customer',
     DOCTORS: '/staff/doctors',
     ME: '/staff/me',
     MY_PROFILE: '/staff/me/profile',
@@ -75,5 +77,8 @@ export const API = {
     LIST: '/notifications',
     REGISTER_DEVICE: '/device-tokens',
     UNREGISTER_DEVICE: (id: string) => `/device-tokens/${id}`,
+  },
+  ADMIN: {
+    CUSTOMERS: '/admin/customers',
   },
 };

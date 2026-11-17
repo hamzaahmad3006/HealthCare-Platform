@@ -8,6 +8,7 @@ import { hydrateAuth } from '../store/slices/authSlice';
 import { AuthNavigator } from './AuthNavigator';
 import { CustomerNavigator } from './CustomerNavigator';
 import { StaffNavigator } from './StaffNavigator';
+import { AdminNavigator } from './AdminNavigator';
 import { flushPendingNotification } from '../utils/notificationNavigation';
 import { navigationRef } from './navigationRef';
 import { Colors } from '../constants/theme';
@@ -36,6 +37,8 @@ export function RootNavigator(): JSX.Element {
       <Stack.Navigator screenOptions={{ headerShown: false }}>
         {!user ? (
           <Stack.Screen name="Auth" component={AuthNavigator} />
+        ) : user.role === 'ADMIN' ? (
+          <Stack.Screen name="Admin" component={AdminNavigator} />
         ) : user.role === 'STAFF' ? (
           <Stack.Screen name="Staff" component={StaffNavigator} />
         ) : (

@@ -465,7 +465,7 @@ it('shows an error and retries on Notifications and renders dynamic specializati
   expect(labelOf(tree.root)).toContain('Faisalabad, Madina Town');
 });
 
-it('blocks ADMIN login on mobile with ADMIN_BLOCKED_MESSAGE and does not store tokens', async () => {
+it('allows ADMIN login on mobile and stores tokens for AdminNavigator', async () => {
   jest.mocked(api.post).mockResolvedValueOnce({
     data: {
       data: {
@@ -479,10 +479,13 @@ it('blocks ADMIN login on mobile with ADMIN_BLOCKED_MESSAGE and does not store t
   const store = configureStore({ reducer: { auth: authReducer } });
   const result = await store.dispatch(login({ phone: '3000000001', password: 'test-only-password' }));
 
-  expect(login.rejected.match(result)).toBe(true);
-  expect(store.getState().auth.user).toBeNull();
-  expect(store.getState().auth.error).toBe(ADMIN_BLOCKED_MESSAGE);
-  expect(saveTokens).not.toHaveBeenCalled();
+  expect(login.fulfilled.match(result)).toBe(true);
+  expect(store.getState().auth.user?.role).toBe('ADMIN');
+  expect(store.getState().auth.accessToken).toBe('test-admin-access');
+  expect(saveTokens).toHaveBeenCalledWith({
+    accessToken: 'test-admin-access',
+    refreshToken: 'test-admin-refresh',
+  });
 });
 
 it('renders BookingDetail safely when urgencyLevel and visits are omitted from the API payload', async () => {

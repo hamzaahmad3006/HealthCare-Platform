@@ -103,7 +103,7 @@ it.each(['CUSTOMER', 'STAFF'])(
     expect(store.getState().auth.user?.role).toBe(role);
   },
 );
-it('retains the mobile admin restriction during recovery', async () => {
+it('allows mobile admin recovery and stores tokens', async () => {
   jest
     .mocked(api.post)
     .mockResolvedValueOnce({
@@ -123,9 +123,12 @@ it('retains the mobile admin restriction during recovery', async () => {
       newPassword: 'test-only-password',
     }),
   );
-  expect(store.getState().auth.user).toBeNull();
-  expect(store.getState().auth.error).toBe(ADMIN_BLOCKED_MESSAGE);
-  expect(saveTokens).not.toHaveBeenCalled();
+  expect(store.getState().auth.user?.role).toBe('ADMIN');
+  expect(store.getState().auth.accessToken).toBe('test-access');
+  expect(saveTokens).toHaveBeenCalledWith({
+    accessToken: 'test-access',
+    refreshToken: 'test-refresh',
+  });
 });
 it('does not store tokens after an invalid/expired code response', async () => {
   jest

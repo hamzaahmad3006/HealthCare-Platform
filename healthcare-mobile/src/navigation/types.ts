@@ -46,10 +46,15 @@ export type StaffStackParamList = {
   Notifications: undefined;
 };
 
+export type AdminStackParamList = {
+  StaffManagement: undefined;
+};
+
 export type RootStackParamList = {
   Auth: undefined;
   Customer: NavigatorScreenParams<CustomerStackParamList> | undefined;
   Staff: NavigatorScreenParams<StaffStackParamList> | undefined;
+  Admin: NavigatorScreenParams<AdminStackParamList> | undefined;
 };
 
 export type LoginScreenProps = NativeStackScreenProps<AuthStackParamList, 'Login'>;

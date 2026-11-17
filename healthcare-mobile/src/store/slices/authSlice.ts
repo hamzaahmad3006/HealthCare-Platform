@@ -28,11 +28,6 @@ export const hydrateAuth = createAsyncThunk('auth/hydrate', async () => {
   const userJson = await AsyncStorage.getItem(STORAGE_KEYS.USER);
   const user = userJson ? (JSON.parse(userJson) as AuthUser) : null;
 
-  if (user?.role === 'ADMIN') {
-    await clearTokens();
-    return { accessToken: null, user: null };
-  }
-
   return {
     accessToken: tokens?.accessToken ?? null,
     user: tokens ? user : null,
@@ -53,10 +48,6 @@ export const login = createAsyncThunk(
         { phone, password: payload.password },
       );
       const { accessToken, refreshToken, user } = data.data;
-
-      if (user.role === 'ADMIN') {
-        return rejectWithValue(ADMIN_BLOCKED_MESSAGE);
-      }
 
       await saveTokens({ accessToken, refreshToken });
       await AsyncStorage.setItem(STORAGE_KEYS.USER, JSON.stringify(user));
@@ -101,7 +92,6 @@ export const resetPassword = createAsyncThunk(
     try {
       const { data } = await api.post<{ success: true; data: AuthResponse }>(API.AUTH.RESET_PASSWORD, payload);
       const { user, accessToken, refreshToken } = data.data;
-      if (user.role === 'ADMIN') return rejectWithValue(ADMIN_BLOCKED_MESSAGE);
       await saveTokens({ accessToken, refreshToken });
       await AsyncStorage.setItem(STORAGE_KEYS.USER, JSON.stringify(user));
       return { accessToken, user };
