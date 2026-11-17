@@ -9,6 +9,11 @@ export interface Review {
   isLowRating: boolean;
   adminFollowedUp: boolean;
   createdAt: string;
+  booking?: {
+    bookingNumber: string;
+    patient?: { fullName?: string };
+    serviceType?: { code: string; name?: string } | null;
+  };
 }
 
 export interface CreateReviewRequest {

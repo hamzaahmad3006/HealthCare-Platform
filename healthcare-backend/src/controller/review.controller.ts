@@ -99,6 +99,15 @@ export const reviewController = {
       const [reviews, total] = await prisma.$transaction([
         prisma.review.findMany({
           where,
+          include: {
+            booking: {
+              select: {
+                bookingNumber: true,
+                patient: { select: { fullName: true } },
+                serviceType: { select: { code: true, name: true } },
+              },
+            },
+          },
           orderBy: { createdAt: 'desc' },
           skip: (page - 1) * limit,
           take: limit,
@@ -130,6 +139,22 @@ export const reviewController = {
         if (!performed) throw new ForbiddenError('REVIEW_NOT_ACCESSIBLE');
       }
       success(res, review);
+    } catch (err) { next(err); }
+  },
+
+  async resolve(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      if (!req.user) throw new UnauthorizedError('UNAUTHENTICATED');
+      if (req.user.role !== 'ADMIN') throw new ForbiddenError('ADMIN_REQUIRED');
+      const id = req.params['id'] as string;
+      const review = await prisma.review.findUnique({ where: { id } });
+      if (!review) { res.status(404).json({ success: false, message: 'Review not found' }); return; }
+
+      const updated = await prisma.review.update({
+        where: { id },
+        data: { adminFollowedUp: !review.adminFollowedUp },
+      });
+      success(res, updated);
     } catch (err) { next(err); }
   },
 };
