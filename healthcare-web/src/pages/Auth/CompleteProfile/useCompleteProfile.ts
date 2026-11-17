@@ -40,6 +40,17 @@ export interface CityOption {
   zones?: Array<{ id: string; name: string }>;
 }
 
+const DEFAULT_FAISALABAD: CityOption = {
+  id: '30cf9d53-deb8-486e-840e-acc8113a8411',
+  name: 'Faisalabad',
+  zones: [
+    { id: '1427a807-caff-4b02-ac21-ec2362a22f1e', name: 'Gulberg' },
+    { id: '29b44d3b-fee4-4295-a6f4-2fe61ba5af1d', name: 'Madina Town' },
+    { id: 'c68828d9-9c7d-426d-a2f8-8b5e52344f46', name: 'Peoples Colony' },
+    { id: '681d1a89-81f7-45c2-9d3b-6df6b10e9f28', name: 'Dijkot Road' },
+  ],
+};
+
 export interface StaffMe {
   staffCode: string;
   profileCompletedAt: string | null;
@@ -98,33 +109,57 @@ export function useCompleteProfile(): UseCompleteProfileReturn {
     let cancelled = false;
     const load = async (): Promise<void> => {
       try {
-        const [meRes, servicesRes, citiesRes] = await Promise.all([
+        const [meResult, servicesResult, citiesResult] = await Promise.allSettled([
           api.get<{ success: true; data: StaffMe }>(API.STAFF.ME),
           api.get<{ success: true; data: ServiceTypeOption[] }>(API.SERVICE_TYPES),
           api.get<{ success: true; data: CityOption[] }>('/cities'),
         ]);
-        if (cancelled) return;
-        setMe(meRes.data.data);
-        setServices(servicesRes.data.data);
-        setCities(citiesRes.data.data);
 
-        const meData = meRes.data.data;
-        // Already completed? Skip the form entirely.
-        if (meData.profileCompletedAt) {
-          navigate('/staff/visits', { replace: true });
-          return;
+        if (cancelled) return;
+
+        // 1. Process Cities (guarantee Faisalabad is present and populated)
+        let loadedCities: CityOption[] = [];
+        if (citiesResult.status === 'fulfilled' && citiesResult.value.data.data?.length > 0) {
+          loadedCities = citiesResult.value.data.data;
+        } else {
+          loadedCities = [DEFAULT_FAISALABAD];
         }
-        const faisalabadId = citiesRes.data.data.find((c) => c.name === 'Faisalabad')?.id ?? '';
-        form.reset({
-          cityId: meData.cityId ?? faisalabadId,
-          zoneId: meData.zoneId ?? '',
-          gender: meData.gender ?? undefined,
-          cnic: meData.cnic ? meData.cnic.replace(/\D/g, '').slice(0, 13) : '',
-          dateOfBirth: meData.dateOfBirth ? meData.dateOfBirth.slice(0, 10) : '',
-          experienceYears: meData.experienceYears ?? 0,
-          serviceTypeIds: meData.serviceTypes.map((s) => s.serviceType.id),
-          ambulanceNumber: meData.ambulanceNumber ?? '',
-        });
+        setCities(loadedCities);
+
+        const faisalabad =
+          loadedCities.find((c) => c.name.toLowerCase() === 'faisalabad') ?? loadedCities[0];
+        const defaultCityId = faisalabad?.id ?? DEFAULT_FAISALABAD.id;
+
+        // 2. Process Service Types
+        if (servicesResult.status === 'fulfilled' && servicesResult.value.data.data) {
+          setServices(servicesResult.value.data.data);
+        }
+
+        // 3. Process Staff Me Profile
+        if (meResult.status === 'fulfilled' && meResult.value.data.data) {
+          const meData = meResult.value.data.data;
+          setMe(meData);
+
+          // Already completed? Skip the form entirely.
+          if (meData.profileCompletedAt) {
+            navigate('/staff/visits', { replace: true });
+            return;
+          }
+
+          form.reset({
+            cityId: meData.cityId || defaultCityId,
+            zoneId: meData.zoneId ?? '',
+            gender: meData.gender ?? undefined,
+            cnic: meData.cnic ? meData.cnic.replace(/\D/g, '').slice(0, 13) : '',
+            dateOfBirth: meData.dateOfBirth ? meData.dateOfBirth.slice(0, 10) : '',
+            experienceYears: meData.experienceYears ?? 0,
+            serviceTypeIds: meData.serviceTypes ? meData.serviceTypes.map((s) => s.serviceType.id) : [],
+            ambulanceNumber: meData.ambulanceNumber ?? '',
+          });
+        } else {
+          // If viewing as admin or before staff profile is created, auto-select Faisalabad
+          form.setValue('cityId', defaultCityId);
+        }
       } catch (err) {
         toast.error(extractApiError(err).message);
       } finally {

@@ -5,12 +5,8 @@ import { authenticateToken } from '../middleware/auth.middleware';
 
 const router = Router();
 
-// Cities + nested zones — read-only reference data. Used by:
-//   - admin Add Staff form (admin role)
-//   - staff /complete-profile self-onboarding (staff role)
-//   - customer booking form (customer role)
-// Any authenticated user can read; no PII here.
-router.get('/', authenticateToken, async (_req: Request, res: Response, next: NextFunction) => {
+// Cities + nested zones — public read-only reference data.
+router.get('/', async (_req: Request, res: Response, next: NextFunction) => {
   try {
     const cities = await prisma.city.findMany({
       where: { isActive: true },
