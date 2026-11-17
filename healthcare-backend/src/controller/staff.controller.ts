@@ -8,10 +8,10 @@ import { getPresignedUploadUrl } from '../helper/cloudinary.helper';
 import { maskCnic } from '../helper/mask.helper';
 import { sendWhatsAppMessage } from '../helper/axios';
 import { sendEmail } from '../helper/email.helper';
-import { renderTemplate, renderStaffInviteEmailHtml } from '../helper/template.helper';
+import { renderTemplate, renderStaffInviteEmailHtml, renderStaffUpgradeEmailHtml } from '../helper/template.helper';
 import { success, paginated } from '../helper/response.helper';
 import { logger } from '../utils/logger';
-import { NotFoundError, UnauthorizedError, ForbiddenError, AppError } from '../utils/stateMachine';
+import { NotFoundError, UnauthorizedError, ForbiddenError, AppError, BadRequestError, ConflictError } from '../utils/stateMachine';
 import { VerifStatus, Prisma } from '@prisma/client';
 import { assertVerifiedStaff } from '../middleware/verifiedStaff.middleware';
 import { MAX_FILE_SIZE_BYTES } from '../utils/constants';
@@ -27,6 +27,14 @@ const CreateStaffSchema = z.object({
   fullName: z.string().min(2).max(150),
   phone: z.string().min(10).max(20),
   email: z.string().email(),
+  convertExisting: z.boolean().optional(),
+});
+
+const ConvertCustomerSchema = z.object({
+  userId: z.string().uuid().optional(),
+  emailOrPhone: z.string().min(3).optional(),
+}).refine((data) => data.userId || data.emailOrPhone, {
+  message: 'Either userId or emailOrPhone must be provided',
 });
 
 // Schema used when the staff completes their own profile post-invite.
@@ -91,10 +99,139 @@ function generateTempPassword(): string {
   return `Staff@${buf}`;
 }
 
+async function executeCustomerConversion(targetUser: {
+  id: string;
+  fullName: string;
+  phone: string;
+  email: string | null;
+  staffProfile?: { staffCode: string } | null;
+}) {
+  const tempPassword = generateTempPassword();
+  const passwordHash = await hashPassword(tempPassword);
+
+  const result = await prisma.$transaction(async (tx) => {
+    const updatedUser = await tx.user.update({
+      where: { id: targetUser.id },
+      data: {
+        role: 'STAFF',
+        passwordHash,
+      },
+    });
+
+    let profile = targetUser.staffProfile;
+    if (!profile) {
+      profile = await tx.staffProfile.create({
+        data: {
+          userId: targetUser.id,
+          staffCode: generateStaffCode(),
+        },
+      });
+    }
+
+    return { user: updatedUser, profile };
+  });
+
+  const upgradeText = renderTemplate('STAFF_UPGRADE', {
+    fullName: result.user.fullName,
+    phone: result.user.phone,
+    tempPassword,
+    staffCode: result.profile.staffCode,
+    loginUrl: env.STAFF_LOGIN_URL,
+  });
+
+  const upgradeHtml = renderStaffUpgradeEmailHtml({
+    fullName: result.user.fullName,
+    phone: result.user.phone,
+    tempPassword,
+    staffCode: result.profile.staffCode,
+    loginUrl: env.STAFF_LOGIN_URL,
+  });
+
+  const [waResult, emailResult] = await Promise.allSettled([
+    sendWhatsAppMessage(result.user.phone, upgradeText),
+    result.user.email
+      ? sendEmail({
+          to: result.user.email,
+          subject: '🎉 Congratulations — Your HomeHealth account has been upgraded to Staff',
+          text: upgradeText,
+          html: upgradeHtml,
+        })
+      : Promise.resolve({ delivered: false, error: 'NO_EMAIL_ON_FILE' as const }),
+  ]);
+
+  const whatsappDelivered = waResult.status === 'fulfilled';
+  const emailDelivered = emailResult.status === 'fulfilled' && emailResult.value.delivered;
+
+  logger.info('Customer converted to staff successfully', {
+    userId: result.user.id,
+    staffCode: result.profile.staffCode,
+    whatsappDelivered,
+    emailDelivered,
+  });
+
+  return {
+    userId: result.user.id,
+    staffCode: result.profile.staffCode,
+    fullName: result.user.fullName,
+    phone: result.user.phone,
+    email: result.user.email,
+    tempPassword,
+    delivery: {
+      whatsapp: whatsappDelivered,
+      email: emailDelivered,
+    },
+    isConverted: true,
+  };
+}
+
 export const staffController = {
   async create(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const data = CreateStaffSchema.parse(req.body);
+
+      // Check if a user with this phone or email already exists in DB
+      const existingUser = await prisma.user.findFirst({
+        where: {
+          OR: [
+            { phone: data.phone },
+            ...(data.email ? [{ email: data.email }] : []),
+          ],
+        },
+        include: { staffProfile: true },
+      });
+
+      if (existingUser) {
+        if (existingUser.role === 'STAFF') {
+          throw new ConflictError('STAFF_ALREADY_EXISTS', 'A staff member with this phone or email already exists');
+        }
+        if (existingUser.role === 'ADMIN') {
+          throw new BadRequestError('CANNOT_CONVERT_ADMIN', 'Cannot convert an Admin account to Staff');
+        }
+        if (existingUser.role === 'CUSTOMER') {
+          if (!data.convertExisting) {
+            res.status(409).json({
+              success: false,
+              code: 'CUSTOMER_EXISTS',
+              error: {
+                code: 'CUSTOMER_EXISTS',
+                message: `User is already registered as a Customer (${existingUser.fullName}).`,
+              },
+              data: {
+                userId: existingUser.id,
+                fullName: existingUser.fullName,
+                email: existingUser.email,
+                phone: existingUser.phone,
+              },
+            });
+            return;
+          }
+
+          const converted = await executeCustomerConversion(existingUser);
+          success(res, converted, 200);
+          return;
+        }
+      }
+
       const tempPassword = generateTempPassword();
       const passwordHash = await hashPassword(tempPassword);
 
@@ -185,6 +322,40 @@ export const staffController = {
         201,
       );
     } catch (err) { next(err); }
+  },
+
+  async convertCustomer(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const data = ConvertCustomerSchema.parse(req.body);
+      const user = await prisma.user.findFirst({
+        where: data.userId
+          ? { id: data.userId }
+          : {
+              OR: [
+                { email: data.emailOrPhone },
+                { phone: data.emailOrPhone },
+              ],
+            },
+        include: { staffProfile: true },
+      });
+
+      if (!user) {
+        throw new NotFoundError('Customer user not found');
+      }
+
+      if (user.role === 'STAFF') {
+        throw new BadRequestError('ALREADY_STAFF', 'This user is already registered as Staff');
+      }
+
+      if (user.role === 'ADMIN') {
+        throw new BadRequestError('CANNOT_CONVERT_ADMIN', 'Cannot convert an Admin account to Staff');
+      }
+
+      const converted = await executeCustomerConversion(user);
+      success(res, converted, 200);
+    } catch (err) {
+      next(err);
+    }
   },
 
   async list(req: Request, res: Response, next: NextFunction): Promise<void> {

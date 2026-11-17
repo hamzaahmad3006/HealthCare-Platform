@@ -22,6 +22,7 @@ export const API = {
   CITIES: '/cities',
   STAFF: {
     LIST: '/staff',
+    CONVERT_CUSTOMER: '/staff/convert-customer',
     DOCTORS: '/staff/doctors',
     ME: '/staff/me',
     MY_PROFILE: '/staff/me/profile',

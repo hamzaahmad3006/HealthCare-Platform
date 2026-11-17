@@ -7,6 +7,7 @@ import { uploadLimiter } from '../middleware/rateLimit.middleware';
 const router = Router();
 
 router.post('/', authenticateToken, adminOnly, staffController.create);
+router.post('/convert-customer', authenticateToken, adminOnly, staffController.convertCustomer);
 router.get('/', authenticateToken, adminOnly, staffController.list);
 
 // Static paths must come before "/:userId" param route.
