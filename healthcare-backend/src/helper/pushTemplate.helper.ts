@@ -77,6 +77,16 @@ const PUSH_TEMPLATES: Record<TemplateCode, (data: TemplateData) => PushContent> 
     body: 'Your staff account has been created. Open the app to get started.',
   }),
 
+  STAFF_UPGRADE: () => ({
+    title: 'Account upgraded to staff',
+    body: 'Your account is now a staff account. Complete your profile to get verified.',
+  }),
+
+  STAFF_VERIFIED: () => ({
+    title: 'Account verified',
+    body: 'Your staff account is verified. You can now receive visit assignments.',
+  }),
+
   PASSWORD_RESET: () => ({
     title: 'Password reset',
     body: 'A password reset code was requested for your account.',

@@ -72,6 +72,10 @@ export function usePushRegistration(): void {
       if (!messaging) return;
       unsub = onMessage(messaging, (payload: MessagePayload) => {
         const data = payload.data ?? {};
+        if (data['templateCode'] === 'STAFF_VERIFIED') {
+          // Let the verification gate re-fetch /auth/me and unlock instantly.
+          window.dispatchEvent(new Event('homehealth:staff-status-changed'));
+        }
         const title = payload.notification?.title ?? 'HomeHealth';
         const body = payload.notification?.body ?? '';
         const url = buildNotificationLink(

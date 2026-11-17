@@ -29,6 +29,7 @@ self.addEventListener('activate', (event) => event.waitUntil(self.clients.claim(
 
 // Mirror of src/helper/notificationLink.ts — keep in sync.
 function buildNotificationLink(role, templateCode, bookingId) {
+  if (templateCode === 'STAFF_VERIFIED' && role === 'STAFF') return '/staff/visits';
   if (!bookingId) return null;
   if (role === 'CUSTOMER') {
     return templateCode === 'REPORT_AVAILABLE' ? '/my-reports' : '/my-bookings/' + bookingId;

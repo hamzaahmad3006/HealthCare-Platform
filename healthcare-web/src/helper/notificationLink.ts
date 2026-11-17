@@ -8,6 +8,7 @@ export function buildNotificationLink(
   templateCode: string,
   bookingId: string | null,
 ): string | null {
+  if (templateCode === 'STAFF_VERIFIED' && role === 'STAFF') return '/staff/visits';
   if (!bookingId) return null;
   if (role === 'CUSTOMER') {
     return templateCode === 'REPORT_AVAILABLE' ? '/my-reports' : `/my-bookings/${bookingId}`;

@@ -12,6 +12,7 @@ export type TemplateCode =
   | 'BOOKING_RESCHEDULED'
   | 'STAFF_INVITE'
   | 'STAFF_UPGRADE'
+  | 'STAFF_VERIFIED'
   | 'PASSWORD_RESET';
 
 type TemplateData = Record<string, string | number | undefined>;
@@ -57,6 +58,9 @@ const TEMPLATES: Record<TemplateCode, (data: TemplateData) => string> = {
 
   STAFF_UPGRADE: (d) =>
     `🎉 Congratulations ${d['fullName']}!\n\nYour HomeHealth account has been upgraded to a Staff Clinician account.\n\n📱 Staff ID: ${d['staffCode']}\n👤 Phone: ${d['phone']}\n🔑 Temp password: ${d['tempPassword']}\n🌐 Portal: ${d['loginUrl']}\n\nPlease log in and complete your clinician verification profile (CNIC, experience, and deliverable services).\n\n— HomeHealth Team`,
+
+  STAFF_VERIFIED: (d) =>
+    `✅ Congratulations ${d['fullName']}! Your HomeHealth staff account has been verified. You can now go online and start receiving patient visit assignments. Login: ${d['loginUrl']}`,
 
   PASSWORD_RESET: (d) =>
     `🔐 *HomeHealth — Password Reset*\n\nYour one-time reset code is:\n\n*${d['otp']}*\n\nThis code expires in 15 minutes. If you did not request a password reset, please ignore this message.\n\n— HomeHealth Team`,
@@ -424,6 +428,128 @@ export function renderStaffUpgradeEmailHtml(data: {
             </td>
           </tr>
 
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>`;
+}
+
+function escapeHtml(value: string): string {
+  return value
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+export function renderStaffVerifiedEmailHtml(data: {
+  fullName: string;
+  staffCode: string;
+  loginUrl: string;
+}): string {
+  const year = new Date().getFullYear();
+  const fullName = escapeHtml(data.fullName);
+  const staffCode = escapeHtml(data.staffCode);
+  const loginUrl = escapeHtml(data.loginUrl);
+  return `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Your Staff Account is Verified — HomeHealth</title>
+</head>
+<body style="margin: 0; padding: 0; background-color: #f1f5f9; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: #1e293b;">
+  <table width="100%" border="0" cellspacing="0" cellpadding="0" style="background-color: #f1f5f9; padding: 35px 15px;">
+    <tr>
+      <td align="center">
+        <table width="100%" border="0" cellspacing="0" cellpadding="0" style="max-width: 600px; background-color: #ffffff; border-radius: 20px; overflow: hidden; border: 1px solid #e2e8f0;">
+          <tr>
+            <td height="6" style="background: linear-gradient(90deg, #059669 0%, #10b981 100%); background-color: #059669;"></td>
+          </tr>
+          <tr>
+            <td style="padding: 32px 36px 20px 36px;">
+              <table width="100%" border="0" cellspacing="0" cellpadding="0">
+                <tr>
+                  <td>
+                    <div style="font-size: 22px; font-weight: 800; color: #0f172a; letter-spacing: -0.5px;">
+                      <span style="color: #059669;">&#10010;</span> HomeHealth
+                    </div>
+                  </td>
+                  <td align="right">
+                    <span style="background-color: #ecfdf5; color: #047857; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; padding: 5px 12px; border-radius: 20px; border: 1px solid #a7f3d0;">
+                      Verified
+                    </span>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+          <tr>
+            <td align="center" style="padding: 8px 36px 0 36px;">
+              <div style="width: 64px; height: 64px; line-height: 64px; border-radius: 50%; background-color: #ecfdf5; color: #059669; font-size: 32px; font-weight: 800; text-align: center;">&#10003;</div>
+            </td>
+          </tr>
+          <tr>
+            <td align="center" style="padding: 18px 36px 24px 36px;">
+              <h1 style="margin: 0 0 12px 0; font-size: 24px; font-weight: 800; color: #0f172a; line-height: 1.3;">
+                You're verified, ${fullName}!
+              </h1>
+              <p style="margin: 0; font-size: 15px; color: #475569; line-height: 1.6;">
+                Our medical administration team has reviewed your profile and documents. Your HomeHealth staff account is now <strong>fully active</strong>.
+              </p>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding: 0 36px 28px 36px;">
+              <div style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 16px; padding: 20px 24px;">
+                <table width="100%" border="0" cellspacing="0" cellpadding="0">
+                  <tr>
+                    <td style="padding: 6px 0; font-size: 13px; color: #64748b; width: 40%;">Staff Code:</td>
+                    <td style="padding: 6px 0; font-size: 14px; font-weight: 700; color: #0f172a; font-family: monospace;">${staffCode}</td>
+                  </tr>
+                  <tr>
+                    <td style="padding: 6px 0; font-size: 13px; color: #64748b;">Verification Status:</td>
+                    <td style="padding: 6px 0; font-size: 14px; font-weight: 700; color: #047857;">Verified</td>
+                  </tr>
+                </table>
+              </div>
+            </td>
+          </tr>
+          <tr>
+            <td align="center" style="padding: 0 36px 28px 36px;">
+              <table border="0" cellspacing="0" cellpadding="0">
+                <tr>
+                  <td align="center" style="border-radius: 12px; background-color: #059669;">
+                    <a href="${loginUrl}" target="_blank" style="display: inline-block; padding: 14px 36px; font-size: 15px; font-weight: 700; color: #ffffff; text-decoration: none; border-radius: 12px; background: #059669;">
+                      Open Staff Portal &rarr;
+                    </a>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding: 0 36px 28px 36px;">
+              <div style="border-top: 1px solid #f1f5f9; padding-top: 20px;">
+                <h3 style="margin: 0 0 12px 0; font-size: 12px; font-weight: 800; color: #334155; text-transform: uppercase; letter-spacing: 0.5px;">What happens next</h3>
+                <p style="margin: 0 0 8px 0; font-size: 13px; color: #475569; line-height: 1.5;">&bull; Sign in on the web portal or the HomeHealth mobile app.</p>
+                <p style="margin: 0 0 8px 0; font-size: 13px; color: #475569; line-height: 1.5;">&bull; Set yourself <strong>Available</strong> so the team can assign patient visits to you.</p>
+                <p style="margin: 0; font-size: 13px; color: #475569; line-height: 1.5;">&bull; Keep notifications enabled to get instant alerts for new assignments.</p>
+              </div>
+            </td>
+          </tr>
+          <tr>
+            <td style="background-color: #f8fafc; border-top: 1px solid #e2e8f0; padding: 22px 36px; text-align: center;">
+              <p style="margin: 0; font-size: 12px; color: #64748b; line-height: 1.6;">
+                <strong>HomeHealth Platform</strong> — Clinical &amp; Home Healthcare Services<br/>
+                Faisalabad, Pakistan • <a href="mailto:support@homehealth.pk" style="color: #059669; text-decoration: none;">support@homehealth.pk</a>
+              </p>
+              <p style="margin: 6px 0 0 0; font-size: 11px; color: #94a3b8;">&copy; ${year} HomeHealth. All rights reserved.</p>
+            </td>
+          </tr>
         </table>
       </td>
     </tr>

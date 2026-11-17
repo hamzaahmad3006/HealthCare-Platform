@@ -2,7 +2,7 @@ import { useEffect } from 'react';
 import messaging, {
   FirebaseMessagingTypes,
 } from '@react-native-firebase/messaging';
-import { Platform } from 'react-native';
+import { DeviceEventEmitter, Platform } from 'react-native';
 import { api } from '../api/client';
 import { API } from '../api/endpoints';
 import { useAppSelector } from '../store';
@@ -10,6 +10,7 @@ import { getDeviceId } from '../utils/deviceId';
 import { ensureNotificationPermission } from '../utils/notificationPermission';
 import { navigateToNotification, type NotificationRouteData } from '../utils/notificationNavigation';
 import { showForegroundBanner } from '../utils/foregroundBanner';
+import { STAFF_STATUS_CHANGED_EVENT } from '../utils/appEvents';
 
 function toRouteData(msg: FirebaseMessagingTypes.RemoteMessage): NotificationRouteData {
   const data = (msg.data ?? {}) as Record<string, string | undefined>;
@@ -62,6 +63,9 @@ export function usePushRegistration(): void {
   useEffect(() => {
     if (!role) return;
     const unsubscribe = messaging().onMessage((msg) => {
+      if (msg.data?.['templateCode'] === 'STAFF_VERIFIED') {
+        DeviceEventEmitter.emit(STAFF_STATUS_CHANGED_EVENT);
+      }
       const notification = msg.notification;
       if (!notification) return;
       showForegroundBanner({

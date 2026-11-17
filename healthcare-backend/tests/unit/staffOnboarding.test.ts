@@ -16,6 +16,7 @@ jest.mock('../../src/config/database', () => ({
     staffServiceType: { deleteMany: jest.fn(), createMany: jest.fn() },
     staffDocument: { findMany: jest.fn(), create: jest.fn() },
     bookingVisit: { findUnique: jest.fn() },
+    notificationLog: { create: jest.fn() },
     $transaction: jest.fn(),
   },
 }));
@@ -378,4 +379,39 @@ it('allows verified completed staff and admin to reach existing work authorizati
         .set('x-role', 'ADMIN')
     ).status,
   ).toBe(404);
+});
+
+describe('admin staff verification notifications', () => {
+  const staffUser = { fullName: 'Hamza Ahmad', phone: '+923001234567', email: 'hamza@example.com' };
+  const verify = () => request(app).post('/staff/staff/verify').set('x-user', 'admin').set('x-role', 'ADMIN');
+
+  beforeEach(() => {
+    db.staffProfile.findUnique.mockImplementation(async () => ({ ...profile, user: { ...profile.user, ...staffUser } }));
+    db.notificationLog.create.mockImplementation(async ({ data }) => ({ ...data, id: 'notif-1' }));
+    const { sendEmail } = jest.requireMock('../../src/helper/email.helper');
+    sendEmail.mockResolvedValue({ delivered: true });
+    jest.requireMock('../../worker/notification.worker').notificationQueue.add.mockResolvedValue(null);
+  });
+
+  it('creates an in-app/push notification and emails the staff on first verification', async () => {
+    const res = await verify();
+    expect(res.status).toBe(200);
+    expect(profile.verificationStatus).toBe('VERIFIED');
+    expect(db.notificationLog.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({ userId: 'staff', templateCode: 'STAFF_VERIFIED', recipient: staffUser.phone, status: 'PENDING' }),
+    });
+    const { notificationQueue } = jest.requireMock('../../worker/notification.worker');
+    expect(notificationQueue.add).toHaveBeenCalledWith('send', { notificationLogId: 'notif-1' });
+    const { sendEmail } = jest.requireMock('../../src/helper/email.helper');
+    expect(sendEmail).toHaveBeenCalledWith(expect.objectContaining({ to: staffUser.email, html: expect.stringContaining('verified') }));
+  });
+
+  it('does not re-notify when the staff is already verified', async () => {
+    profile.verificationStatus = 'VERIFIED';
+    const res = await verify();
+    expect(res.status).toBe(200);
+    expect(db.notificationLog.create).not.toHaveBeenCalled();
+    const { sendEmail } = jest.requireMock('../../src/helper/email.helper');
+    expect(sendEmail).not.toHaveBeenCalled();
+  });
 });

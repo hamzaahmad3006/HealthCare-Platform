@@ -1,8 +1,15 @@
-import { ReactNode } from 'react';
+import { ReactNode, useEffect } from 'react';
 import { Link } from 'react-router-dom';
+import toast from 'react-hot-toast';
 import { ShieldCheck, Clock, XCircle, Upload, CheckCircle2, FileText, ArrowRight } from 'lucide-react';
-import { useAppSelector } from '../../redux/store';
+import { useAppDispatch, useAppSelector } from '../../redux/store';
+import { setUser } from '../../redux/slices/authSlice';
+import { api } from '../../helper/axios';
+import { API } from '../../constant/apiUrls';
+import type { UserProfile } from '../../types/auth.types';
 import { SidebarLayout } from '../admin/SidebarLayout';
+
+const STATUS_POLL_MS = 20_000;
 
 // Sits between ProtectedRoute and the staff dashboard. ADMIN passes through
 // untouched. STAFF with verificationStatus === 'VERIFIED' also passes through.
@@ -10,6 +17,39 @@ import { SidebarLayout } from '../admin/SidebarLayout';
 // sees their activation checklist and can upload missing documents.
 export function StaffVerificationGate({ children }: { children: ReactNode }): JSX.Element {
   const user = useAppSelector((s) => s.auth.user);
+  const dispatch = useAppDispatch();
+  const waiting = user?.role === 'STAFF' && user.staffVerificationStatus !== 'VERIFIED';
+
+  // While waiting for admin review, re-check status on an interval, on tab
+  // focus and on any foreground push — so the gate unlocks without re-login.
+  useEffect(() => {
+    if (!waiting) return;
+    let cancelled = false;
+    const refresh = async (): Promise<void> => {
+      try {
+        const { data } = await api.get<{ success: true; data: UserProfile }>(API.AUTH.ME);
+        if (cancelled) return;
+        if (data.data.staffVerificationStatus !== user?.staffVerificationStatus) {
+          dispatch(setUser({ ...user, ...data.data }));
+          if (data.data.staffVerificationStatus === 'VERIFIED') {
+            toast.success('Your account has been verified — you can now receive visits!');
+          }
+        }
+      } catch {
+        // Best-effort; next tick retries.
+      }
+    };
+    const interval = window.setInterval(() => void refresh(), STATUS_POLL_MS);
+    const onFocus = (): void => void refresh();
+    window.addEventListener('focus', onFocus);
+    window.addEventListener('homehealth:staff-status-changed', onFocus);
+    return () => {
+      cancelled = true;
+      window.clearInterval(interval);
+      window.removeEventListener('focus', onFocus);
+      window.removeEventListener('homehealth:staff-status-changed', onFocus);
+    };
+  }, [waiting, user, dispatch]);
 
   if (!user || user.role !== 'STAFF') return <>{children}</>;
 

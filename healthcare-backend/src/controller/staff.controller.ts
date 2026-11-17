@@ -8,7 +8,8 @@ import { getPresignedUploadUrl } from '../helper/cloudinary.helper';
 import { maskCnic } from '../helper/mask.helper';
 import { sendWhatsAppMessage } from '../helper/axios';
 import { sendEmail } from '../helper/email.helper';
-import { renderTemplate, renderStaffInviteEmailHtml, renderStaffUpgradeEmailHtml } from '../helper/template.helper';
+import { renderTemplate, renderStaffInviteEmailHtml, renderStaffUpgradeEmailHtml, renderStaffVerifiedEmailHtml } from '../helper/template.helper';
+import { notificationQueue } from '../../worker/notification.worker';
 import { success, paginated } from '../helper/response.helper';
 import { logger } from '../utils/logger';
 import { NotFoundError, UnauthorizedError, ForbiddenError, AppError, BadRequestError, ConflictError } from '../utils/stateMachine';
@@ -474,17 +475,58 @@ export const staffController = {
       if (!req.user) throw new UnauthorizedError('UNAUTHENTICATED');
 
       const userId = pickParam(req, 'userId')!;
-      const staff = await prisma.staffProfile.findUnique({ where: { userId } });
+      const staff = await prisma.staffProfile.findUnique({
+        where: { userId },
+        include: { user: { select: { fullName: true, phone: true, email: true } } },
+      });
       if (!staff) throw new NotFoundError('STAFF_NOT_FOUND');
 
-      const updated = await prisma.staffProfile.update({
-        where: { userId },
-        data: {
-          verificationStatus: 'VERIFIED',
-          verifiedAt: new Date(),
-          verifiedByUserId: req.user.sub,
-        },
+      const alreadyVerified = staff.verificationStatus === 'VERIFIED';
+      const templateData = {
+        fullName: staff.user.fullName,
+        staffCode: staff.staffCode,
+        loginUrl: env.STAFF_LOGIN_URL,
+      };
+
+      const { updated, notifLogId } = await prisma.$transaction(async (tx) => {
+        const updatedProfile = await tx.staffProfile.update({
+          where: { userId },
+          data: {
+            verificationStatus: 'VERIFIED',
+            verifiedAt: new Date(),
+            verifiedByUserId: req.user!.sub,
+          },
+        });
+        // Re-verifying an already verified staff must not spam them again.
+        if (alreadyVerified) return { updated: updatedProfile, notifLogId: null };
+        // In-app feed row + WhatsApp + FCM push (web & mobile) via the queue.
+        const log = await tx.notificationLog.create({
+          data: {
+            userId,
+            templateCode: 'STAFF_VERIFIED',
+            recipient: staff.user.phone,
+            renderedContent: renderTemplate('STAFF_VERIFIED', templateData),
+            templateData,
+            status: 'PENDING',
+          },
+        });
+        return { updated: updatedProfile, notifLogId: log.id };
       });
+
+      if (notifLogId) {
+        await notificationQueue.add('send', { notificationLogId: notifLogId }).catch(() => null);
+        if (staff.user.email) {
+          // Fire-and-forget: email latency must not delay the admin's response.
+          void sendEmail({
+            to: staff.user.email,
+            subject: '✅ Your HomeHealth staff account is verified',
+            text: renderTemplate('STAFF_VERIFIED', templateData),
+            html: renderStaffVerifiedEmailHtml(templateData),
+          })
+            .then((r) => logger.info('Staff verified email dispatched', { userId, delivered: r.delivered }))
+            .catch((err: Error) => logger.error('Staff verified email failed', { userId, err: err.message }));
+        }
+      }
 
       success(res, updated);
     } catch (err) { next(err); }

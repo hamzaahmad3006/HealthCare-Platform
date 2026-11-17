@@ -39,6 +39,7 @@ const TEMPLATE_LABELS: Record<string, string> = {
   VISIT_REMINDER: 'Visit Reminder',
   REPORT_AVAILABLE: 'Report Available',
   PACKAGE_RENEWAL: 'Package Renewal',
+  STAFF_VERIFIED: 'Staff Verified',
 };
 
 export function Notifications(): JSX.Element {

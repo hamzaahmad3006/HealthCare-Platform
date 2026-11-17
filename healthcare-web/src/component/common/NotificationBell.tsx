@@ -22,7 +22,8 @@ type TemplateCode =
   | 'STAFF_ASSIGNED'
   | 'STAFF_EN_ROUTE'
   | 'VISIT_COMPLETED'
-  | 'REPORT_AVAILABLE';
+  | 'REPORT_AVAILABLE'
+  | 'STAFF_VERIFIED';
 
 interface NotifItem {
   id: string;
@@ -40,6 +41,7 @@ const TEMPLATE_META: Record<TemplateCode, { label: string; Icon: React.ElementTy
   STAFF_EN_ROUTE:    { label: 'Staff on the way',     Icon: MapPin,        color: 'text-accent-600'  },
   VISIT_COMPLETED:   { label: 'Visit completed',      Icon: CheckCircle2,  color: 'text-success-600' },
   REPORT_AVAILABLE:  { label: 'New report available', Icon: FileText,      color: 'text-info-600'    },
+  STAFF_VERIFIED:    { label: 'Account verified',     Icon: CheckCircle2,  color: 'text-success-600' },
 };
 
 const LAST_READ_KEY = 'notif_last_read';
