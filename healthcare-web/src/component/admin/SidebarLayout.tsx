@@ -123,6 +123,7 @@ export function SidebarLayout({ children, title, description, actions }: Sidebar
           userPhone={user?.phone ?? ''}
           role={user?.role ?? 'ADMIN'}
           isStaff={isStaff}
+          isDoctor={Boolean(user?.isDoctor)}
         />
       </aside>
 
@@ -141,6 +142,7 @@ export function SidebarLayout({ children, title, description, actions }: Sidebar
               userPhone={user?.phone ?? ''}
               role={user?.role ?? 'ADMIN'}
               isStaff={isStaff}
+              isDoctor={Boolean(user?.isDoctor)}
             />
           </aside>
         </>
@@ -190,6 +192,7 @@ function SidebarContent({
   userPhone,
   role,
   isStaff,
+  isDoctor,
 }: {
   onNavigate: () => void;
   onLogout: () => void | Promise<void>;
@@ -197,8 +200,19 @@ function SidebarContent({
   userPhone: string;
   role: string;
   isStaff: boolean;
+  isDoctor?: boolean;
 }): JSX.Element {
-  const groups = isStaff ? STAFF_NAV_GROUPS : ADMIN_NAV_GROUPS;
+  const groups = isStaff
+    ? STAFF_NAV_GROUPS.map((group) => ({
+        ...group,
+        items: group.items.filter((item) => {
+          if (item.to === '/staff/doctor-requests') {
+            return Boolean(isDoctor);
+          }
+          return true;
+        }),
+      }))
+    : ADMIN_NAV_GROUPS;
 
   const initials = userName
     .split(' ')

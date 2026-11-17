@@ -82,7 +82,18 @@ export const authController = {
 
       const user = await prisma.user.findUnique({
         where: { phone },
-        include: { staffProfile: { select: { verificationStatus: true, profileCompletedAt: true } } },
+        include: {
+          staffProfile: {
+            select: {
+              verificationStatus: true,
+              profileCompletedAt: true,
+              serviceTypes: {
+                where: { serviceType: { code: 'VISITING_DOCTOR' } },
+                select: { serviceTypeId: true },
+              },
+            },
+          },
+        },
       });
 
       if (!user || user.deletedAt) {
@@ -156,6 +167,7 @@ export const authController = {
           avatarUrl: user.avatarUrl,
           staffVerificationStatus: user.staffProfile?.verificationStatus ?? null,
           staffProfileCompletedAt: user.staffProfile?.profileCompletedAt ?? null,
+          isDoctor: (user.staffProfile?.serviceTypes?.length ?? 0) > 0,
         },
       });
     } catch (err) {
@@ -389,7 +401,14 @@ export const authController = {
           // Include verification + onboarding state so the frontend can gate
           // the dashboard without an extra round-trip to /staff/me.
           staffProfile: {
-            select: { verificationStatus: true, profileCompletedAt: true },
+            select: {
+              verificationStatus: true,
+              profileCompletedAt: true,
+              serviceTypes: {
+                where: { serviceType: { code: 'VISITING_DOCTOR' } },
+                select: { serviceTypeId: true },
+              },
+            },
           },
         },
       });
@@ -401,6 +420,7 @@ export const authController = {
         ...rest,
         staffVerificationStatus: staffProfile?.verificationStatus ?? null,
         staffProfileCompletedAt: staffProfile?.profileCompletedAt ?? null,
+        isDoctor: (staffProfile?.serviceTypes?.length ?? 0) > 0,
       });
     } catch (err) {
       next(err);
@@ -466,7 +486,18 @@ export const authController = {
 
       const user = await prisma.user.findUnique({
         where: { phone },
-        include: { staffProfile: { select: { verificationStatus: true, profileCompletedAt: true } } },
+        include: {
+          staffProfile: {
+            select: {
+              verificationStatus: true,
+              profileCompletedAt: true,
+              serviceTypes: {
+                where: { serviceType: { code: 'VISITING_DOCTOR' } },
+                select: { serviceTypeId: true },
+              },
+            },
+          },
+        },
       });
       if (!user || user.deletedAt || user.status !== 'ACTIVE') {
         throw new AppError(400, 'INVALID_OTP', 'Invalid or expired reset code');
@@ -534,6 +565,7 @@ export const authController = {
           avatarUrl: user.avatarUrl,
           staffVerificationStatus: user.staffProfile?.verificationStatus ?? null,
           staffProfileCompletedAt: user.staffProfile?.profileCompletedAt ?? null,
+          isDoctor: (user.staffProfile?.serviceTypes?.length ?? 0) > 0,
         },
       });
     } catch (err) {

@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
-import { Clock, CheckCircle2, Calendar, UserSquare2 } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { Clock, CheckCircle2, Calendar, UserSquare2, ShieldAlert } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { SidebarLayout } from '../../../component/admin/SidebarLayout';
 import { EmptyState } from '../../../component/common/EmptyState';
@@ -85,16 +86,46 @@ export function DoctorRequests(): JSX.Element {
       {error ? (
         <div
           role="alert"
-          className="mb-6 px-4 py-3 rounded-xl bg-danger-50 ring-1 ring-danger-500/20 text-sm text-danger-700 flex items-center justify-between gap-3"
+          className={`mb-6 p-4 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-sm ${
+            error === 'DOCTOR_NOT_ELIGIBLE'
+              ? 'bg-amber-50 ring-1 ring-amber-200/80 text-amber-900'
+              : 'bg-danger-50 ring-1 ring-danger-500/20 text-danger-700'
+          }`}
         >
-          <span>{error}</span>
-          <button
-            type="button"
-            onClick={() => void load()}
-            className="px-3 py-1.5 rounded-lg bg-white ring-1 ring-ink-200 text-xs font-semibold text-ink-700 hover:bg-ink-50"
-          >
-            Retry
-          </button>
+          <div className="flex items-start gap-3">
+            {error === 'DOCTOR_NOT_ELIGIBLE' ? (
+              <ShieldAlert className="h-5 w-5 text-amber-600 flex-shrink-0 mt-0.5" />
+            ) : null}
+            <div className="space-y-0.5">
+              <p className="font-semibold text-ink-900">
+                {error === 'DOCTOR_NOT_ELIGIBLE'
+                  ? 'Doctor Requests Reserved for Visiting Doctors'
+                  : error}
+              </p>
+              <p className="text-xs text-ink-600">
+                {error === 'DOCTOR_NOT_ELIGIBLE'
+                  ? 'Your profile is currently registered for other healthcare services (e.g. Caregiver, Nursing Care). Direct patient doctor requests are only routed to verified Visiting Doctors. You can manage your assigned duties under My Visits.'
+                  : 'Failed to load booking requests.'}
+              </p>
+            </div>
+          </div>
+          <div className="flex items-center gap-2 flex-shrink-0 self-end sm:self-center">
+            {error === 'DOCTOR_NOT_ELIGIBLE' ? (
+              <Link
+                to="/staff/visits"
+                className="px-3.5 py-1.5 rounded-xl bg-brand-600 text-xs font-semibold text-white hover:bg-brand-700 transition-colors shadow-sm"
+              >
+                Go to My Visits
+              </Link>
+            ) : null}
+            <button
+              type="button"
+              onClick={() => void load()}
+              className="px-3 py-1.5 rounded-lg bg-white ring-1 ring-ink-200 text-xs font-semibold text-ink-700 hover:bg-ink-50 transition-colors"
+            >
+              Retry
+            </button>
+          </div>
         </div>
       ) : null}
 

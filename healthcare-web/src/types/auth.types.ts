@@ -18,6 +18,7 @@ export interface UserProfile {
   // the pending-verification screen until admin verifies.
   staffVerificationStatus?: StaffVerificationStatus | null;
   staffProfileCompletedAt?: string | null;
+  isDoctor?: boolean;
 }
 
 export interface LoginRequest {
