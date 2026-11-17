@@ -17,7 +17,7 @@ export const IDEMPOTENCY_TTL = 86400; // 24 hours in seconds
 export const STRIPE_EVENT_DEDUP_TTL = 172800; // 48 hours in seconds
 
 export const RATE_LIMIT = {
-  AUTH_MAX: 5,
+  AUTH_MAX: 30,
   AUTH_WINDOW_SECONDS: 60,
   API_MAX: 100,
   API_WINDOW_SECONDS: 60,

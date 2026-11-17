@@ -38,7 +38,7 @@ async function slidingWindowLimit(
 }
 
 export function authLimiter(req: Request, res: Response, next: NextFunction): void {
-  const key = `auth:${req.ip ?? 'unknown'}`;
+  const key = `auth:${req.path}:${req.ip ?? 'unknown'}`;
   slidingWindowLimit(key, RATE_LIMIT.AUTH_MAX, RATE_LIMIT.AUTH_WINDOW_SECONDS, req, res, next).catch(next);
 }
 
