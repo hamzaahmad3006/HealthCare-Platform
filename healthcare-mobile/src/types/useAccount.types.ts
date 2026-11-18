@@ -28,4 +28,6 @@ export interface NewAddressInput {
   area: string;
   cityId: string | null;
   zoneId: string | null;
+  latitude?: number | null;
+  longitude?: number | null;
 }

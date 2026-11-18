@@ -107,8 +107,35 @@ export function AddressFormModal({
         area: initialData.area ?? '',
         postalCode: initialData.postalCode ?? '',
       });
+      if (initialData.latitude != null && initialData.longitude != null) {
+        setLocation({
+          lat: Number(initialData.latitude),
+          lng: Number(initialData.longitude),
+        });
+      }
     }
   }, [open, initialData, citiesLoading, reset]);
+
+  const handleLocationChange = (val: LocationPickerValue): void => {
+    setLocation(val);
+    const currentArea = watch('area');
+    if (!currentArea?.trim() && val.area) {
+      setValue('area', val.area, { shouldValidate: true });
+    }
+    const currentPostal = watch('postalCode');
+    if (!currentPostal?.trim() && val.postalCode) {
+      setValue('postalCode', val.postalCode);
+    }
+    const currentCityId = watch('cityId');
+    if (!currentCityId && val.cityName && cities.length > 0) {
+      const matchedCity = cities.find(
+        (c) => c.name.toLowerCase() === val.cityName?.toLowerCase(),
+      );
+      if (matchedCity) {
+        setValue('cityId', matchedCity.id, { shouldValidate: true });
+      }
+    }
+  };
 
   // Reset zone when city changes (zones are city-specific)
   useEffect(() => {
@@ -316,9 +343,13 @@ export function AddressFormModal({
 
                   <div className="pt-2">
                     <label className="text-sm font-medium text-ink-700 mb-2 block">
-                      Pin on map <span className="text-ink-400 font-normal">(optional, helps staff find you faster)</span>
+                      Pin on Google Map <span className="text-ink-400 font-normal">(detects real location & helps staff find you faster)</span>
                     </label>
-                    <LocationPicker value={location} onChange={setLocation} />
+                    <LocationPicker
+                      value={location}
+                      onChange={handleLocationChange}
+                      cityName={selectedCity?.name}
+                    />
                   </div>
                 </form>
 

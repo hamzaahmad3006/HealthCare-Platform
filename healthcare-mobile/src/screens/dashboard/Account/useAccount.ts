@@ -84,6 +84,8 @@ export function useAccount() {
     if (input.zoneId) payload.zoneId = input.zoneId;
     if (input.label.trim()) payload.label = input.label.trim();
     if (input.line2.trim()) payload.line2 = input.line2.trim();
+    if (input.latitude != null) payload.latitude = input.latitude;
+    if (input.longitude != null) payload.longitude = input.longitude;
 
     setAddingAddress(true);
     try {

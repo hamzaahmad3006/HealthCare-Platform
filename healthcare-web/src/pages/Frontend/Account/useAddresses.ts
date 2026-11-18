@@ -84,6 +84,6 @@ export function useAddresses() {
   return {
     addresses, cities, isLoading,
     modalOpen, editing, saving, deleting,
-    openAdd, openEdit, closeModal, handleSave, handleDelete,
+    openAdd, openEdit, closeModal, handleSave, handleDelete, reload,
   };
 }

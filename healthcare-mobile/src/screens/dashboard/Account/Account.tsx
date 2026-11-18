@@ -3,7 +3,7 @@ import { useState } from 'react';
 import {
   View, Text, ScrollView, TouchableOpacity, TextInput,
   StyleSheet, StatusBar, SafeAreaView, Modal, ActivityIndicator,
-  KeyboardAvoidingView, Platform,
+  KeyboardAvoidingView, Platform, Linking, Alert,
 } from 'react-native';
 import { MaterialDesignIcons } from '@react-native-vector-icons/material-design-icons/static';
 import { Ionicons } from '@react-native-vector-icons/ionicons/static';
@@ -36,6 +36,11 @@ export function Account(): JSX.Element {
   const [aArea, setAArea]           = useState('');
   const [aCityId, setACityId]       = useState<string | null>(null);
   const [aZoneId, setAZoneId]       = useState<string | null>(null);
+  const [aLat, setALat]             = useState<number | null>(null);
+  const [aLng, setALng]             = useState<number | null>(null);
+  const [aResolvedAddr, setAResolvedAddr] = useState<string>('');
+  const [mapSearch, setMapSearch]   = useState('');
+  const [mapSearching, setMapSearching] = useState(false);
 
   const phone = user?.phone ?? '—';
 
@@ -43,6 +48,7 @@ export function Account(): JSX.Element {
     setALabel(''); setAName(user?.fullName ?? ''); setAPhone(user?.phone ?? '');
     setALine1(''); setALine2(''); setAArea('');
     setACityId(null); setAZoneId(null);
+    setALat(null); setALng(null); setAResolvedAddr(''); setMapSearch('');
     if (citiesError || cities.length === 0) reloadCities();
     setAddrOpen(true);
   };
@@ -51,11 +57,67 @@ export function Account(): JSX.Element {
     const ok = await createAddress({
       label: aLabel, contactName: aName, contactPhone: aPhone,
       line1: aLine1, line2: aLine2, area: aArea, cityId: aCityId, zoneId: aZoneId,
+      latitude: aLat, longitude: aLng,
     });
     if (ok) setAddrOpen(false);
   };
 
   const selectedCity = cities.find((c) => c.id === aCityId) ?? null;
+
+  const findOnGoogleMaps = async () => {
+    const q = mapSearch.trim() || aArea.trim();
+    if (!q) {
+      Alert.alert('Search Area', 'Enter an area or mohalla name (e.g. Boley di jhuggi) to locate on Google Maps.');
+      return;
+    }
+    setMapSearching(true);
+    try {
+      const cityHint = selectedCity?.name ?? 'Faisalabad';
+      const queryWithCity = q.toLowerCase().includes(cityHint.toLowerCase()) ? q : `${q}, ${cityHint}, Pakistan`;
+      const res = await fetch(
+        `https://geocode.arcgis.com/arcgis/rest/services/World/GeocodeServer/findAddressCandidates?f=json&SingleLine=${encodeURIComponent(
+          queryWithCity,
+        )}&countryCode=PAK&location=73.135,31.4504&maxLocations=3&outFields=Match_addr,Place_addr,Neighborhood,District,City`,
+      );
+      const data = (await res.json()) as {
+        candidates?: Array<{
+          address?: string;
+          location?: { x: number; y: number };
+          attributes?: {
+            Place_addr?: string;
+            Match_addr?: string;
+            Neighborhood?: string;
+            District?: string;
+            City?: string;
+          };
+        }>;
+      };
+      const best = data.candidates?.[0];
+      if (best?.location) {
+        setALat(best.location.y);
+        setALng(best.location.x);
+        const label = best.attributes?.Place_addr || best.attributes?.Match_addr || best.address || q;
+        setAResolvedAddr(label);
+        const detectedArea =
+          best.attributes?.Neighborhood ||
+          best.attributes?.District ||
+          label.split(',')[0]?.trim();
+        if (!aArea.trim() && detectedArea) setAArea(detectedArea);
+        if (!aCityId && best.attributes?.City) {
+          const matched = cities.find(
+            (c) => c.name.toLowerCase() === best.attributes?.City?.toLowerCase(),
+          );
+          if (matched) setACityId(matched.id);
+        }
+      } else {
+        Alert.alert('Not Found', 'Could not locate that area. Try adding the city name (e.g. Boley di jhuggi, Faisalabad).');
+      }
+    } catch {
+      Alert.alert('Search Error', 'Could not reach location service. Please check your connection.');
+    } finally {
+      setMapSearching(false);
+    }
+  };
 
   return (
     <SafeAreaView style={styles.root}>
@@ -301,12 +363,92 @@ export function Account(): JSX.Element {
               <View style={styles.fieldGroup}>
                 <Text style={styles.label}>Area *</Text>
                 <TextInput style={styles.addrInput} value={aArea} onChangeText={setAArea} maxLength={120}
-                  placeholder="e.g. DHA Phase 5" placeholderTextColor={Colors.neutralMuted} />
+                  placeholder="e.g. Boley di jhuggi, Madina Town" placeholderTextColor={Colors.neutralMuted} />
               </View>
               <View style={styles.fieldGroup}>
                 <Text style={styles.label}>Address Line 2 (optional)</Text>
                 <TextInput style={styles.addrInput} value={aLine2} onChangeText={setALine2} maxLength={255}
                   placeholder="Apartment, landmark" placeholderTextColor={Colors.neutralMuted} />
+              </View>
+
+              {/* Google Maps Pin Search & Coordinates */}
+              <View style={styles.fieldGroup}>
+                <Text style={styles.label}>Pin on Google Maps (optional)</Text>
+                <View style={{ flexDirection: 'row', gap: 8 }}>
+                  <TextInput
+                    style={[styles.addrInput, { flex: 1 }]}
+                    value={mapSearch}
+                    onChangeText={setMapSearch}
+                    placeholder="Search area or mohalla on Google Maps…"
+                    placeholderTextColor={Colors.neutralMuted}
+                  />
+                  <TouchableOpacity
+                    style={{
+                      paddingHorizontal: 16,
+                      borderRadius: Radius.md,
+                      backgroundColor: Colors.primary,
+                      justifyContent: 'center',
+                      alignItems: 'center',
+                    }}
+                    onPress={() => void findOnGoogleMaps()}
+                    disabled={mapSearching}
+                    activeOpacity={0.8}
+                  >
+                    {mapSearching ? (
+                      <ActivityIndicator size="small" color={Colors.white} />
+                    ) : (
+                      <Text style={{ fontSize: FontSize.sm, fontWeight: '700', color: Colors.white }}>
+                        Find
+                      </Text>
+                    )}
+                  </TouchableOpacity>
+                </View>
+                {aLat != null && aLng != null ? (
+                  <View
+                    style={{
+                      marginTop: 8,
+                      padding: 10,
+                      borderRadius: Radius.md,
+                      backgroundColor: '#ECFDF5',
+                      borderWidth: 1,
+                      borderColor: '#A7F3D0',
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      gap: 8,
+                    }}
+                  >
+                    <View style={{ flex: 1 }}>
+                      <Text style={{ fontSize: FontSize.xs, fontWeight: '700', color: '#065F46' }}>
+                        📍 Location Pinned ({aLat.toFixed(5)}, {aLng.toFixed(5)})
+                      </Text>
+                      {aResolvedAddr ? (
+                        <Text style={{ fontSize: FontSize.xs, color: '#047857', marginTop: 2 }}>
+                          {aResolvedAddr}
+                        </Text>
+                      ) : null}
+                    </View>
+                    <TouchableOpacity
+                      onPress={() =>
+                        void Linking.openURL(
+                          `https://www.google.com/maps/search/?api=1&query=${aLat},${aLng}`,
+                        )
+                      }
+                      style={{
+                        paddingHorizontal: 10,
+                        paddingVertical: 6,
+                        borderRadius: Radius.sm,
+                        backgroundColor: Colors.white,
+                        borderWidth: 1,
+                        borderColor: '#A7F3D0',
+                      }}
+                    >
+                      <Text style={{ fontSize: FontSize.xs, fontWeight: '700', color: '#065F46' }}>
+                        Open Map
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
+                ) : null}
               </View>
             </ScrollView>
 

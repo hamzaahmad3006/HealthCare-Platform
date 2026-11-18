@@ -1,13 +1,11 @@
-import { useEffect } from 'react';
-import { useForm } from 'react-hook-form';
 import { Eye, EyeOff, User, Mail, Phone, Lock, Save, KeyRound, MapPin, Plus, Pencil, Trash2 } from 'lucide-react';
 import { Button } from '../../../constant/Button';
 import { Input } from '../../../constant/Input';
 import { Card } from '../../../constant/Card';
 import { TopNav } from '../../../component/common/TopNav';
+import { AddressFormModal } from '../../../component/booking/AddressFormModal';
 import { useAccount } from './useAccount';
-import { useAddresses, type AddressFormData } from './useAddresses';
-import type { Address, CityWithZones } from '../../../types/booking.types';
+import { useAddresses } from './useAddresses';
 
 export function Account(): JSX.Element {
   const a = useAccount();
@@ -215,96 +213,21 @@ export function Account(): JSX.Element {
         </Card>
       </main>
 
-      {addr.modalOpen && (
-        <AddressModal
-          address={addr.editing}
-          cities={addr.cities}
-          saving={addr.saving}
-          onSave={addr.handleSave}
-          onClose={addr.closeModal}
-        />
-      )}
-    </div>
-  );
-}
-
-function AddressModal({
-  address, cities, saving, onSave, onClose,
-}: {
-  address: Address | null;
-  cities: CityWithZones[];
-  saving: boolean;
-  onSave: (data: AddressFormData) => Promise<void>;
-  onClose: () => void;
-}): JSX.Element {
-  const { register, handleSubmit, reset, formState: { errors } } = useForm<AddressFormData>();
-
-  useEffect(() => {
-    if (address) {
-      reset({
-        label: address.label ?? '',
-        contactName: address.contactName,
-        contactPhone: address.contactPhone,
-        line1: address.line1,
-        line2: address.line2 ?? '',
-        area: address.area,
-        cityId: address.cityId,
-        postalCode: address.postalCode ?? '',
-      });
-    } else {
-      reset({ cityId: cities[0]?.id ?? '' });
-    }
-  }, [address, cities, reset]);
-
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-ink-950/50 backdrop-blur-sm animate-fade-in">
-      <div className="w-full max-w-lg bg-white rounded-2xl shadow-2xl ring-1 ring-ink-100 overflow-hidden animate-slide-up">
-        <div className="flex items-center gap-3 px-6 py-4 border-b border-ink-100">
-          <div className="h-9 w-9 rounded-xl bg-brand-50 text-brand-600 flex items-center justify-center">
-            <MapPin className="h-5 w-5" />
-          </div>
-          <h2 className="text-base font-semibold text-ink-900">
-            {address ? 'Edit address' : 'Add address'}
-          </h2>
-        </div>
-
-        <form
-          onSubmit={handleSubmit((data) => void onSave(data))}
-          className="px-6 py-5 space-y-4 max-h-[70vh] overflow-y-auto"
-        >
-          <Input label="Label (optional)" {...register('label')} placeholder="e.g. Home, Clinic" />
-
-          <div className="grid grid-cols-2 gap-4">
-            <Input label="Contact name *" {...register('contactName', { required: true })} error={errors.contactName && 'Required'} />
-            <Input label="Contact phone *" {...register('contactPhone', { required: true })} placeholder="+92..." error={errors.contactPhone && 'Required'} />
-          </div>
-
-          <Input label="Address line 1 *" {...register('line1', { required: true })} placeholder="Street / house no." error={errors.line1 && 'Required'} />
-          <Input label="Address line 2" {...register('line2')} placeholder="Apartment, floor (optional)" />
-
-          <div className="grid grid-cols-2 gap-4">
-            <Input label="Area *" {...register('area', { required: true })} placeholder="e.g. Gulberg" error={errors.area && 'Required'} />
-            <Input label="Postal code" {...register('postalCode')} placeholder="e.g. 38000" />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-ink-700 mb-1">City *</label>
-            <select
-              {...register('cityId', { required: true })}
-              className="w-full h-10 px-3 rounded-xl ring-1 ring-ink-200 text-sm text-ink-900 bg-white focus:outline-none focus:ring-2 focus:ring-brand-500"
-            >
-              {cities.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
-            </select>
-          </div>
-        </form>
-
-        <div className="flex gap-3 px-6 py-4 border-t border-ink-100 bg-ink-50/50">
-          <Button variant="ghost" fullWidth onClick={onClose} disabled={saving}>Cancel</Button>
-          <Button fullWidth isLoading={saving} onClick={handleSubmit((data) => void onSave(data))}>
-            {address ? 'Save changes' : 'Add address'}
-          </Button>
-        </div>
-      </div>
+      <AddressFormModal
+        open={addr.modalOpen}
+        onClose={addr.closeModal}
+        initialData={addr.editing ?? undefined}
+        defaultContactName={a.user?.fullName}
+        defaultContactPhone={a.user?.phone}
+        onCreated={() => {
+          addr.closeModal();
+          addr.reload();
+        }}
+        onUpdated={() => {
+          addr.closeModal();
+          addr.reload();
+        }}
+      />
     </div>
   );
 }

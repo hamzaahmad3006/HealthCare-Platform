@@ -68,6 +68,8 @@ export interface Address {
   line2: string | null;
   area: string;
   postalCode: string | null;
+  latitude?: number | string | null;
+  longitude?: number | string | null;
 }
 
 export interface City {
