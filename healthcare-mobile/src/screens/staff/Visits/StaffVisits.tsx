@@ -23,8 +23,8 @@ const TABS: { id: TabFilter; label: string }[] = [
 
 export function StaffVisits(): JSX.Element {
   const navigation = useNavigation<Nav>();
-  const unreadCount = useUnreadBadge();
   const { activeTab, setActiveTab, visits, loading, refreshing, error, onRefresh, retry } = useStaffVisits();
+  const unreadCount = useUnreadBadge();
 
   return (
     <SafeAreaView style={styles.root}>

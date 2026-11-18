@@ -62,6 +62,8 @@ export function StaffManagement(): JSX.Element {
   const [searchQuery, setSearchQuery] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [isConverting, setIsConverting] = useState(false);
+  const [convertingCustomerId, setConvertingCustomerId] = useState<string | null>(null);
+  const [promotedCustomerIds, setPromotedCustomerIds] = useState<Record<string, boolean>>({});
 
   // Data lists
   const [customers, setCustomers] = useState<CustomerItem[]>([]);
@@ -119,17 +121,19 @@ export function StaffManagement(): JSX.Element {
           style: 'default',
           onPress: async () => {
             setIsConverting(true);
+            setConvertingCustomerId(customer.id);
             try {
               const { data } = await api.post<{ success: true; data: ConvertedResult }>(
                 API.STAFF.CONVERT_CUSTOMER,
                 { userId: customer.id },
               );
+              setPromotedCustomerIds((prev) => ({ ...prev, [customer.id]: true }));
               setConversionSuccess(data.data);
-              void fetchCustomers(searchQuery);
             } catch (err) {
               Alert.alert('Promotion Failed', extractApiError(err));
             } finally {
               setIsConverting(false);
+              setConvertingCustomerId(null);
             }
           },
         },
@@ -228,34 +232,50 @@ export function StaffManagement(): JSX.Element {
               </Text>
             </View>
           }
-          renderItem={({ item }) => (
-            <View style={styles.card}>
-              <View style={styles.cardRow}>
-                <View style={styles.avatar}>
-                  <Text style={styles.avatarText}>
-                    {item.fullName.slice(0, 2).toUpperCase()}
-                  </Text>
+          renderItem={({ item }) => {
+            const isThisConverting = convertingCustomerId === item.id;
+            const isPromoted = Boolean(promotedCustomerIds[item.id]);
+            return (
+              <View style={styles.card}>
+                <View style={styles.cardRow}>
+                  <View style={styles.avatar}>
+                    <Text style={styles.avatarText}>
+                      {item.fullName.slice(0, 2).toUpperCase()}
+                    </Text>
+                  </View>
+                  <View style={styles.cardInfo}>
+                    <Text style={styles.customerName}>{item.fullName}</Text>
+                    <Text style={styles.customerDetail}>
+                      {item.email ?? 'No email'} · {item.phone}
+                    </Text>
+                    <Text style={styles.customerDate}>
+                      Joined {new Date(item.createdAt).toLocaleDateString()}
+                    </Text>
+                  </View>
                 </View>
-                <View style={styles.cardInfo}>
-                  <Text style={styles.customerName}>{item.fullName}</Text>
-                  <Text style={styles.customerDetail}>
-                    {item.email ?? 'No email'} · {item.phone}
-                  </Text>
-                  <Text style={styles.customerDate}>
-                    Joined {new Date(item.createdAt).toLocaleDateString()}
-                  </Text>
-                </View>
-              </View>
 
-              <TouchableOpacity
-                style={styles.promoteBtn}
-                disabled={isConverting}
-                onPress={() => handlePromote(item)}
-              >
-                <Text style={styles.promoteBtnText}>Promote to Staff</Text>
-              </TouchableOpacity>
-            </View>
-          )}
+                {isPromoted ? (
+                  <View style={[styles.promoteBtn, { backgroundColor: '#ECFDF5', borderWidth: 1, borderColor: '#A7F3D0' }]}>
+                    <Text style={[styles.promoteBtnText, { color: '#065F46' }]}>
+                      ✓ Promoted · Verification Email Sent
+                    </Text>
+                  </View>
+                ) : (
+                  <TouchableOpacity
+                    style={[styles.promoteBtn, isConverting && !isThisConverting && { opacity: 0.6 }]}
+                    disabled={isConverting}
+                    onPress={() => handlePromote(item)}
+                  >
+                    {isThisConverting ? (
+                      <ActivityIndicator size="small" color={Colors.white} />
+                    ) : (
+                      <Text style={styles.promoteBtnText}>Promote to Staff</Text>
+                    )}
+                  </TouchableOpacity>
+                )}
+              </View>
+            );
+          }}
         />
       ) : (
         <FlatList

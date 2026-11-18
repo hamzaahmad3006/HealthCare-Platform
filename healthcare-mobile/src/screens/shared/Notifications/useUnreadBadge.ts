@@ -22,7 +22,18 @@ export function useUnreadBadge(): number {
     }
   }, []);
 
-  useFocusEffect(useCallback(() => { refresh(); }, [refresh]));
+  useFocusEffect(
+    useCallback(() => {
+      void refresh();
+      const env = (globalThis as { process?: { env?: { NODE_ENV?: string } } }).process?.env
+        ?.NODE_ENV;
+      if (env === 'test') return undefined;
+      const timer = setInterval(() => {
+        void refresh();
+      }, 6000);
+      return () => clearInterval(timer);
+    }, [refresh]),
+  );
 
   return count;
 }

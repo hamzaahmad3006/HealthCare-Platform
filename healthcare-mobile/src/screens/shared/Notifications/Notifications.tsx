@@ -13,12 +13,47 @@ import { navigateToNotification } from '../../../utils/notificationNavigation';
 import type { NotificationItem } from '../../../types/notification.types';
 
 function iconForTemplate(code: string): MaterialIconName {
+  if (code === 'STAFF_VERIFIED') return 'check-circle-outline';
   if (code.includes('REPORT')) return 'file-document-outline';
   if (code.includes('CANCEL')) return 'close-circle-outline';
   if (code.includes('CONFIRM') || code.includes('ACCEPT')) return 'check-circle-outline';
   if (code.includes('ASSIGN') || code.includes('STAFF')) return 'account-check-outline';
   if (code.includes('RESCHEDULE') || code.includes('PROPOSE')) return 'calendar-clock';
   return 'bell-outline';
+}
+
+function titleForTemplate(code: string): string {
+  switch (code) {
+    case 'STAFF_VERIFIED':
+      return '🎉 Account Verified!';
+    case 'STAFF_ASSIGNED':
+      return 'New Visit Assigned';
+    case 'BOOKING_RECEIVED':
+      return 'Booking Received';
+    case 'BOOKING_CONFIRMED':
+      return 'Booking Confirmed';
+    case 'BOOKING_CANCELLED':
+      return 'Booking Cancelled';
+    case 'STAFF_EN_ROUTE':
+      return 'Staff On The Way';
+    case 'VISIT_COMPLETED':
+      return 'Visit Completed';
+    case 'VISIT_REMINDER':
+      return 'Upcoming Visit Reminder';
+    case 'REPORT_AVAILABLE':
+      return 'Medical Report Ready';
+    case 'DOCTOR_BOOKING_REQUEST':
+    case 'DOCTOR_BOOKING_REQUESTED':
+      return 'New Doctor Request';
+    case 'DOCTOR_ACCEPTED':
+      return 'Doctor Accepted';
+    case 'DOCTOR_TIME_PROPOSED':
+      return 'New Time Proposed';
+    case 'DOCTOR_TIME_ACCEPTED':
+      return 'Proposed Time Accepted';
+    default:
+      return code.replace(/_/g, ' ');
+  }
 }
 
 function formatWhen(iso: string): string {
@@ -38,7 +73,7 @@ export function Notifications(): JSX.Element {
 
       <View style={styles.header}>
         <View style={styles.headerTopRow}>
-          {navigation.canGoBack() && (
+          {typeof navigation.canGoBack === 'function' && navigation.canGoBack() && (
             <TouchableOpacity
               style={styles.backBtn}
               onPress={() => navigation.goBack()}
@@ -102,19 +137,34 @@ export function Notifications(): JSX.Element {
 }
 
 function NotificationRow({ item, onPress }: { item: NotificationItem; onPress: () => void }) {
+  const isVerified = item.templateCode === 'STAFF_VERIFIED';
   return (
     <Pressable
-      style={({ pressed }) => [styles.row, item.isUnread && styles.rowUnread, pressed && styles.rowPressed]}
+      style={({ pressed }) => [
+        styles.row,
+        item.isUnread && styles.rowUnread,
+        isVerified && styles.rowVerified,
+        pressed && styles.rowPressed,
+      ]}
       onPress={onPress}
     >
-      <View style={[styles.iconBox, item.isUnread && styles.iconBoxUnread]}>
+      <View
+        style={[
+          styles.iconBox,
+          item.isUnread && styles.iconBoxUnread,
+          isVerified && styles.iconBoxVerified,
+        ]}
+      >
         <MaterialDesignIcons
           name={iconForTemplate(item.templateCode)}
           size={20}
-          color={item.isUnread ? Colors.primary : Colors.neutral}
+          color={isVerified ? Colors.success : item.isUnread ? Colors.primary : Colors.neutral}
         />
       </View>
       <View style={styles.rowBody}>
+        <Text style={[styles.rowTitle, isVerified && styles.rowTitleVerified]}>
+          {titleForTemplate(item.templateCode)}
+        </Text>
         <Text style={styles.rowText} numberOfLines={3}>{item.renderedContent}</Text>
         <Text style={styles.rowTime}>{formatWhen(item.createdAt)}</Text>
       </View>
@@ -153,13 +203,17 @@ const styles = StyleSheet.create({
     shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 8, elevation: 2,
   },
   rowUnread: { borderWidth: 1, borderColor: Colors.primaryLight },
+  rowVerified: { borderWidth: 1, borderColor: '#A7F3D0', backgroundColor: '#ECFDF5' },
   rowPressed: { opacity: 0.7 },
   iconBox: {
     width: 40, height: 40, borderRadius: Radius.sm, backgroundColor: Colors.neutralLight,
     alignItems: 'center', justifyContent: 'center',
   },
   iconBoxUnread: { backgroundColor: Colors.primarySurface },
+  iconBoxVerified: { backgroundColor: '#D1FAE5' },
   rowBody: { flex: 1, gap: 3 },
+  rowTitle: { fontSize: FontSize.sm, fontWeight: '700', color: Colors.textPrimary },
+  rowTitleVerified: { color: '#065F46' },
   rowText: { fontSize: FontSize.sm, color: Colors.textPrimary, lineHeight: 19 },
   rowTime: { fontSize: FontSize.xs, color: Colors.neutralMuted, marginTop: 2 },
   unreadDot: {
