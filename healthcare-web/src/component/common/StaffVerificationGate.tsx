@@ -9,7 +9,7 @@ import { API } from '../../constant/apiUrls';
 import type { UserProfile } from '../../types/auth.types';
 import { SidebarLayout } from '../admin/SidebarLayout';
 
-const STATUS_POLL_MS = 20_000;
+const STATUS_POLL_MS = 6_000;
 
 // Sits between ProtectedRoute and the staff dashboard. ADMIN passes through
 // untouched. STAFF with verificationStatus === 'VERIFIED' also passes through.

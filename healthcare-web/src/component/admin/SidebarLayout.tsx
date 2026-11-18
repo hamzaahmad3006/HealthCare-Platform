@@ -100,7 +100,6 @@ const STAFF_NAV_GROUPS: NavGroup[] = [
       { to: '/staff/reports', label: 'My Reports', icon: FileText },
       { to: '/staff/documents', label: 'My Documents', icon: FolderUp },
       { to: '/staff/profile', label: 'My Profile', icon: UserCircle },
-      { to: '/staff/notifications', label: 'Notifications', icon: Bell },
     ],
   },
 ];
