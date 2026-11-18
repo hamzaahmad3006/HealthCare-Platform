@@ -29,7 +29,9 @@ type TemplateCode =
   | 'VISIT_REMINDER'
   | 'REPORT_AVAILABLE'
   | 'STAFF_VERIFIED'
+  | 'STAFF_REVIEW_PENDING'
   | 'DOCTOR_BOOKING_REQUEST'
+  | 'DOCTOR_ACCEPTED'
   | 'DOCTOR_TIME_ACCEPTED';
 
 interface NotifItem {
@@ -37,23 +39,29 @@ interface NotifItem {
   templateCode: string;
   renderedContent: string;
   bookingId: string | null;
+  staffUserId?: string | null;
   createdAt: string;
   sentAt: string | null;
   userId?: string | null;
 }
 
-const TEMPLATE_META: Record<TemplateCode, { label: string; Icon: React.ElementType; color: string }> = {
-  BOOKING_RECEIVED:       { label: 'Booking received',        Icon: CalendarClock, color: 'text-brand-500'   },
+const TEMPLATE_META: Record<
+  TemplateCode,
+  { label: string; adminLabel?: string; Icon: React.ElementType; color: string }
+> = {
+  BOOKING_RECEIVED:       { label: 'Booking received',        adminLabel: '🚨 New booking — assign staff',     Icon: CalendarClock, color: 'text-brand-600'   },
   BOOKING_CONFIRMED:      { label: 'Booking confirmed',       Icon: CalendarCheck, color: 'text-success-600' },
-  BOOKING_CANCELLED:      { label: 'Booking cancelled',       Icon: CalendarClock, color: 'text-danger-600'  },
+  BOOKING_CANCELLED:      { label: 'Booking cancelled',       adminLabel: '⚠️ Booking cancelled',              Icon: CalendarClock, color: 'text-danger-600'  },
   STAFF_ASSIGNED:         { label: 'New visit assigned',      Icon: ClipboardList, color: 'text-brand-600'   },
   STAFF_EN_ROUTE:         { label: 'Staff on the way',        Icon: MapPin,        color: 'text-accent-600'  },
-  VISIT_COMPLETED:        { label: 'Visit completed',         Icon: CheckCircle2,  color: 'text-success-600' },
+  VISIT_COMPLETED:        { label: 'Visit completed',         adminLabel: '✅ Visit completed by staff',       Icon: CheckCircle2,  color: 'text-success-600' },
   VISIT_REMINDER:         { label: 'Upcoming visit reminder', Icon: Clock,         color: 'text-amber-600'   },
-  REPORT_AVAILABLE:       { label: 'New report available',    Icon: FileText,      color: 'text-info-600'    },
+  REPORT_AVAILABLE:       { label: 'New report available',    adminLabel: '📄 Clinical report uploaded',       Icon: FileText,      color: 'text-info-600'    },
   STAFF_VERIFIED:         { label: '🎉 Account verified!',    Icon: Sparkles,      color: 'text-emerald-600' },
+  STAFF_REVIEW_PENDING:   { label: '📋 Staff verification pending', adminLabel: '📋 Staff verification pending', Icon: UserCheck, color: 'text-amber-600' },
   DOCTOR_BOOKING_REQUEST: { label: 'New doctor request',      Icon: UserCheck,     color: 'text-brand-600'   },
-  DOCTOR_TIME_ACCEPTED:   { label: 'Proposed time accepted',  Icon: CalendarCheck, color: 'text-success-600' },
+  DOCTOR_ACCEPTED:        { label: 'Doctor accepted',         adminLabel: '👨‍⚕️ Doctor accepted — confirm now', Icon: UserCheck,     color: 'text-emerald-600' },
+  DOCTOR_TIME_ACCEPTED:   { label: 'Proposed time accepted',  adminLabel: '📅 Time accepted — confirm now',    Icon: CalendarCheck, color: 'text-success-600' },
 };
 
 const POLL_INTERVAL_MS = 6_000;
@@ -106,16 +114,18 @@ export function NotificationBell(): JSX.Element {
           `${API.NOTIFICATIONS.LIST}?scope=personal`,
         );
         const raw = Array.isArray(data.data) ? data.data : [];
+        const adminAllowedCodes = new Set([
+          'STAFF_REVIEW_PENDING',
+          'BOOKING_RECEIVED',
+          'BOOKING_CANCELLED',
+          'DOCTOR_ACCEPTED',
+          'DOCTOR_TIME_ACCEPTED',
+          'VISIT_COMPLETED',
+          'REPORT_AVAILABLE',
+        ]);
         const list = raw.filter((item) => {
           if (role === 'ADMIN') {
-            // Admin personal bell should only show notifications addressed to Admin,
-            // never staff congratulation or invite messages.
-            if (item.templateCode === 'STAFF_VERIFIED' || item.templateCode === 'STAFF_INVITE') {
-              return false;
-            }
-            if (item.userId && item.userId !== userId) {
-              return false;
-            }
+            return adminAllowedCodes.has(item.templateCode);
           }
           return true;
         });
@@ -237,7 +247,11 @@ export function NotificationBell(): JSX.Element {
                 const isVerifiedCard = n.templateCode === 'STAFF_VERIFIED';
                 const Icon = meta?.Icon ?? Bell;
                 const color = meta?.color ?? 'text-ink-400';
-                const href = buildNotificationLink(role, n.templateCode, n.bookingId);
+                const href = buildNotificationLink(role, n.templateCode, n.bookingId, n.staffUserId);
+                const titleLabel =
+                  role === 'ADMIN' && meta?.adminLabel
+                    ? meta.adminLabel
+                    : meta?.label ?? n.templateCode;
 
                 const inner = (
                   <>
@@ -260,7 +274,7 @@ export function NotificationBell(): JSX.Element {
                           isVerifiedCard ? 'text-emerald-900' : 'text-ink-900',
                         )}
                       >
-                        {meta?.label ?? n.templateCode}
+                        {titleLabel}
                       </p>
                       <p
                         className={clsx(

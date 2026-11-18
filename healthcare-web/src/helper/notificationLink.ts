@@ -7,8 +7,12 @@ export function buildNotificationLink(
   role: string | undefined,
   templateCode: string,
   bookingId: string | null,
+  staffUserId?: string | null,
 ): string | null {
   if (templateCode === 'STAFF_VERIFIED' && role === 'STAFF') return '/staff/visits';
+  if (templateCode === 'STAFF_REVIEW_PENDING' && role === 'ADMIN') {
+    return staffUserId ? `/admin/staff/${staffUserId}` : '/admin/staff';
+  }
   if (!bookingId) return null;
   if (role === 'CUSTOMER') {
     return templateCode === 'REPORT_AVAILABLE' ? '/my-reports' : `/my-bookings/${bookingId}`;
