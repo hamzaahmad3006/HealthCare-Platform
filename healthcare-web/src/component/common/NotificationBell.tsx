@@ -39,6 +39,7 @@ interface NotifItem {
   bookingId: string | null;
   createdAt: string;
   sentAt: string | null;
+  userId?: string | null;
 }
 
 const TEMPLATE_META: Record<TemplateCode, { label: string; Icon: React.ElementType; color: string }> = {
@@ -102,9 +103,22 @@ export function NotificationBell(): JSX.Element {
       if (showSpinner) setLoading(true);
       try {
         const { data } = await api.get<{ success: true; data: NotifItem[] }>(
-          API.NOTIFICATIONS.LIST,
+          `${API.NOTIFICATIONS.LIST}?scope=personal`,
         );
-        const list = Array.isArray(data.data) ? data.data : [];
+        const raw = Array.isArray(data.data) ? data.data : [];
+        const list = raw.filter((item) => {
+          if (role === 'ADMIN') {
+            // Admin personal bell should only show notifications addressed to Admin,
+            // never staff congratulation or invite messages.
+            if (item.templateCode === 'STAFF_VERIFIED' || item.templateCode === 'STAFF_INVITE') {
+              return false;
+            }
+            if (item.userId && item.userId !== userId) {
+              return false;
+            }
+          }
+          return true;
+        });
         notifsCache.set(userId, list);
         setNotifs(list);
       } catch {
@@ -113,7 +127,7 @@ export function NotificationBell(): JSX.Element {
         if (showSpinner) setLoading(false);
       }
     },
-    [userId],
+    [userId, role],
   );
 
   // Close dropdown when clicking outside

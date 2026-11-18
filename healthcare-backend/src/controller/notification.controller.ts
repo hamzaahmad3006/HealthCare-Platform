@@ -15,6 +15,7 @@ const NOTIF_SELECT = {
   status: true,
   sentAt: true,
   createdAt: true,
+  userId: true,
 } as const;
 
 export const notificationController = {
@@ -23,11 +24,12 @@ export const notificationController = {
       if (!req.user) throw new UnauthorizedError('UNAUTHENTICATED');
 
       const { role, sub } = req.user;
+      const personalOnly = req.query['scope'] === 'personal' || req.query['personal'] === 'true';
 
       // A personal feed contains this user's messages, not every message about
-      // a booking they once worked on. Current booking access also preserves
-      // eligible preferred doctors' requests before a visit is assigned.
-      const where = role === 'ADMIN' ? {} : {
+      // a booking they once worked on. When scope=personal is requested (e.g.
+      // personal header bell), admin only receives their own notifications.
+      const where = role === 'ADMIN' && !personalOnly ? {} : {
         userId: sub,
         OR: [
           { bookingId: null },
