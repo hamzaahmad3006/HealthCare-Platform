@@ -60,6 +60,8 @@ interface UseCreateStaffReturn {
   customerMatch: CustomerMatch | null;
   clearCustomerMatch: () => void;
   convertCustomer: (userId: string) => Promise<void>;
+  convertingCustomerId: string | null;
+  promotedCustomerIds: Record<string, boolean>;
 
   // Dedicated Tab and Search
   activeTab: 'invite' | 'convert';
@@ -74,6 +76,8 @@ interface UseCreateStaffReturn {
 export function useCreateStaff(): UseCreateStaffReturn {
   const [activeTab, setActiveTab] = useState<'invite' | 'convert'>('invite');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [convertingCustomerId, setConvertingCustomerId] = useState<string | null>(null);
+  const [promotedCustomerIds, setPromotedCustomerIds] = useState<Record<string, boolean>>({});
   const [result, setResult] = useState<CreateStaffSuccess | null>(null);
   const [customerMatch, setCustomerMatch] = useState<CustomerMatch | null>(null);
 
@@ -123,11 +127,13 @@ export function useCreateStaff(): UseCreateStaffReturn {
 
   const convertCustomer = async (userId: string): Promise<void> => {
     setIsSubmitting(true);
+    setConvertingCustomerId(userId);
     try {
       const { data } = await api.post<{ success: true; data: CreateStaffSuccess }>(
         API.STAFF.CONVERT_CUSTOMER,
         { userId },
       );
+      setPromotedCustomerIds((prev) => ({ ...prev, [userId]: true }));
       setResult({ ...data.data, isConverted: true });
       setCustomerMatch(null);
       form.reset();
@@ -136,6 +142,7 @@ export function useCreateStaff(): UseCreateStaffReturn {
       toast.error(extractApiError(err).message);
     } finally {
       setIsSubmitting(false);
+      setConvertingCustomerId(null);
     }
   };
 
@@ -169,6 +176,8 @@ export function useCreateStaff(): UseCreateStaffReturn {
     customerMatch,
     clearCustomerMatch: () => setCustomerMatch(null),
     convertCustomer,
+    convertingCustomerId,
+    promotedCustomerIds,
     activeTab,
     setActiveTab,
     customerSearchQuery,

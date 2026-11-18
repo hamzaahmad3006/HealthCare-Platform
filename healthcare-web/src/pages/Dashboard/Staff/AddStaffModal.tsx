@@ -67,7 +67,11 @@ export function AddStaffModal({ open, onClose, onCreated }: AddStaffModalProps):
             >
               <Dialog.Panel className="w-full max-w-lg bg-white rounded-2xl shadow-card-hover ring-1 ring-ink-100 overflow-hidden">
                 {c.result ? (
-                  <SuccessView result={c.result} onClose={handleClose} />
+                  <SuccessView
+                    result={c.result}
+                    onClose={handleClose}
+                    onBackToList={c.result.isConverted ? () => c.resetResult() : undefined}
+                  />
                 ) : (
                   <>
                     {/* Header */}
@@ -255,6 +259,8 @@ export function AddStaffModal({ open, onClose, onCreated }: AddStaffModalProps):
                         customers={c.customerSearchResults}
                         onConvert={(userId) => void c.convertCustomer(userId)}
                         isSubmitting={c.isSubmitting}
+                        convertingCustomerId={c.convertingCustomerId}
+                        promotedCustomerIds={c.promotedCustomerIds}
                         onClose={onClose}
                       />
                     )}
@@ -278,6 +284,8 @@ function ConvertCustomerTab({
   customers,
   onConvert,
   isSubmitting,
+  convertingCustomerId,
+  promotedCustomerIds,
   onClose,
 }: {
   isSearching: boolean;
@@ -286,6 +294,8 @@ function ConvertCustomerTab({
   customers: CustomerSearchResult[];
   onConvert: (userId: string) => void;
   isSubmitting: boolean;
+  convertingCustomerId: string | null;
+  promotedCustomerIds: Record<string, boolean>;
   onClose: () => void;
 }): JSX.Element {
   return (
@@ -317,40 +327,61 @@ function ConvertCustomerTab({
             </p>
           </div>
         ) : (
-          customers.map((cust) => (
-            <div
-              key={cust.id}
-              className="flex items-center justify-between p-3.5 rounded-xl border border-ink-100 hover:border-emerald-200 bg-white hover:bg-emerald-50/30 transition-all"
-            >
-              <div className="flex items-center gap-3 min-w-0">
-                <div className="h-9 w-9 rounded-xl bg-gradient-brand text-white flex items-center justify-center font-bold text-xs shrink-0 shadow-sm">
-                  {cust.fullName.slice(0, 2).toUpperCase()}
-                </div>
-                <div className="min-w-0">
-                  <h4 className="text-sm font-semibold text-ink-900 truncate">
-                    {cust.fullName}
-                  </h4>
-                  <p className="text-xs text-ink-500 truncate">
-                    {cust.email ?? 'No email'} · {cust.phone}
-                  </p>
-                  <p className="text-2xs text-ink-400 flex items-center gap-1 mt-0.5">
-                    <Calendar className="h-3 w-3" />
-                    Joined {new Date(cust.createdAt).toLocaleDateString()}
-                  </p>
-                </div>
-              </div>
+          customers.map((cust) => {
+            const isThisConverting = convertingCustomerId === cust.id;
+            const isPromoted = Boolean(promotedCustomerIds[cust.id]);
 
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={() => onConvert(cust.id)}
-                isLoading={isSubmitting}
-                leftIcon={<Sparkles className="h-3.5 w-3.5 text-emerald-600" />}
+            return (
+              <div
+                key={cust.id}
+                className={`flex items-center justify-between p-3.5 rounded-xl border transition-all ${
+                  isPromoted
+                    ? 'border-emerald-200 bg-emerald-50/40'
+                    : 'border-ink-100 hover:border-emerald-200 bg-white hover:bg-emerald-50/30'
+                }`}
               >
-                Promote
-              </Button>
-            </div>
-          ))
+                <div className="flex items-center gap-3 min-w-0">
+                  <div
+                    className={`h-9 w-9 rounded-xl flex items-center justify-center font-bold text-xs shrink-0 shadow-sm ${
+                      isPromoted ? 'bg-emerald-600 text-white' : 'bg-gradient-brand text-white'
+                    }`}
+                  >
+                    {cust.fullName.slice(0, 2).toUpperCase()}
+                  </div>
+                  <div className="min-w-0">
+                    <h4 className="text-sm font-semibold text-ink-900 truncate">
+                      {cust.fullName}
+                    </h4>
+                    <p className="text-xs text-ink-500 truncate">
+                      {cust.email ?? 'No email'} · {cust.phone}
+                    </p>
+                    <p className="text-2xs text-ink-400 flex items-center gap-1 mt-0.5">
+                      <Calendar className="h-3 w-3" />
+                      Joined {new Date(cust.createdAt).toLocaleDateString()}
+                    </p>
+                  </div>
+                </div>
+
+                {isPromoted ? (
+                  <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold bg-emerald-100/80 text-emerald-800 border border-emerald-300 shadow-xs">
+                    <CheckCircle2 className="h-4 w-4 text-emerald-600" />
+                    Promoted · Verification Email Sent
+                  </span>
+                ) : (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => onConvert(cust.id)}
+                    isLoading={isThisConverting}
+                    disabled={isSubmitting}
+                    leftIcon={<Sparkles className="h-3.5 w-3.5 text-emerald-600" />}
+                  >
+                    Promote
+                  </Button>
+                )}
+              </div>
+            );
+          })
         )}
       </div>
 
@@ -368,9 +399,11 @@ function ConvertCustomerTab({
 function SuccessView({
   result,
   onClose,
+  onBackToList,
 }: {
   result: CreateStaffSuccess;
   onClose: () => void;
+  onBackToList?: () => void;
 }): JSX.Element {
   const copyPassword = async (): Promise<void> => {
     await navigator.clipboard.writeText(result.tempPassword);
@@ -379,7 +412,7 @@ function SuccessView({
 
   return (
     <div className="px-6 py-6">
-      <div className="flex items-center gap-3 mb-5">
+      <div className="flex items-center gap-3 mb-4">
         <div className="h-12 w-12 rounded-xl bg-emerald-50 text-emerald-700 flex items-center justify-center shadow-sm">
           <CheckCircle2 className="h-6 w-6" />
         </div>
@@ -389,6 +422,18 @@ function SuccessView({
           </Dialog.Title>
           <p className="text-sm text-ink-600">
             {result.fullName} · {result.staffCode}
+          </p>
+        </div>
+      </div>
+
+      <div className="rounded-xl bg-emerald-50 ring-1 ring-emerald-200/80 p-3.5 mb-4 text-xs text-emerald-900 flex items-start gap-2.5">
+        <CheckCircle2 className="h-4 w-4 text-emerald-600 shrink-0 mt-0.5" />
+        <div>
+          <p className="font-semibold text-emerald-950">
+            {result.isConverted ? 'Customer successfully promoted to Staff!' : 'Staff invite sent!'}
+          </p>
+          <p className="text-emerald-800 mt-0.5">
+            Verification email aur temporary login credentials <strong>{result.email ?? result.phone}</strong> ko dispatch kar diye gaye hain.
           </p>
         </div>
       </div>
@@ -440,7 +485,12 @@ function SuccessView({
         </div>
       ) : null}
 
-      <div className="flex justify-end">
+      <div className="flex justify-end gap-2">
+        {onBackToList ? (
+          <Button variant="outline" onClick={onBackToList}>
+            Back to Customers
+          </Button>
+        ) : null}
         <Button onClick={onClose}>Done</Button>
       </div>
     </div>
