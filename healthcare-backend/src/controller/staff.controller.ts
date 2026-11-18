@@ -116,6 +116,8 @@ async function executeCustomerConversion(targetUser: {
       data: {
         role: 'STAFF',
         passwordHash,
+        phoneVerified: true,
+        ...(targetUser.email ? { emailVerified: true } : {}),
       },
     });
 
@@ -245,6 +247,8 @@ export const staffController = {
             email: data.email,
             passwordHash,
             status: 'ACTIVE',
+            phoneVerified: true,
+            emailVerified: Boolean(data.email),
           },
         });
 
@@ -495,6 +499,13 @@ export const staffController = {
             verificationStatus: 'VERIFIED',
             verifiedAt: new Date(),
             verifiedByUserId: req.user!.sub,
+          },
+        });
+        await tx.user?.update?.({
+          where: { id: userId },
+          data: {
+            phoneVerified: true,
+            ...(staff.user.email ? { emailVerified: true } : {}),
           },
         });
         // Re-verifying an already verified staff must not spam them again.

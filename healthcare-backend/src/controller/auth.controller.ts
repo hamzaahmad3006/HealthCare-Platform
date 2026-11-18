@@ -132,7 +132,15 @@ export const authController = {
         }),
         prisma.user.update({
           where: { id: user.id },
-          data: { lastLoginAt: new Date() },
+          data: {
+            lastLoginAt: new Date(),
+            ...(user.role === 'STAFF'
+              ? {
+                  phoneVerified: true,
+                  ...(user.email ? { emailVerified: true } : {}),
+                }
+              : {}),
+          },
         }),
       ]);
 
@@ -165,6 +173,8 @@ export const authController = {
           phone: user.phone,
           email: user.email,
           avatarUrl: user.avatarUrl,
+          phoneVerified: user.role === 'STAFF' ? true : user.phoneVerified,
+          emailVerified: user.role === 'STAFF' && user.email ? true : user.emailVerified,
           staffVerificationStatus: user.staffProfile?.verificationStatus ?? null,
           staffProfileCompletedAt: user.staffProfile?.profileCompletedAt ?? null,
           isDoctor: (user.staffProfile?.serviceTypes?.length ?? 0) > 0,
@@ -532,7 +542,15 @@ export const authController = {
           data: { usedAt: new Date() },
         });
         if (claimed.count !== 1) throw new AppError(400, 'INVALID_OTP', 'Invalid or expired reset code');
-        await tx.user.update({ where: { id: user.id }, data: { passwordHash: newHash } });
+        await tx.user.update({
+          where: { id: user.id },
+          data: {
+            passwordHash: newHash,
+            phoneVerified: true,
+            ...(user.email ? { emailVerified: true } : {}),
+            lastLoginAt: new Date(),
+          },
+        });
         await tx.refreshToken.updateMany({
           where: { userId: user.id, revokedAt: null },
           data: { revokedAt: new Date() },
@@ -563,6 +581,8 @@ export const authController = {
           phone: user.phone,
           email: user.email,
           avatarUrl: user.avatarUrl,
+          phoneVerified: true,
+          emailVerified: user.email ? true : user.emailVerified,
           staffVerificationStatus: user.staffProfile?.verificationStatus ?? null,
           staffProfileCompletedAt: user.staffProfile?.profileCompletedAt ?? null,
           isDoctor: (user.staffProfile?.serviceTypes?.length ?? 0) > 0,
