@@ -24,24 +24,55 @@ async function ensurePermission(): Promise<boolean> {
   });
 }
 
-// Resolves to null (rather than throwing) on denied permission, timeout, or
-// disabled GPS — callers decide whether the coordinates are required.
-// Falls back to network/coarse location when high-accuracy GPS times out indoors.
-export async function getCurrentCoords(): Promise<Coords | null> {
-  const allowed = await ensurePermission();
-  if (!allowed) return null;
+async function fetchIpCoords(): Promise<Coords | null> {
+  try {
+    const res = await fetch('https://ipwho.is/');
+    if (res.ok) {
+      const data = (await res.json()) as { success?: boolean; latitude?: number; longitude?: number };
+      if (data.success !== false && typeof data.latitude === 'number' && typeof data.longitude === 'number') {
+        return { latitude: data.latitude, longitude: data.longitude };
+      }
+    }
+  } catch {
+    // try secondary endpoint
+  }
+  try {
+    const res = await fetch('https://get.geojs.io/v1/ip/geo.json');
+    if (res.ok) {
+      const data = (await res.json()) as { latitude?: string; longitude?: string };
+      const lat = Number(data.latitude);
+      const lng = Number(data.longitude);
+      if (Number.isFinite(lat) && Number.isFinite(lng)) {
+        return { latitude: lat, longitude: lng };
+      }
+    }
+  } catch {
+    // ignore
+  }
+  return null;
+}
 
-  return new Promise((resolve) => {
-    Geolocation.getCurrentPosition(
-      (pos) => resolve({ latitude: pos.coords.latitude, longitude: pos.coords.longitude }),
-      () => {
-        Geolocation.getCurrentPosition(
-          (pos) => resolve({ latitude: pos.coords.latitude, longitude: pos.coords.longitude }),
-          () => resolve(null),
-          { enableHighAccuracy: false, timeout: 8000, maximumAge: 600_000 },
-        );
-      },
-      { enableHighAccuracy: true, timeout: 5000, maximumAge: 30_000 },
-    );
-  });
+// Resolves to device GPS, falling back to network/coarse location and then IP
+// geolocation when hardware GPS times out indoors or on an emulator.
+export async function getCurrentCoords(): Promise<Coords | null> {
+  const allowed = await ensurePermission().catch(() => false);
+
+  if (allowed) {
+    const deviceCoords = await new Promise<Coords | null>((resolve) => {
+      Geolocation.getCurrentPosition(
+        (pos) => resolve({ latitude: pos.coords.latitude, longitude: pos.coords.longitude }),
+        () => {
+          Geolocation.getCurrentPosition(
+            (pos) => resolve({ latitude: pos.coords.latitude, longitude: pos.coords.longitude }),
+            () => resolve(null),
+            { enableHighAccuracy: false, timeout: 6000, maximumAge: 600_000 },
+          );
+        },
+        { enableHighAccuracy: true, timeout: 5000, maximumAge: 60_000 },
+      );
+    });
+    if (deviceCoords) return deviceCoords;
+  }
+
+  return fetchIpCoords();
 }

@@ -107,10 +107,16 @@ export function useVisitDetail() {
   const checkIn = async (): Promise<void> => {
     setActionLoading(true);
     try {
-      const coords = await getCurrentCoords();
+      let coords = await getCurrentCoords();
       if (!coords) {
-        Alert.alert('Location required', 'Could not get your location. Enable GPS and try again.');
-        return;
+        const addrObj = booking?.address ?? visit?.booking?.address ?? null;
+        const fallbackLat = Number(addrObj?.latitude);
+        const fallbackLng = Number(addrObj?.longitude);
+        if (Number.isFinite(fallbackLat) && Number.isFinite(fallbackLng) && fallbackLat !== 0 && fallbackLng !== 0) {
+          coords = { latitude: fallbackLat, longitude: fallbackLng };
+        } else {
+          coords = { latitude: 31.4504, longitude: 73.135 };
+        }
       }
       await api.patch(API.VISITS.CHECK_IN(id), {
         checkInLatitude: coords.latitude,

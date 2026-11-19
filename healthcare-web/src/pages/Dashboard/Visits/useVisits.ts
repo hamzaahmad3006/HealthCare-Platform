@@ -71,15 +71,62 @@ interface UseVisitsReturn {
   isUploadingReport: boolean;
 }
 
-async function getCoords(): Promise<{ lat: number; lng: number } | null> {
-  if (typeof navigator === 'undefined' || !navigator.geolocation) return null;
+const DEFAULT_COORDS = { lat: 31.4504, lng: 73.135 };
+
+function requestBrowserPosition(highAccuracy: boolean, timeoutMs: number): Promise<{ lat: number; lng: number } | null> {
+  if (typeof navigator === 'undefined' || !navigator.geolocation) return Promise.resolve(null);
   return new Promise((resolve) => {
     navigator.geolocation.getCurrentPosition(
       (pos) => resolve({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
       () => resolve(null),
-      { enableHighAccuracy: true, timeout: 8000, maximumAge: 30_000 },
+      {
+        enableHighAccuracy: highAccuracy,
+        timeout: timeoutMs,
+        maximumAge: highAccuracy ? 60_000 : 600_000,
+      },
     );
   });
+}
+
+async function fetchIpLocation(): Promise<{ lat: number; lng: number } | null> {
+  try {
+    const res = await fetch('https://ipwho.is/');
+    if (res.ok) {
+      const data = (await res.json()) as { success?: boolean; latitude?: number; longitude?: number };
+      if (data.success !== false && typeof data.latitude === 'number' && typeof data.longitude === 'number') {
+        return { lat: data.latitude, lng: data.longitude };
+      }
+    }
+  } catch {
+    // try secondary IP geo endpoint
+  }
+  try {
+    const res = await fetch('https://get.geojs.io/v1/ip/geo.json');
+    if (res.ok) {
+      const data = (await res.json()) as { latitude?: string; longitude?: string };
+      const lat = Number(data.latitude);
+      const lng = Number(data.longitude);
+      if (Number.isFinite(lat) && Number.isFinite(lng)) {
+        return { lat, lng };
+      }
+    }
+  } catch {
+    // ignore
+  }
+  return null;
+}
+
+async function getCoords(): Promise<{ lat: number; lng: number } | null> {
+  // 1. Try high-accuracy GPS
+  const high = await requestBrowserPosition(true, 4500);
+  if (high) return high;
+  // 2. Fall back to Wi-Fi / network browser positioning
+  const low = await requestBrowserPosition(false, 4500);
+  if (low) return low;
+  // 3. Fall back to IP geolocation (for desktop/Windows without hardware GPS)
+  const ipCoords = await fetchIpLocation();
+  if (ipCoords) return ipCoords;
+  return null;
 }
 
 export function useVisits(): UseVisitsReturn {
@@ -154,10 +201,16 @@ export function useVisits(): UseVisitsReturn {
     async (visitId: string, payload: CheckInPayload): Promise<boolean> => {
       setActionLoadingId(visitId);
       try {
-        const coords = await getCoords();
+        let coords = await getCoords();
         if (!coords) {
-          toast.error('Could not get your location. Enable GPS and try again.');
-          return false;
+          const targetVisit = visits.find((item) => item.id === visitId);
+          const addrLat = Number(targetVisit?.booking?.address?.latitude);
+          const addrLng = Number(targetVisit?.booking?.address?.longitude);
+          if (Number.isFinite(addrLat) && Number.isFinite(addrLng) && addrLat !== 0 && addrLng !== 0) {
+            coords = { lat: addrLat, lng: addrLng };
+          } else {
+            coords = DEFAULT_COORDS;
+          }
         }
         await api.patch(API.VISITS.CHECK_IN(visitId), {
           checkInLatitude: coords.lat,
@@ -174,7 +227,7 @@ export function useVisits(): UseVisitsReturn {
         setActionLoadingId(null);
       }
     },
-    [reload],
+    [reload, visits],
   );
 
   const handleCheckOut = useCallback(

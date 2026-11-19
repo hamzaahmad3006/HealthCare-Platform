@@ -185,44 +185,84 @@ export function LocationPicker({
     [],
   );
 
-  // Detect user's real GPS location via browser geolocation API
+  // Detect user's real GPS location via browser geolocation API (with Wi-Fi & IP fallbacks)
   const detectCurrentLocation = useCallback(
     (silent = false): void => {
-      if (!('geolocation' in navigator)) {
-        if (!silent) {
-          setSearchError('GPS geolocation is not supported by your browser.');
-        }
-        return;
-      }
-
       setLocatingGps(true);
       if (!silent) setSearchError(null);
 
-      navigator.geolocation.getCurrentPosition(
-        (pos) => {
-          const lat = pos.coords.latitude;
-          const lng = pos.coords.longitude;
-          setLocatingGps(false);
-          setCandidates([]);
-          onChange({ lat, lng, resolvedAddress: 'Detecting address from your GPS location…' });
-          void reverseGeocode(lat, lng);
-        },
-        (err) => {
-          setLocatingGps(false);
-          if (!silent) {
-            if (err.code === err.PERMISSION_DENIED) {
-              setSearchError(
-                'Location permission denied. Please allow location access in your browser address bar, or search your area above.',
-              );
-            } else {
-              setSearchError('Could not detect GPS signal. You can search your area or tap on the map.');
+      const applyCoordinates = (lat: number, lng: number): void => {
+        setLocatingGps(false);
+        setCandidates([]);
+        onChange({ lat, lng, resolvedAddress: 'Detecting address from your location…' });
+        void reverseGeocode(lat, lng);
+      };
+
+      const fallbackToIpGeo = async (permissionDenied: boolean): Promise<void> => {
+        try {
+          const res = await fetch('https://ipwho.is/');
+          if (res.ok) {
+            const data = (await res.json()) as { success?: boolean; latitude?: number; longitude?: number };
+            if (data.success !== false && typeof data.latitude === 'number' && typeof data.longitude === 'number') {
+              applyCoordinates(data.latitude, data.longitude);
+              return;
             }
           }
+        } catch {
+          // try secondary IP geo endpoint
+        }
+        try {
+          const res = await fetch('https://get.geojs.io/v1/ip/geo.json');
+          if (res.ok) {
+            const data = (await res.json()) as { latitude?: string; longitude?: string };
+            const lat = Number(data.latitude);
+            const lng = Number(data.longitude);
+            if (Number.isFinite(lat) && Number.isFinite(lng)) {
+              applyCoordinates(lat, lng);
+              return;
+            }
+          }
+        } catch {
+          // ignore
+        }
+
+        setLocatingGps(false);
+        if (!silent) {
+          if (permissionDenied) {
+            setSearchError(
+              'Location permission denied. Please allow location access in your browser address bar, or search your area above.',
+            );
+          } else {
+            setSearchError('Could not detect GPS signal. You can search your area or tap on the map.');
+          }
+        }
+      };
+
+      if (!('geolocation' in navigator)) {
+        void fallbackToIpGeo(false);
+        return;
+      }
+
+      navigator.geolocation.getCurrentPosition(
+        (pos) => applyCoordinates(pos.coords.latitude, pos.coords.longitude),
+        (err) => {
+          // Retry with low-accuracy (Wi-Fi / network location) before falling back to IP location
+          navigator.geolocation.getCurrentPosition(
+            (pos2) => applyCoordinates(pos2.coords.latitude, pos2.coords.longitude),
+            () => {
+              void fallbackToIpGeo(err.code === err.PERMISSION_DENIED);
+            },
+            {
+              enableHighAccuracy: false,
+              timeout: 6000,
+              maximumAge: 600_000,
+            },
+          );
         },
         {
           enableHighAccuracy: true,
-          timeout: 10000,
-          maximumAge: 0,
+          timeout: 5000,
+          maximumAge: 60_000,
         },
       );
     },
