@@ -11,6 +11,7 @@ import {
   Sparkles,
   UserCheck,
   Clock,
+  Star,
 } from 'lucide-react';
 import clsx from 'clsx';
 import { useAppSelector } from '../../redux/store';
@@ -25,7 +26,9 @@ type TemplateCode =
   | 'BOOKING_CANCELLED'
   | 'STAFF_ASSIGNED'
   | 'STAFF_EN_ROUTE'
+  | 'STAFF_CHECKED_IN'
   | 'VISIT_COMPLETED'
+  | 'FEEDBACK_REMINDER'
   | 'VISIT_REMINDER'
   | 'REPORT_AVAILABLE'
   | 'STAFF_VERIFIED'
@@ -54,7 +57,9 @@ const TEMPLATE_META: Record<
   BOOKING_CANCELLED:      { label: 'Booking cancelled',       adminLabel: '⚠️ Booking cancelled',              Icon: CalendarClock, color: 'text-danger-600'  },
   STAFF_ASSIGNED:         { label: 'New visit assigned',      Icon: ClipboardList, color: 'text-brand-600'   },
   STAFF_EN_ROUTE:         { label: 'Staff on the way',        Icon: MapPin,        color: 'text-accent-600'  },
+  STAFF_CHECKED_IN:       { label: '🏥 Staff checked in',     Icon: CheckCircle2,  color: 'text-emerald-600' },
   VISIT_COMPLETED:        { label: 'Visit completed',         adminLabel: '✅ Visit completed by staff',       Icon: CheckCircle2,  color: 'text-success-600' },
+  FEEDBACK_REMINDER:      { label: '⭐ Rate your staff visit', Icon: Star,          color: 'text-amber-500'   },
   VISIT_REMINDER:         { label: 'Upcoming visit reminder', Icon: Clock,         color: 'text-amber-600'   },
   REPORT_AVAILABLE:       { label: 'New report available',    adminLabel: '📄 Clinical report uploaded',       Icon: FileText,      color: 'text-info-600'    },
   STAFF_VERIFIED:         { label: '🎉 Account verified!',    Icon: Sparkles,      color: 'text-emerald-600' },

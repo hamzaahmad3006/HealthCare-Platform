@@ -26,6 +26,9 @@ export function useBookingDetail(
   const [cancelling, setCancelling] = useState(false);
   const [cancelModalVisible, setCancelModalVisible] = useState(false);
   const [cancelReason, setCancelReason] = useState('');
+  const [rating, setRating] = useState(0);
+  const [reviewText, setReviewText] = useState('');
+  const [submittingReview, setSubmittingReview] = useState(false);
 
   const fetchBooking = useCallback(async (silent = false): Promise<void> => {
     const token = ++requestSequence.current;
@@ -97,6 +100,27 @@ export function useBookingDetail(
     finally { setActingTime(false); }
   };
 
+  const submitReview = async (): Promise<void> => {
+    if (rating < 1 || rating > 5) {
+      Alert.alert('Rating required', 'Please select a star rating between 1 and 5.');
+      return;
+    }
+    setSubmittingReview(true);
+    try {
+      await api.post('/reviews', {
+        bookingId: id,
+        rating,
+        ...(reviewText.trim() ? { reviewText: reviewText.trim() } : {}),
+      });
+      Alert.alert('Thank you!', 'Your feedback for the staff visit has been submitted.');
+      await fetchBooking(true);
+    } catch (err) {
+      Alert.alert('Error', extractApiError(err));
+    } finally {
+      setSubmittingReview(false);
+    }
+  };
+
   return {
     booking,
     loading, error, reload: fetchBooking, actingTime, handleTimeResponse,
@@ -108,5 +132,11 @@ export function useBookingDetail(
     openCancelModal,
     closeCancelModal,
     confirmCancel,
+    rating,
+    setRating,
+    reviewText,
+    setReviewText,
+    submittingReview,
+    submitReview,
   };
 }

@@ -48,4 +48,10 @@ export interface BookingDetail extends Booking {
     status: string;
     assignedStaff: { user: { fullName: string } } | null;
   }>;
+  reviews?: Array<{
+    id: string;
+    rating: number;
+    reviewText: string | null;
+    createdAt: string;
+  }>;
 }

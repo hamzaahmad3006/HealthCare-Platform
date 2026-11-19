@@ -44,11 +44,16 @@ export const reviewController = {
         if (visit && visit.status !== 'COMPLETED') {
           throw new BusinessError('VISIT_NOT_COMPLETED', 'Only completed visits can be reviewed');
         }
+        const completedVisit = visit ?? await tx.bookingVisit.findFirst({
+          where: {
+            bookingId: booking.id,
+            status: 'COMPLETED',
+            ...(data.staffUserId ? { assignedStaffUserId: data.staffUserId } : {}),
+          },
+          orderBy: { sequenceNo: 'desc' },
+        });
         if (data.staffUserId) {
-          const staffVisit = visit ?? await tx.bookingVisit.findFirst({ where: {
-            bookingId: booking.id, status: 'COMPLETED', assignedStaffUserId: data.staffUserId,
-          } });
-          if (!staffVisit || staffVisit.assignedStaffUserId !== data.staffUserId) {
+          if (!completedVisit || completedVisit.assignedStaffUserId !== data.staffUserId) {
             throw new BusinessError('STAFF_NOT_ACCESSIBLE', 'Staff must have performed the reviewed service');
           }
         }
@@ -56,8 +61,11 @@ export const reviewController = {
           throw new BusinessError('BOOKING_NOT_COMPLETED', 'Reviews can only be submitted for completed bookings');
         }
 
+        const resolvedVisitId = data.bookingVisitId ?? completedVisit?.id ?? null;
+        const resolvedStaffUserId = data.staffUserId ?? completedVisit?.assignedStaffUserId ?? null;
+
         const existing = await tx.review.findFirst({
-          where: { bookingId: data.bookingId, customerUserId, bookingVisitId: data.bookingVisitId ?? null },
+          where: { bookingId: data.bookingId, customerUserId },
         });
         if (existing) {
           throw new BusinessError('REVIEW_ALREADY_EXISTS', 'You have already reviewed this booking/visit');
@@ -66,9 +74,9 @@ export const reviewController = {
         return tx.review.create({
           data: {
             bookingId: data.bookingId,
-            bookingVisitId: data.bookingVisitId,
+            bookingVisitId: resolvedVisitId,
             customerUserId,
-            staffUserId: data.staffUserId,
+            staffUserId: resolvedStaffUserId,
             rating: data.rating,
             reviewText: data.reviewText,
             isLowRating: data.rating <= 2,

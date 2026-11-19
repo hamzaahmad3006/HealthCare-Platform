@@ -13,7 +13,8 @@ import { navigateToNotification } from '../../../utils/notificationNavigation';
 import type { NotificationItem } from '../../../types/notification.types';
 
 function iconForTemplate(code: string): MaterialIconName {
-  if (code === 'STAFF_VERIFIED') return 'check-circle-outline';
+  if (code === 'FEEDBACK_REMINDER') return 'star-outline';
+  if (code === 'STAFF_VERIFIED' || code === 'STAFF_CHECKED_IN') return 'check-circle-outline';
   if (code.includes('REPORT')) return 'file-document-outline';
   if (code.includes('CANCEL')) return 'close-circle-outline';
   if (code.includes('CONFIRM') || code.includes('ACCEPT')) return 'check-circle-outline';
@@ -36,8 +37,12 @@ function titleForTemplate(code: string): string {
       return 'Booking Cancelled';
     case 'STAFF_EN_ROUTE':
       return 'Staff On The Way';
+    case 'STAFF_CHECKED_IN':
+      return '🏥 Staff Checked In';
     case 'VISIT_COMPLETED':
       return 'Visit Completed';
+    case 'FEEDBACK_REMINDER':
+      return '⭐ Rate Your Staff Visit';
     case 'VISIT_REMINDER':
       return 'Upcoming Visit Reminder';
     case 'REPORT_AVAILABLE':

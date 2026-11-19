@@ -237,6 +237,7 @@ export function BookingDetail(): JSX.Element {
             {b.status === 'COMPLETED' ? (
               <ReviewSection
                 existingReview={b.reviews?.[0] ?? null}
+                staffName={b.visits?.find((v) => v.assignedStaff?.user?.fullName)?.assignedStaff?.user?.fullName}
                 isSubmitting={d.isSubmittingReview}
                 onSubmit={d.handleReview}
               />
@@ -318,10 +319,12 @@ function StarPicker({ value, onChange }: { value: number; onChange: (v: number) 
 
 function ReviewSection({
   existingReview,
+  staffName,
   isSubmitting,
   onSubmit,
 }: {
   existingReview: { rating: number; reviewText: string | null; createdAt: string } | null;
+  staffName?: string;
   isSubmitting: boolean;
   onSubmit: (data: ReviewFormData) => Promise<void>;
 }): JSX.Element {
@@ -331,7 +334,9 @@ function ReviewSection({
   if (existingReview) {
     return (
       <Card padding="md" className="mt-6">
-        <h3 className="text-sm font-semibold text-ink-800 mb-3">Your review</h3>
+        <h3 className="text-sm font-semibold text-ink-800 mb-3">
+          {staffName ? `Your review for ${staffName}` : 'Your review'}
+        </h3>
         <div className="flex gap-0.5 mb-2">
           {[1, 2, 3, 4, 5].map((s) => (
             <Star key={s} className={`h-5 w-5 ${s <= existingReview.rating ? 'fill-amber-400 text-amber-400' : 'text-ink-200'}`} />
@@ -346,15 +351,24 @@ function ReviewSection({
   }
 
   return (
-    <Card padding="md" className="mt-6">
-      <h3 className="text-sm font-semibold text-ink-800 mb-1">Rate this visit</h3>
-      <p className="text-xs text-ink-500 mb-4">How was your experience?</p>
+    <Card padding="md" className="mt-6 ring-2 ring-amber-200/80 bg-gradient-to-br from-amber-50/40 to-white">
+      <div className="flex items-center justify-between gap-2 mb-1">
+        <h3 className="text-sm font-bold text-ink-900">
+          {staffName ? `Rate your visit with ${staffName}` : 'Rate this visit'}
+        </h3>
+        <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-800">
+          Feedback Pending
+        </span>
+      </div>
+      <p className="text-xs text-ink-500 mb-4">
+        How was your care experience{staffName ? ` with ${staffName}` : ''}? Your feedback helps us reward great clinicians.
+      </p>
       <form onSubmit={handleSubmit((data) => void onSubmit(data))} className="space-y-4">
         <StarPicker value={rating} onChange={(v) => setValue('rating', v)} />
         <textarea
           {...register('reviewText')}
           rows={3}
-          placeholder="Tell us about your experience (optional)…"
+          placeholder={staffName ? `Share your feedback about ${staffName} (optional)…` : 'Tell us about your experience (optional)…'}
           className="w-full px-3 py-2.5 rounded-xl ring-1 ring-ink-200 text-sm text-ink-900 bg-white focus:outline-none focus:ring-2 focus:ring-brand-500 resize-none"
         />
         <Button

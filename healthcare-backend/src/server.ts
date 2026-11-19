@@ -14,6 +14,7 @@ import { apiLimiter, webhookLimiter } from './middleware/rateLimit.middleware';
 import { auditLogMiddleware } from './middleware/auditLog.middleware';
 import { globalErrorHandler } from './middleware/error.middleware';
 import { paymentController } from './controller/payment.controller';
+import { sweepPendingFeedbackReminders } from './controller/visit.controller';
 import apiRoutes from './routes/index';
 
 const app = express();
@@ -91,6 +92,12 @@ const PORT = env.PORT;
 
 const server = app.listen(PORT, () => {
   logger.info(`🚀 Healthcare API running on port ${PORT} [${env.NODE_ENV}]`);
+  // Dispatch feedback reminders for any completed bookings where the customer forgot to leave a review
+  void sweepPendingFeedbackReminders();
+  const feedbackSweepTimer = setInterval(() => {
+    void sweepPendingFeedbackReminders();
+  }, 60_000);
+  feedbackSweepTimer.unref?.();
 });
 
 // ── Graceful shutdown ─────────────────────────────────────────────────────────

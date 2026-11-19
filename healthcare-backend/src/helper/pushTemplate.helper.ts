@@ -45,9 +45,19 @@ const PUSH_TEMPLATES: Record<TemplateCode, (data: TemplateData) => PushContent> 
     body: `${d['staffName']} is en route for booking #${d['bookingNumber']}.`,
   }),
 
+  STAFF_CHECKED_IN: (d) => ({
+    title: 'Staff arrived & checked in',
+    body: `${d['staffName']} has checked in for booking #${d['bookingNumber']}.`,
+  }),
+
   VISIT_COMPLETED: (d) => ({
     title: 'Visit completed',
     body: `Your visit for booking #${d['bookingNumber']} is complete. Tap to review.`,
+  }),
+
+  FEEDBACK_REMINDER: (d) => ({
+    title: 'Rate your staff visit',
+    body: `How was your visit with ${d['staffName']} for booking #${d['bookingNumber']}? Tap to leave feedback.`,
   }),
 
   REPORT_AVAILABLE: (d) => ({

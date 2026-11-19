@@ -5,7 +5,9 @@ export type TemplateCode =
   | 'STAFF_ASSIGNED'
   | 'VISIT_REMINDER'
   | 'STAFF_EN_ROUTE'
+  | 'STAFF_CHECKED_IN'
   | 'VISIT_COMPLETED'
+  | 'FEEDBACK_REMINDER'
   | 'REPORT_AVAILABLE'
   | 'PACKAGE_RENEWAL'
   | 'BOOKING_CANCELLED'
@@ -38,8 +40,14 @@ const TEMPLATES: Record<TemplateCode, (data: TemplateData) => string> = {
   STAFF_EN_ROUTE: (d) =>
     `🚗 Your healthcare professional ${d['staffName']} is on the way for booking #${d['bookingNumber']}. ETA: ~${d['eta']} min.`,
 
+  STAFF_CHECKED_IN: (d) =>
+    `🏥 ${d['staffName']} has arrived and checked in for booking #${d['bookingNumber']}. Care session is now in progress.`,
+
   VISIT_COMPLETED: (d) =>
     `✅ Visit completed for booking #${d['bookingNumber']}. Notes: ${d['visitNotes'] ?? 'See app for details'}. Rate your experience!`,
+
+  FEEDBACK_REMINDER: (d) =>
+    `⭐ How was your care visit with ${d['staffName']} for booking #${d['bookingNumber']}? You haven't left your feedback yet — tap to rate your staff member!`,
 
   REPORT_AVAILABLE: (d) =>
     `📄 A new health report is available for ${d['patientName']} (booking #${d['bookingNumber']}). Log in to view.`,

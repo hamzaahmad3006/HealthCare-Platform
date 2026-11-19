@@ -36,6 +36,88 @@ const VisitListQuerySchema = z.object({
   limit: z.coerce.number().min(1).max(100).default(20),
 });
 
+export async function dispatchFeedbackReminderForBooking(bookingId: string): Promise<boolean> {
+  try {
+    const booking = await prisma.booking.findUnique({
+      where: { id: bookingId },
+      include: {
+        address: { select: { contactPhone: true } },
+        customer: { select: { phone: true } },
+        reviews: { select: { id: true }, take: 1 },
+        visits: {
+          where: { status: 'COMPLETED' },
+          orderBy: { sequenceNo: 'desc' },
+          take: 1,
+          include: {
+            assignedStaff: { select: { user: { select: { fullName: true } } } },
+          },
+        },
+      },
+    });
+    if (!booking || booking.status !== 'COMPLETED') return false;
+    // Customer already left feedback — no reminder needed
+    if (booking.reviews.length > 0) return false;
+
+    const existingReminder = await prisma.notificationLog.findFirst({
+      where: {
+        bookingId: booking.id,
+        userId: booking.customerUserId,
+        templateCode: 'FEEDBACK_REMINDER',
+      },
+      select: { id: true },
+    });
+    if (existingReminder) return false;
+
+    const completedVisit = booking.visits[0];
+    const staffName = completedVisit?.assignedStaff?.user.fullName ?? 'your healthcare specialist';
+    const recipient = booking.address.contactPhone ?? booking.customer.phone;
+    const templateData = {
+      staffName,
+      bookingNumber: booking.bookingNumber,
+    };
+
+    const notifLog = await prisma.notificationLog.create({
+      data: {
+        userId: booking.customerUserId,
+        bookingId: booking.id,
+        bookingVisitId: completedVisit?.id ?? null,
+        templateCode: 'FEEDBACK_REMINDER',
+        recipient,
+        renderedContent: renderTemplate('FEEDBACK_REMINDER', templateData),
+        templateData,
+        status: 'PENDING',
+      },
+    });
+
+    await notificationQueue.add('send', { notificationLogId: notifLog.id }).catch(() => null);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+export async function sweepPendingFeedbackReminders(): Promise<void> {
+  try {
+    // Remind customers whose booking completed at least 45 seconds ago and still has no review
+    const cutoff = new Date(Date.now() - 45 * 1000);
+    const unreviewedBookings = await prisma.booking.findMany({
+      where: {
+        status: 'COMPLETED',
+        updatedAt: { lte: cutoff },
+        reviews: { none: {} },
+      },
+      select: { id: true },
+      orderBy: { updatedAt: 'desc' },
+      take: 25,
+    });
+    for (const b of unreviewedBookings) {
+      await dispatchFeedbackReminderForBooking(b.id);
+    }
+  } catch {
+    // Non-fatal background sweep
+  }
+}
+
 export const visitController = {
   async list(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
@@ -380,6 +462,12 @@ export const visitController = {
       }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
 
       await notificationQueue.add('send', { notificationLogId: notifLog.id }).catch(() => null);
+
+      // Schedule a follow-up feedback reminder if the customer forgets to review the staff member within 45s
+      const reminderTimer = setTimeout(() => {
+        void dispatchFeedbackReminderForBooking(visit.bookingId);
+      }, 45_000);
+      reminderTimer.unref?.();
 
       success(res, updatedVisit);
     } catch (err) {

@@ -38,6 +38,7 @@ export function BookingDetail({ navigation, route }: Props): JSX.Element {
     booking, loading, error, reload, actingTime, handleTimeResponse, cancelling, canCancel,
     cancelModalVisible, cancelReason, setCancelReason,
     openCancelModal, closeCancelModal, confirmCancel,
+    rating, setRating, reviewText, setReviewText, submittingReview, submitReview,
   } = useBookingDetail(navigation, route);
 
   if (loading) {
@@ -121,6 +122,66 @@ export function BookingDetail({ navigation, route }: Props): JSX.Element {
               <Text style={styles.visitStatus}>{v.status}</Text>
             </View>
           ))}
+        </Section>
+      )}
+
+      {/* Staff Feedback / Review */}
+      {booking.status === 'COMPLETED' && (
+        <Section title="Rate Your Staff Visit">
+          {booking.reviews?.[0] ? (
+            <View style={{ gap: 6 }}>
+              <Text style={styles.starRowText}>
+                {'★'.repeat(booking.reviews[0].rating)}
+                {'☆'.repeat(Math.max(0, 5 - booking.reviews[0].rating))}
+              </Text>
+              {booking.reviews[0].reviewText ? (
+                <Text style={styles.sub}>{booking.reviews[0].reviewText}</Text>
+              ) : null}
+            </View>
+          ) : (
+            <View style={{ gap: 10 }}>
+              <Text style={styles.sub}>
+                How was your care visit{booking.visits?.find((v) => v.assignedStaff?.user?.fullName)?.assignedStaff?.user?.fullName ? ` with ${booking.visits.find((v) => v.assignedStaff?.user?.fullName)?.assignedStaff?.user?.fullName}` : ''}?
+              </Text>
+              <View style={styles.starPickerRow}>
+                {[1, 2, 3, 4, 5].map((star) => (
+                  <TouchableOpacity
+                    key={star}
+                    onPress={() => setRating(star)}
+                    activeOpacity={0.75}
+                    accessibilityRole="button"
+                    accessibilityLabel={`Rate ${star} stars`}
+                  >
+                    <Text style={[styles.starPickerBtn, star <= rating && styles.starPickerBtnActive]}>
+                      ★
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+              <TextInput
+                style={styles.reasonInput}
+                placeholder="Share your feedback about the staff member (optional)…"
+                placeholderTextColor={Colors.textMuted}
+                value={reviewText}
+                onChangeText={setReviewText}
+                multiline
+                editable={!submittingReview}
+              />
+              <TouchableOpacity
+                style={[styles.reviewSubmitBtn, (rating === 0 || submittingReview) && styles.cancelBtnDisabled]}
+                disabled={rating === 0 || submittingReview}
+                onPress={() => void submitReview()}
+                activeOpacity={0.85}
+                accessibilityRole="button"
+              >
+                {submittingReview ? (
+                  <ActivityIndicator color={Colors.white} />
+                ) : (
+                  <Text style={styles.reviewSubmitText}>Submit Feedback</Text>
+                )}
+              </TouchableOpacity>
+            </View>
+          )}
         </Section>
       )}
 
@@ -360,6 +421,34 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   modalConfirmText: {
+    color: Colors.white,
+    fontSize: FontSize.md,
+    fontWeight: '700',
+  },
+  starRowText: {
+    fontSize: 22,
+    color: '#f59e0b',
+    letterSpacing: 2,
+  },
+  starPickerRow: {
+    flexDirection: 'row',
+    gap: 8,
+    marginVertical: 2,
+  },
+  starPickerBtn: {
+    fontSize: 30,
+    color: Colors.neutralBorder,
+  },
+  starPickerBtnActive: {
+    color: '#f59e0b',
+  },
+  reviewSubmitBtn: {
+    backgroundColor: Colors.primary,
+    borderRadius: Radius.md,
+    paddingVertical: 12,
+    alignItems: 'center',
+  },
+  reviewSubmitText: {
     color: Colors.white,
     fontSize: FontSize.md,
     fontWeight: '700',
