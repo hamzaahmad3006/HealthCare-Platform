@@ -669,18 +669,26 @@ function Step2({ form }: { form: ReturnType<typeof useBookingForm> }): JSX.Eleme
                   )}
                   onClick={() => form.selectPatient(p.id)}
                 >
-                  <div className="flex items-start gap-3">
+                  <div className="flex items-start gap-3 pr-16">
                     <div
                       className={clsx(
-                        'h-10 w-10 rounded-xl flex items-center justify-center font-bold text-xs flex-shrink-0',
-                        active ? 'bg-brand-600 text-white' : 'bg-brand-100 text-brand-800',
+                        'h-10 w-10 rounded-xl flex items-center justify-center font-bold text-xs flex-shrink-0 transition-colors',
+                        active ? 'bg-brand-600 text-white shadow-xs' : 'bg-brand-100 text-brand-800',
                       )}
                     >
                       {p.fullName.charAt(0).toUpperCase()}
                     </div>
                     <div className="min-w-0 flex-1">
-                      <p className="font-bold text-ink-900 text-sm truncate">{p.fullName}</p>
-                      <p className="text-xs text-ink-500 mt-0.5">
+                      <div className="flex items-center gap-1.5">
+                        <p className="font-bold text-ink-900 text-sm truncate">{p.fullName}</p>
+                        {active ? (
+                          <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-brand-600 text-white flex-shrink-0">
+                            <Check className="h-2.5 w-2.5 stroke-[3]" />
+                            Selected
+                          </span>
+                        ) : null}
+                      </div>
+                      <p className="text-xs text-ink-500 mt-0.5 truncate">
                         {p.relationshipToCustomer ?? 'Family Member'}
                         {p.primaryCondition ? ` · ${p.primaryCondition}` : ''}
                       </p>
@@ -774,21 +782,37 @@ function Step2({ form }: { form: ReturnType<typeof useBookingForm> }): JSX.Eleme
                   )}
                   onClick={() => form.selectAddress(a.id)}
                 >
-                  <div className="flex items-start gap-3">
+                  <div className="flex items-start gap-3 pr-16">
                     <div
                       className={clsx(
-                        'h-10 w-10 rounded-xl flex items-center justify-center font-bold text-xs flex-shrink-0',
-                        active ? 'bg-brand-600 text-white' : 'bg-brand-100 text-brand-800',
+                        'h-10 w-10 rounded-xl flex items-center justify-center font-bold text-xs flex-shrink-0 transition-colors',
+                        active ? 'bg-brand-600 text-white shadow-xs' : 'bg-brand-100 text-brand-800',
                       )}
                     >
                       <MapPin className="h-5 w-5" />
                     </div>
                     <div className="min-w-0 flex-1">
-                      <p className="font-bold text-ink-900 text-sm truncate">{a.label ?? a.area}</p>
-                      <p className="text-xs text-ink-500 mt-0.5 truncate">
-                        {a.line1}, {a.area}
+                      <div className="flex items-center gap-1.5">
+                        <p className="font-bold text-ink-900 text-sm truncate">{a.label ?? a.area}</p>
+                        {active ? (
+                          <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-brand-600 text-white flex-shrink-0">
+                            <Check className="h-2.5 w-2.5 stroke-[3]" />
+                            Selected
+                          </span>
+                        ) : null}
+                      </div>
+                      <p className="text-xs text-ink-500 mt-0.5 line-clamp-2 leading-snug">
+                        {a.line1.toLowerCase().includes(a.area.toLowerCase()) ? a.line1 : `${a.line1}, ${a.area}`}
                       </p>
-                      <p className="text-2xs text-ink-400 mt-1 font-mono">{a.contactPhone}</p>
+                      <div className="flex items-center gap-2 mt-1.5 flex-wrap">
+                        <span className="text-2xs text-ink-400 font-mono">{a.contactPhone}</span>
+                        {a.latitude != null && a.longitude != null ? (
+                          <span className="inline-flex items-center gap-1 px-1.5 py-0.2 rounded text-[10px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                            <MapPin className="h-2.5 w-2.5" />
+                            GPS Pin
+                          </span>
+                        ) : null}
+                      </div>
                     </div>
                   </div>
 
