@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useSelector } from 'react-redux';
-import { Menu, X, LogOut, User as UserIcon, Calendar, Settings, ChevronDown, FileText, Users } from 'lucide-react';
+import { Menu, X, LogOut, User as UserIcon, Calendar, Settings, ChevronDown, FileText, Users, Plus } from 'lucide-react';
 import clsx from 'clsx';
 import { Button } from '../../constant/Button';
 import { BrandLogo } from './BrandLogo';
@@ -84,30 +84,42 @@ export function TopNav({ variant = 'solid' }: TopNavProps): JSX.Element {
       <div className="max-w-7xl mx-auto px-6 py-3.5 flex items-center justify-between gap-4">
         <BrandLogo asLink to="/" size="md" subtitleText="PAKISTAN" />
 
-        <nav className="hidden md:flex items-center gap-7 text-sm font-medium text-ink-600">
+        <nav className="hidden md:flex items-center gap-1.5 text-sm font-medium text-ink-600">
           {links.map((link) => (
             <Link
               key={link.to}
               to={link.to}
               onClick={(e) => handleNavClick(e, link.to, link.hash)}
               className={clsx(
-                'transition-colors cursor-pointer',
-                isActive(link.to) ? 'text-ink-900 font-semibold' : 'hover:text-ink-900',
+                'px-3.5 py-2 rounded-xl transition-all cursor-pointer',
+                isActive(link.to)
+                  ? 'bg-brand-50 text-brand-700 font-semibold ring-1 ring-brand-200/70'
+                  : 'hover:text-ink-900 hover:bg-ink-50',
               )}
             >
               {link.label}
             </Link>
           ))}
           {isAdmin ? (
-            <Link to="/admin" className="hover:text-ink-900 transition-colors">
+            <Link
+              to="/admin"
+              className="px-3.5 py-2 rounded-xl hover:text-ink-900 hover:bg-ink-50 transition-all"
+            >
               Admin
             </Link>
           ) : null}
         </nav>
 
-        <div className="hidden md:flex items-center gap-2">
+        <div className="hidden md:flex items-center gap-2.5">
           {isLoggedIn ? (
             <>
+              {user?.role === 'CUSTOMER' && location.pathname !== '/book' ? (
+                <Link to="/book">
+                  <Button size="sm" leftIcon={<Plus className="h-3.5 w-3.5" />}>
+                    Book visit
+                  </Button>
+                </Link>
+              ) : null}
               <NotificationBell />
               <ProfileMenu user={user} onLogout={handleLogout} />
             </>

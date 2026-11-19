@@ -35,15 +35,24 @@ export function BookingCard({
   return (
     <Card
       hover
-      padding="md"
+      padding="none"
       onClick={onClick}
       className={clsx(
-        'cursor-pointer group relative overflow-hidden',
+        'cursor-pointer group relative overflow-hidden border border-ink-100 hover:border-brand-200 transition-all',
         highlightUrgency && 'ring-2 ring-accent-500/30',
       )}
     >
+      <div
+        className={clsx(
+          'h-1.5 w-full',
+          highlightUrgency
+            ? 'bg-gradient-to-r from-amber-500 to-rose-500'
+            : 'bg-gradient-to-r from-brand-600 to-teal-500',
+        )}
+      />
+      <div className="p-5">
       {highlightUrgency ? (
-        <div className="absolute top-0 right-0 px-3 py-1 bg-accent-500 text-white text-2xs font-bold rounded-bl-xl">
+        <div className="absolute top-1.5 right-0 px-3 py-1 bg-accent-500 text-white text-2xs font-bold rounded-bl-xl">
           URGENT
         </div>
       ) : null}
@@ -77,6 +86,7 @@ export function BookingCard({
           View details
           <ArrowUpRight className="h-4 w-4" />
         </span>
+      </div>
       </div>
     </Card>
   );

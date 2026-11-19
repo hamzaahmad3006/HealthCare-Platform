@@ -2,15 +2,22 @@ import { useCallback, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { api, extractApiError } from '../../../helper/axios';
 import { API } from '../../../constant/apiUrls';
-import type { Booking } from '../../../types/booking.types';
+import type { Booking, ServiceType } from '../../../types/booking.types';
 import type { PaginationMeta } from '../../../types/api.types';
 
 export type MyBookingsTab = 'ACTIVE' | 'COMPLETED' | 'CANCELLED';
 
-interface BookingListItem extends Booking {
+export interface BookingListItem extends Booking {
   patient?: { fullName: string };
   serviceType?: { code: string; name: string };
   package?: { name: string };
+  address?: { area?: string; line1?: string; city?: { name: string } };
+}
+
+export interface CustomerOverviewStats {
+  patientsCount: number;
+  reportsCount: number;
+  completedCount: number;
 }
 
 interface UseMyBookingsReturn {
@@ -25,6 +32,9 @@ interface UseMyBookingsReturn {
   retry: () => void;
   handleOpen: (id: string) => void;
   handleNewBooking: () => void;
+  handleBookService: (serviceCode: string) => void;
+  services: ServiceType[];
+  stats: CustomerOverviewStats;
 }
 
 const STATUS_GROUPS: Record<MyBookingsTab, string[]> = {
@@ -50,6 +60,51 @@ export function useMyBookings(): UseMyBookingsReturn {
   const [meta, setMeta] = useState<PaginationMeta | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [services, setServices] = useState<ServiceType[]>([]);
+  const [stats, setStats] = useState<CustomerOverviewStats>({
+    patientsCount: 0,
+    reportsCount: 0,
+    completedCount: 0,
+  });
+
+  // Load quick-book services and summary KPIs once on mount
+  useEffect(() => {
+    let cancelled = false;
+    const loadOverview = async (): Promise<void> => {
+      try {
+        const [svcRes, patRes, repRes, compRes] = await Promise.allSettled([
+          api.get<{ success: true; data: ServiceType[] }>(API.SERVICE_TYPES),
+          api.get<{ success: true; data: unknown[]; meta?: PaginationMeta }>(`${API.USERS.PATIENTS}?limit=1`),
+          api.get<{ success: true; data: unknown[]; meta?: PaginationMeta }>(`${API.REPORTS.LIST}?limit=1`),
+          api.get<{ success: true; data: unknown[]; meta?: PaginationMeta }>(`${API.BOOKINGS.LIST}?status=COMPLETED&limit=1`),
+        ]);
+        if (cancelled) return;
+        if (svcRes.status === 'fulfilled') {
+          setServices(svcRes.value.data.data.filter((s) => s.isActive));
+        }
+        setStats({
+          patientsCount:
+            patRes.status === 'fulfilled'
+              ? (patRes.value.data.meta?.total ?? patRes.value.data.data.length)
+              : 0,
+          reportsCount:
+            repRes.status === 'fulfilled'
+              ? (repRes.value.data.meta?.total ?? repRes.value.data.data.length)
+              : 0,
+          completedCount:
+            compRes.status === 'fulfilled'
+              ? (compRes.value.data.meta?.total ?? compRes.value.data.data.length)
+              : 0,
+        });
+      } catch {
+        // Non-critical overview data
+      }
+    };
+    void loadOverview();
+    return () => {
+      cancelled = true;
+    };
+  }, [reloadFlag]);
 
   useEffect(() => {
     let cancelled = false;
@@ -58,7 +113,6 @@ export function useMyBookings(): UseMyBookingsReturn {
       setError(null);
       try {
         const statuses = STATUS_GROUPS[activeTab];
-        // Backend filter accepts a single status; we fetch per-status and merge in client.
         const results = await Promise.all(
           statuses.map((status) =>
             api.get<{ success: true; data: BookingListItem[]; meta: PaginationMeta }>(
@@ -100,6 +154,13 @@ export function useMyBookings(): UseMyBookingsReturn {
     navigate('/book');
   }, [navigate]);
 
+  const handleBookService = useCallback(
+    (serviceCode: string): void => {
+      navigate(`/book?service=${encodeURIComponent(serviceCode)}`);
+    },
+    [navigate],
+  );
+
   return {
     bookings,
     meta,
@@ -115,5 +176,8 @@ export function useMyBookings(): UseMyBookingsReturn {
     retry: () => setReloadFlag((f) => f + 1),
     handleOpen,
     handleNewBooking,
+    handleBookService,
+    services,
+    stats,
   };
 }
