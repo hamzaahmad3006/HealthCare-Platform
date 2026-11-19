@@ -16,13 +16,26 @@ export interface UploadReportPayload {
   patientId: string;
 }
 
+export interface VisitAddress {
+  label?: string | null;
+  line1?: string;
+  line2?: string | null;
+  area?: string;
+  postalCode?: string | null;
+  contactName?: string;
+  contactPhone?: string;
+  latitude?: number | string | null;
+  longitude?: number | string | null;
+  city?: { name: string } | null;
+}
+
 export interface VisitRow extends BookingVisit {
   booking?: {
     bookingNumber: string;
     customerUserId: string;
     patientId: string;
     patient?: { fullName?: string };
-    address?: { area?: string; line1?: string };
+    address?: VisitAddress;
     serviceType?: { code: string; name?: string } | null;
     reviews?: { rating: number; reviewText: string | null; createdAt: string }[];
   };

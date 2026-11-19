@@ -37,6 +37,8 @@ export function VisitDetail(): JSX.Element {
   const {
     visit, booking, loading, error, reload, actionLoading,
     patientName, serviceLabel, addressLine, addressCity,
+    addressLatitude, addressLongitude, contactPhone, contactName,
+    openDirections, callContact,
     beforeCondition, afterCondition, visitNotes,
     setBeforeCondition, setAfterCondition, setVisitNotes,
     markEnRoute, checkIn, checkOut, completeVisit,
@@ -119,14 +121,54 @@ export function VisitDetail(): JSX.Element {
               <Text style={styles.infoValue}>{formatScheduled(visit.scheduledStartAt)}</Text>
             </View>
           </View>
-          {addressLine && (
+          {(addressLine || (addressLatitude !== null && addressLongitude !== null)) && (
             <>
               <View style={styles.infoDivider} />
               <View style={styles.infoRow}>
                 <MaterialDesignIcons name="map-marker" size={18} color={Colors.primary} />
                 <View style={styles.infoText}>
-                  <Text style={styles.infoLabel}>Address</Text>
-                  <Text style={styles.infoValue}>{addressLine}{addressCity ? `, ${addressCity}` : ''}</Text>
+                  <Text style={styles.infoLabel}>Patient Location</Text>
+                  <Text style={styles.infoValue}>
+                    {addressLine ? `${addressLine}${addressCity ? `, ${addressCity}` : ''}` : 'Pinned GPS location'}
+                  </Text>
+                  {addressLatitude !== null && addressLongitude !== null && (
+                    <Text style={styles.gpsCoordsText}>
+                      GPS Pin: {addressLatitude.toFixed(5)}, {addressLongitude.toFixed(5)}
+                    </Text>
+                  )}
+                  {contactPhone ? (
+                    <Text style={styles.contactMetaText}>
+                      Contact: {contactName ?? patientName} · {contactPhone}
+                    </Text>
+                  ) : null}
+                  <View style={styles.locationActionsRow}>
+                    <TouchableOpacity
+                      style={styles.directionsBtn}
+                      activeOpacity={0.8}
+                      onPress={openDirections}
+                      accessibilityRole="button"
+                      accessibilityLabel="Open in Google Maps"
+                    >
+                      <MaterialDesignIcons name="navigation-variant" size={15} color={Colors.white} />
+                      <Text style={styles.directionsBtnText}>
+                        {addressLatitude !== null && addressLongitude !== null
+                          ? 'Navigate in Google Maps'
+                          : 'Open in Google Maps'}
+                      </Text>
+                    </TouchableOpacity>
+                    {contactPhone ? (
+                      <TouchableOpacity
+                        style={styles.callBtn}
+                        activeOpacity={0.8}
+                        onPress={callContact}
+                        accessibilityRole="button"
+                        accessibilityLabel="Call patient contact"
+                      >
+                        <MaterialDesignIcons name="phone" size={15} color={Colors.primary} />
+                        <Text style={styles.callBtnText}>Call</Text>
+                      </TouchableOpacity>
+                    ) : null}
+                  </View>
                 </View>
               </View>
             </>
@@ -548,6 +590,54 @@ const styles = StyleSheet.create({
   },
 
   /* Section title */
+  gpsCoordsText: {
+    fontSize: FontSize.xs,
+    color: Colors.primary,
+    fontWeight: '600',
+    marginTop: 2,
+  },
+  contactMetaText: {
+    fontSize: FontSize.xs,
+    color: Colors.textMuted,
+    marginTop: 2,
+  },
+  locationActionsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
+    marginTop: Spacing.sm,
+    flexWrap: 'wrap',
+  },
+  directionsBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: Colors.primary,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: 8,
+    borderRadius: Radius.md,
+  },
+  directionsBtnText: {
+    fontSize: FontSize.xs,
+    fontWeight: '700',
+    color: Colors.white,
+  },
+  callBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    backgroundColor: Colors.primary + '14',
+    borderWidth: 1,
+    borderColor: Colors.primary + '33',
+    paddingHorizontal: Spacing.md,
+    paddingVertical: 7,
+    borderRadius: Radius.md,
+  },
+  callBtnText: {
+    fontSize: FontSize.xs,
+    fontWeight: '700',
+    color: Colors.primary,
+  },
   sectionTitle: {
     fontSize: FontSize.lg,
     fontWeight: '700',

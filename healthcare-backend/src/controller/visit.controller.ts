@@ -61,7 +61,20 @@ export const visitController = {
                 customerUserId: true,
                 patientId: true,
                 patient: { select: { fullName: true } },
-                address: { select: { area: true, line1: true } },
+                address: {
+                  select: {
+                    label: true,
+                    line1: true,
+                    line2: true,
+                    area: true,
+                    postalCode: true,
+                    contactName: true,
+                    contactPhone: true,
+                    latitude: true,
+                    longitude: true,
+                    city: { select: { name: true } },
+                  },
+                },
                 serviceType: { select: { code: true, name: true } },
                 reviews: { select: { rating: true, reviewText: true, createdAt: true } },
               },
@@ -89,7 +102,19 @@ export const visitController = {
 
       const visit = await prisma.bookingVisit.findUnique({
         where: { id: pickParam(req, 'id') },
-        include: { booking: true },
+        include: {
+          booking: {
+            include: {
+              patient: { select: { id: true, fullName: true } },
+              address: {
+                include: {
+                  city: { select: { name: true } },
+                },
+              },
+              serviceType: { select: { code: true, name: true } },
+            },
+          },
+        },
       });
       if (!visit) throw new NotFoundError('VISIT_NOT_FOUND');
 

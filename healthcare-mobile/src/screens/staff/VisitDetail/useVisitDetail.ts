@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { Alert } from 'react-native';
+import { Alert, Linking } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RouteProp } from '@react-navigation/native';
@@ -262,8 +262,46 @@ export function useVisitDetail() {
     (visit?.booking?.serviceType?.code
       ? serviceLabelFromCode(visit.booking.serviceType.code)
       : '—');
-  const addressLine = booking?.address ? `${booking.address.line1}, ${booking.address.area}` : null;
-  const addressCity = booking?.city?.name ?? null;
+  const addressObj = booking?.address ?? visit?.booking?.address ?? null;
+  const addressLine = addressObj
+    ? [addressObj.line1, addressObj.line2, addressObj.area].filter(Boolean).join(', ')
+    : null;
+  const addressCity = booking?.city?.name ?? visit?.booking?.address?.city?.name ?? null;
+  const rawLat = addressObj?.latitude;
+  const rawLng = addressObj?.longitude;
+  const addressLatitude = rawLat !== null && rawLat !== undefined && rawLat !== '' && Number.isFinite(Number(rawLat))
+    ? Number(rawLat)
+    : null;
+  const addressLongitude = rawLng !== null && rawLng !== undefined && rawLng !== '' && Number.isFinite(Number(rawLng))
+    ? Number(rawLng)
+    : null;
+  const contactPhone = addressObj?.contactPhone ?? null;
+  const contactName = addressObj?.contactName ?? null;
+
+  const openDirections = useCallback((): void => {
+    const url =
+      addressLatitude !== null && addressLongitude !== null
+        ? `https://www.google.com/maps/dir/?api=1&destination=${addressLatitude},${addressLongitude}`
+        : addressLine
+          ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
+              [addressLine, addressCity, 'Pakistan'].filter(Boolean).join(', '),
+            )}`
+          : null;
+    if (!url) {
+      Alert.alert('Location unavailable', 'No address or map coordinates are saved for this visit.');
+      return;
+    }
+    Linking.openURL(url).catch(() => {
+      Alert.alert('Error', 'Could not open Google Maps.');
+    });
+  }, [addressLatitude, addressLongitude, addressLine, addressCity]);
+
+  const callContact = useCallback((): void => {
+    if (!contactPhone) return;
+    Linking.openURL(`tel:${contactPhone}`).catch(() => {
+      Alert.alert('Error', 'Could not open the phone dialer.');
+    });
+  }, [contactPhone]);
 
   return {
     visit,
@@ -276,6 +314,12 @@ export function useVisitDetail() {
     serviceLabel,
     addressLine,
     addressCity,
+    addressLatitude,
+    addressLongitude,
+    contactPhone,
+    contactName,
+    openDirections,
+    callContact,
     beforeCondition,
     afterCondition,
     visitNotes,

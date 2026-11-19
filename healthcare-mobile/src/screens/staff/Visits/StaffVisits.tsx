@@ -1,7 +1,7 @@
 import type { JSX } from 'react';
 import {
   View, Text, FlatList, TouchableOpacity, StyleSheet,
-  StatusBar, SafeAreaView, ActivityIndicator, RefreshControl,
+  StatusBar, SafeAreaView, ActivityIndicator, RefreshControl, Linking,
 } from 'react-native';
 import { MaterialDesignIcons } from '@react-native-vector-icons/material-design-icons/static';
 import { useNavigation } from '@react-navigation/native';
@@ -108,8 +108,21 @@ export function StaffVisits(): JSX.Element {
   );
 }
 
+function openMapsForVisit(visit: Visit): void {
+  const url =
+    visit.latitude !== null && visit.longitude !== null
+      ? `https://www.google.com/maps/dir/?api=1&destination=${visit.latitude},${visit.longitude}`
+      : visit.addressLine
+        ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${visit.addressLine}, Pakistan`)}`
+        : null;
+  if (url) {
+    Linking.openURL(url).catch(() => {});
+  }
+}
+
 function VisitCard({ visit, onPress }: { visit: Visit; onPress: () => void }) {
   const color = VISIT_STATUS_COLOR[visit.status];
+  const hasLocation = Boolean(visit.addressLine || (visit.latitude !== null && visit.longitude !== null));
   return (
     <TouchableOpacity style={[styles.card, { borderLeftColor: color }]} activeOpacity={0.8} onPress={onPress}>
       <View style={styles.cardTop}>
@@ -134,9 +147,31 @@ function VisitCard({ visit, onPress }: { visit: Visit; onPress: () => void }) {
             })}
           </Text>
         </View>
-        <View style={styles.infoRow}>
-          <MaterialDesignIcons name="receipt-text-outline" size={13} color={Colors.textMuted} />
-          <Text style={styles.infoText} numberOfLines={1}>{visit.bookingNumber}</Text>
+        {visit.addressLine ? (
+          <View style={styles.infoRow}>
+            <MaterialDesignIcons name="map-marker-outline" size={13} color={Colors.primary} />
+            <Text style={[styles.infoText, styles.addressText]} numberOfLines={2}>
+              {visit.addressLine}
+            </Text>
+          </View>
+        ) : null}
+        <View style={styles.cardFooterRow}>
+          <View style={[styles.infoRow, { flex: 1 }]}>
+            <MaterialDesignIcons name="receipt-text-outline" size={13} color={Colors.textMuted} />
+            <Text style={styles.infoText} numberOfLines={1}>{visit.bookingNumber}</Text>
+          </View>
+          {hasLocation ? (
+            <TouchableOpacity
+              style={styles.navChip}
+              activeOpacity={0.75}
+              onPress={() => openMapsForVisit(visit)}
+              accessibilityRole="button"
+              accessibilityLabel="Navigate to patient"
+            >
+              <MaterialDesignIcons name="navigation-variant" size={13} color={Colors.primary} />
+              <Text style={styles.navChipText}>Directions</Text>
+            </TouchableOpacity>
+          ) : null}
         </View>
       </View>
 
@@ -212,8 +247,21 @@ const styles = StyleSheet.create({
   serviceText: { fontSize: FontSize.sm, color: Colors.textMuted },
   statusBadge: { borderRadius: Radius.sm, paddingHorizontal: 8, paddingVertical: 3 },
   statusText: { fontSize: FontSize.xs, fontWeight: '700' },
-  cardBottom: { gap: 4 },
+  cardBottom: { gap: 5 },
   infoRow: { flexDirection: 'row', alignItems: 'center', gap: 5 },
   infoText: { fontSize: FontSize.xs, color: Colors.textMuted, flex: 1 },
+  addressText: { color: Colors.textPrimary, fontWeight: '500' },
+  cardFooterRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8, marginTop: 2 },
+  navChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: Radius.full,
+    backgroundColor: Colors.primary + '15',
+    marginRight: 20,
+  },
+  navChipText: { fontSize: FontSize.xs, fontWeight: '700', color: Colors.primary },
   chevron: { position: 'absolute', right: Spacing.md, top: '50%' },
 });

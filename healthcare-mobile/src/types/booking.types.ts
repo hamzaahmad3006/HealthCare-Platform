@@ -32,9 +32,14 @@ export interface BookingDetail extends Booking {
   // (backend includes both `address` and `city` at the top level; see
   // booking.controller.ts's getById `include`).
   address: {
+    label?: string | null;
     line1: string;
+    line2?: string | null;
     area: string;
+    contactName?: string;
     contactPhone: string;
+    latitude?: number | string | null;
+    longitude?: number | string | null;
   } | null;
   city: { name: string } | null;
   visits: Array<{

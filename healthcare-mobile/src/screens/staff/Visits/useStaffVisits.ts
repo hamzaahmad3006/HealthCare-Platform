@@ -9,14 +9,28 @@ import { serviceLabelFromCode, startOfDayISO, endOfDayISO } from '../../../utils
 
 const ACTIVE_STATUSES = ['SCHEDULED', 'ASSIGNED', 'EN_ROUTE', 'CHECKED_IN'];
 
+function parseCoord(val: number | string | null | undefined): number | null {
+  if (val === null || val === undefined || val === '') return null;
+  const n = Number(val);
+  return Number.isFinite(n) ? n : null;
+}
+
 function toVisit(v: ApiVisit, nameById: Map<string, string>): Visit {
+  const addr = v.booking.address;
+  const addressLine = addr
+    ? [addr.line1, addr.area, addr.city?.name].filter(Boolean).join(', ')
+    : null;
   return {
     id: v.id,
-    patientName: nameById.get(v.booking.patientId) ?? v.booking.bookingNumber,
-    service: serviceLabelFromCode(v.booking.serviceType.code),
+    patientName: v.booking.patient?.fullName ?? nameById.get(v.booking.patientId) ?? v.booking.bookingNumber,
+    service: v.booking.serviceType.name ?? serviceLabelFromCode(v.booking.serviceType.code),
     scheduledTime: v.scheduledStartAt,
     bookingNumber: v.booking.bookingNumber,
     status: v.status,
+    addressLine: addressLine || null,
+    latitude: parseCoord(addr?.latitude),
+    longitude: parseCoord(addr?.longitude),
+    contactPhone: addr?.contactPhone ?? null,
   };
 }
 

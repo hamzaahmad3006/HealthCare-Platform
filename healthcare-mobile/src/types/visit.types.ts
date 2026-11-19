@@ -28,6 +28,19 @@ export interface ApiVisit {
     bookingNumber: string;
     customerUserId: string;
     patientId: string;
-    serviceType: { code: string };
+    patient?: { fullName: string } | null;
+    address?: {
+      label?: string | null;
+      line1: string;
+      line2?: string | null;
+      area: string;
+      postalCode?: string | null;
+      contactName?: string;
+      contactPhone?: string;
+      latitude?: number | string | null;
+      longitude?: number | string | null;
+      city?: { name: string } | null;
+    } | null;
+    serviceType: { code: string; name?: string };
   };
 }

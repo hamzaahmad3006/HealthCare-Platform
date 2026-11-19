@@ -25,12 +25,19 @@ import {
   AlertTriangle,
   Sparkles,
   Compass,
+  Phone,
 } from 'lucide-react';
 import { SidebarLayout } from '../../../component/admin/SidebarLayout';
 import { DataTable, type ColumnDef } from '../../../component/admin/DataTable';
 import { StatusBadge } from '../../../component/common/StatusBadge';
 import { EmptyState } from '../../../component/common/EmptyState';
 import { Pagination } from '../../../component/common/Pagination';
+import {
+  PatientLocationModal,
+  buildGoogleMapsDirectionsUrl,
+  formatShortAddress,
+  parseCoord,
+} from '../../../component/common/PatientLocationModal';
 import { Card } from '../../../constant/Card';
 import { formatDateTime, formatTime } from '../../../helper/format';
 import { useVisits, type VisitRow } from './useVisits';
@@ -81,6 +88,7 @@ export function Visits(): JSX.Element {
   const v = useVisits();
   const [modal, setModal] = useState<ActionModalState | null>(null);
   const [detailsVisit, setDetailsVisit] = useState<VisitRow | null>(null);
+  const [locationVisit, setLocationVisit] = useState<VisitRow | null>(null);
   const [uploadModal, setUploadModal] = useState<UploadModalState | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
 
@@ -153,6 +161,57 @@ export function Visits(): JSX.Element {
           </div>
         </div>
       ),
+    },
+    {
+      key: 'location',
+      header: 'Patient Location',
+      render: (row) => {
+        const addr = row.booking?.address;
+        if (!addr) {
+          return <span className="text-xs text-ink-400 italic">No address</span>;
+        }
+        const shortAddr = formatShortAddress(addr);
+        const directionsUrl = buildGoogleMapsDirectionsUrl(addr);
+        const hasPin = parseCoord(addr.latitude) !== null && parseCoord(addr.longitude) !== null;
+        return (
+          <div className="max-w-[260px] space-y-1.5">
+            <p className="text-xs font-medium text-ink-800 flex items-start gap-1.5 leading-snug" title={shortAddr}>
+              <MapPin className="h-3.5 w-3.5 text-brand-600 flex-shrink-0 mt-0.5" />
+              <span className="line-clamp-2">{shortAddr || 'Address on file'}</span>
+            </p>
+            <div className="flex items-center gap-1.5 flex-wrap">
+              <button
+                type="button"
+                onClick={() => setLocationVisit(row)}
+                className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-[11px] font-semibold bg-brand-50 text-brand-700 border border-brand-200 hover:bg-brand-100 transition-colors"
+              >
+                <MapPin className="h-3 w-3" />
+                {hasPin ? 'View Map' : 'Address Info'}
+              </button>
+              {directionsUrl ? (
+                <a
+                  href={directionsUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-[11px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-100 transition-colors"
+                >
+                  <Navigation className="h-3 w-3" />
+                  Directions
+                </a>
+              ) : null}
+              {addr.contactPhone ? (
+                <a
+                  href={`tel:${addr.contactPhone}`}
+                  className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-[11px] font-medium bg-ink-50 text-ink-700 border border-ink-200 hover:bg-ink-100 transition-colors font-mono"
+                >
+                  <Phone className="h-2.5 w-2.5 text-ink-500" />
+                  {addr.contactPhone}
+                </a>
+              ) : null}
+            </div>
+          </div>
+        );
+      },
     },
     {
       key: 'scheduled',
@@ -596,6 +655,16 @@ export function Visits(): JSX.Element {
         <DetailsModal visit={detailsVisit} onClose={() => setDetailsVisit(null)} />
       ) : null}
 
+      {/* ── Patient Location & Google Map Modal ────────────────────── */}
+      {locationVisit && locationVisit.booking?.address ? (
+        <PatientLocationModal
+          patientName={locationVisit.booking.patient?.fullName ?? 'Patient'}
+          bookingNumber={locationVisit.booking.bookingNumber}
+          address={locationVisit.booking.address}
+          onClose={() => setLocationVisit(null)}
+        />
+      ) : null}
+
       {/* ── Upload Lab / Care Report Modal ─────────────────────────── */}
       {uploadModal ? (
         <UploadReportModal
@@ -758,6 +827,29 @@ function DetailsModal({ visit, onClose }: DetailsModalProps): JSX.Element {
               <div className="flex items-center justify-between text-xs pt-2 border-t border-ink-200/60">
                 <span className="text-ink-500 font-medium">Assigned Clinician:</span>
                 <span className="font-semibold text-ink-900">{visit.assignedStaff.user.fullName}</span>
+              </div>
+            ) : null}
+            {visit.booking?.address ? (
+              <div className="pt-2 border-t border-ink-200/60 space-y-1.5">
+                <div className="flex items-start justify-between gap-3 text-xs">
+                  <span className="text-ink-500 font-medium flex-shrink-0">Patient Address:</span>
+                  <span className="font-semibold text-ink-800 text-right">
+                    {formatShortAddress(visit.booking.address)}
+                  </span>
+                </div>
+                {buildGoogleMapsDirectionsUrl(visit.booking.address) ? (
+                  <div className="flex justify-end">
+                    <a
+                      href={buildGoogleMapsDirectionsUrl(visit.booking.address)!}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1 text-[11px] font-semibold text-brand-600 hover:text-brand-700"
+                    >
+                      <Navigation className="h-3 w-3" />
+                      Open in Google Maps
+                    </a>
+                  </div>
+                ) : null}
               </div>
             ) : null}
           </div>

@@ -11,4 +11,8 @@ export interface Visit {
   scheduledTime: string;
   bookingNumber: string;
   status: VisitStatus;
+  addressLine: string | null;
+  latitude: number | null;
+  longitude: number | null;
+  contactPhone: string | null;
 }
