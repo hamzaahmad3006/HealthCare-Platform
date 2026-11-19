@@ -43,7 +43,23 @@ export function authLimiter(req: Request, res: Response, next: NextFunction): vo
 }
 
 export function apiLimiter(req: Request, res: Response, next: NextFunction): void {
-  const userId = req.user?.sub ?? req.ip ?? 'anonymous';
+  // Auth endpoints already enforce their own dedicated `authLimiter`; don't let
+  // general dashboard/polling traffic lock out `/auth/login` or `/auth/refresh`.
+  if (req.path.startsWith('/auth')) {
+    next();
+    return;
+  }
+  let subject = req.user?.sub;
+  if (!subject) {
+    const authHeader = req.headers.authorization;
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+      const token = authHeader.slice(7).trim();
+      if (token) {
+        subject = `tok:${crypto.createHash('sha256').update(token).digest('hex').slice(0, 16)}`;
+      }
+    }
+  }
+  const userId = subject ?? req.ip ?? 'anonymous';
   const key = `api:${userId}`;
   slidingWindowLimit(key, RATE_LIMIT.API_MAX, RATE_LIMIT.API_WINDOW_SECONDS, req, res, next).catch(next);
 }
