@@ -138,9 +138,17 @@ export function useBookingForm(): UseBookingFormReturn {
         ]);
         if (cancelled) return;
         const active = svcRes.data.data.filter((s) => s.isActive);
+        const loadedPatients = patientsRes.data.data;
+        const loadedAddresses = addrRes.data.data;
         setServices(active);
-        setPatients(patientsRes.data.data);
-        setAddresses(addrRes.data.data);
+        setPatients(loadedPatients);
+        setAddresses(loadedAddresses);
+        if (loadedPatients.length > 0) {
+          setSelectedPatientId((prev) => prev ?? loadedPatients[0]!.id);
+        }
+        if (loadedAddresses.length > 0) {
+          setSelectedAddressId((prev) => prev ?? loadedAddresses[0]!.id);
+        }
 
         // Preselect from URL param if present
         if (preselectedCode) {
