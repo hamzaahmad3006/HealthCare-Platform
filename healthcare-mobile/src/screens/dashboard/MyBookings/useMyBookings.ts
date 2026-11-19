@@ -15,22 +15,36 @@ export function useMyBookings() {
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const fetchBookings = useCallback(async (): Promise<void> => {
+  const fetchBookings = useCallback(async (silent = false): Promise<void> => {
     try {
-      setError(null);
+      if (!silent) setError(null);
       const { data } = await api.get<{ success: true; data: Booking[] }>(API.BOOKINGS.LIST);
       setBookings(data.data);
+      if (silent) setError(null);
     } catch (err) {
-      const msg = extractApiError(err);
-      setError(msg);
-      Alert.alert('Error', msg);
+      if (!silent) {
+        const msg = extractApiError(err);
+        setError(msg);
+        Alert.alert('Error', msg);
+      }
     } finally {
-      setLoading(false);
-      setRefreshing(false);
+      if (!silent) {
+        setLoading(false);
+        setRefreshing(false);
+      }
     }
   }, []);
 
-  useFocusEffect(useCallback(() => { void fetchBookings(); }, [fetchBookings]));
+  useFocusEffect(
+    useCallback(() => {
+      void fetchBookings(false);
+      const timer = setInterval(() => {
+        void fetchBookings(true);
+      }, 8_000);
+      (timer as unknown as { unref?: () => void }).unref?.();
+      return () => clearInterval(timer);
+    }, [fetchBookings]),
+  );
 
   const onRefresh = () => {
     setRefreshing(true);

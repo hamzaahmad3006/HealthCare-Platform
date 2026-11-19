@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { api, extractApiError } from '../../../helper/axios';
@@ -40,27 +40,68 @@ export function useBookingDetail(): UseBookingDetailReturn {
   const [isActingOnTime, setIsActingOnTime] = useState(false);
   const [isSubmittingReview, setIsSubmittingReview] = useState(false);
   const [reloadFlag, setReloadFlag] = useState(0);
+  const prevStatusRef = useRef<string | null>(null);
 
   useEffect(() => {
     if (!id) return;
     let cancelled = false;
-    const load = async (): Promise<void> => {
-      setIsLoading(true);
-      setError(null);
+
+    const fetchBooking = async (silent: boolean): Promise<void> => {
+      if (!silent) {
+        setIsLoading(true);
+        setError(null);
+      }
       try {
         const { data } = await api.get<{ success: true; data: BookingWithRelations }>(
           API.BOOKINGS.BY_ID(id),
         );
-        if (!cancelled) setBooking(data.data);
+        if (cancelled) return;
+        const nextBooking = data.data;
+        const visitSig = (nextBooking.visits ?? []).map((v) => `${v.id}:${v.status}:${v.checkInAt ?? ''}:${v.checkOutAt ?? ''}`).join('|');
+        const nextSig = `${nextBooking.status}::${visitSig}`;
+        if (silent && prevStatusRef.current && prevStatusRef.current !== nextSig) {
+          const prevBookingStatus = prevStatusRef.current.split('::')[0];
+          if (prevBookingStatus !== nextBooking.status) {
+            toast.success(`Live update: Booking is now ${nextBooking.status.replace(/_/g, ' ').toLowerCase()}`);
+          } else {
+            const latestVisit = nextBooking.visits?.[0];
+            if (latestVisit) {
+              toast.success(`Live update: Visit #${latestVisit.sequenceNo} is ${latestVisit.status.replace(/_/g, ' ').toLowerCase()}`);
+            }
+          }
+        }
+        prevStatusRef.current = nextSig;
+        setBooking(nextBooking);
+        if (silent) setError(null);
       } catch (err) {
-        if (!cancelled) setError(extractApiError(err).message);
+        if (!cancelled && !silent) setError(extractApiError(err).message);
       } finally {
-        if (!cancelled) setIsLoading(false);
+        if (!cancelled && !silent) setIsLoading(false);
       }
     };
-    void load();
+
+    void fetchBooking(false);
+
+    // Real-time background polling + instant refresh on tab focus / visibility change
+    const intervalId = window.setInterval(() => {
+      if (document.visibilityState === 'visible') {
+        void fetchBooking(true);
+      }
+    }, 5_000);
+
+    const handleFocus = (): void => {
+      if (document.visibilityState === 'visible') {
+        void fetchBooking(true);
+      }
+    };
+    window.addEventListener('focus', handleFocus);
+    document.addEventListener('visibilitychange', handleFocus);
+
     return () => {
       cancelled = true;
+      window.clearInterval(intervalId);
+      window.removeEventListener('focus', handleFocus);
+      document.removeEventListener('visibilitychange', handleFocus);
     };
   }, [id, reloadFlag]);
 

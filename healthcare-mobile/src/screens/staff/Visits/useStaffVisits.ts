@@ -41,9 +41,9 @@ export function useStaffVisits() {
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const fetchVisits = useCallback(async (): Promise<void> => {
+  const fetchVisits = useCallback(async (silent = false): Promise<void> => {
     try {
-      setError(null);
+      if (!silent) setError(null);
       const { data } = await api.get<{ success: true; data: ApiVisit[] }>(API.VISITS.LIST, {
         params: { limit: 100 },
       });
@@ -67,18 +67,32 @@ export function useStaffVisits() {
           .map((v) => toVisit(v, nameById))
           .sort((a, b) => new Date(a.scheduledTime).getTime() - new Date(b.scheduledTime).getTime()),
       );
+      if (silent) setError(null);
     } catch (err) {
-      const msg = extractApiError(err);
-      setError(msg);
-      Alert.alert('Error', msg);
-      setAll([]);
+      if (!silent) {
+        const msg = extractApiError(err);
+        setError(msg);
+        Alert.alert('Error', msg);
+        setAll([]);
+      }
     } finally {
-      setLoading(false);
-      setRefreshing(false);
+      if (!silent) {
+        setLoading(false);
+        setRefreshing(false);
+      }
     }
   }, []);
 
-  useFocusEffect(useCallback(() => { void fetchVisits(); }, [fetchVisits]));
+  useFocusEffect(
+    useCallback(() => {
+      void fetchVisits(false);
+      const timer = setInterval(() => {
+        void fetchVisits(true);
+      }, 8_000);
+      (timer as unknown as { unref?: () => void }).unref?.();
+      return () => clearInterval(timer);
+    }, [fetchVisits]),
+  );
 
   const onRefresh = (): void => {
     setRefreshing(true);

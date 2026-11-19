@@ -27,9 +27,12 @@ export function useBookingDetail(
   const [cancelModalVisible, setCancelModalVisible] = useState(false);
   const [cancelReason, setCancelReason] = useState('');
 
-  const fetchBooking = useCallback(async (): Promise<void> => {
+  const fetchBooking = useCallback(async (silent = false): Promise<void> => {
     const token = ++requestSequence.current;
-    setError(''); setLoading(true);
+    if (!silent) {
+      setError('');
+      setLoading(true);
+    }
     try {
       const { data } = await api.get<{ success: true; data: BookingDetail }>(
         API.BOOKINGS.DETAIL(id),
@@ -37,15 +40,28 @@ export function useBookingDetail(
       );
       if (token !== requestSequence.current) return;
       setBooking(data.data);
+      if (silent) setError('');
       navigation.setOptions({ title: data.data.bookingNumber });
     } catch (err) {
-      if (token === requestSequence.current) setError(extractApiError(err));
+      if (token === requestSequence.current && !silent) setError(extractApiError(err));
     } finally {
-      if (token === requestSequence.current) setLoading(false);
+      if (token === requestSequence.current && !silent) setLoading(false);
     }
   }, [id, navigation, route.params.refreshKey]);
 
-  useFocusEffect(useCallback(() => { void fetchBooking(); return () => { requestSequence.current++; }; }, [fetchBooking]));
+  useFocusEffect(
+    useCallback(() => {
+      void fetchBooking(false);
+      const timer = setInterval(() => {
+        void fetchBooking(true);
+      }, 6_000);
+      (timer as unknown as { unref?: () => void }).unref?.();
+      return () => {
+        clearInterval(timer);
+        requestSequence.current++;
+      };
+    }, [fetchBooking]),
+  );
 
   const openCancelModal = (): void => {
     setCancelReason('');

@@ -198,7 +198,20 @@ export const visitController = {
       const offlineSyncId = req.headers['x-offline-sync-id'] as string | undefined;
       const data = CheckInSchema.parse(req.body);
 
-      const visit = await prisma.bookingVisit.findUnique({ where: { id: pickParam(req, 'id') } });
+      const visit = await prisma.bookingVisit.findUnique({
+        where: { id: pickParam(req, 'id') },
+        include: {
+          booking: {
+            select: {
+              bookingNumber: true,
+              customerUserId: true,
+              address: { select: { contactPhone: true } },
+              customer: { select: { phone: true } },
+            },
+          },
+          assignedStaff: { select: { user: { select: { fullName: true } } } },
+        },
+      });
       if (!visit) throw new NotFoundError('VISIT_NOT_FOUND');
 
       if (req.user.role === 'STAFF' && visit.assignedStaffUserId !== req.user.sub) {
@@ -230,6 +243,28 @@ export const visitController = {
         where: { id: visit.bookingId },
         data: { status: 'IN_PROGRESS' },
       }).catch(() => null);
+
+      const recipient = visit.booking.address.contactPhone ?? visit.booking.customer.phone;
+      const staffName = visit.assignedStaff?.user.fullName ?? 'Your healthcare professional';
+      const notifLog = await prisma.notificationLog.create({
+        data: {
+          userId: visit.booking.customerUserId,
+          bookingId: visit.bookingId,
+          bookingVisitId: visit.id,
+          templateCode: 'STAFF_CHECKED_IN',
+          recipient,
+          renderedContent: `🏥 ${staffName} has arrived and checked in for booking #${visit.booking.bookingNumber}. Care session is now in progress.`,
+          templateData: {
+            staffName,
+            bookingNumber: visit.booking.bookingNumber,
+          },
+          status: 'PENDING',
+        },
+      }).catch(() => null);
+
+      if (notifLog) {
+        await notificationQueue.add('send', { notificationLogId: notifLog.id }).catch(() => null);
+      }
 
       success(res, updated);
     } catch (err) {
@@ -324,8 +359,8 @@ export const visitController = {
           where: { bookingId: visit.bookingId, status: { notIn: ['COMPLETED', 'CANCELLED'] } },
         });
         if (remainingVisits === 0) {
-          await tx.booking.update({
-            where: { id: visit.bookingId, status: 'IN_PROGRESS' },
+          await tx.booking.updateMany({
+            where: { id: visit.bookingId, status: { not: 'CANCELLED' } },
             data: { status: 'COMPLETED' },
           });
         }

@@ -76,7 +76,14 @@ export function useVisitDetail() {
     }
   }, [id]);
 
-  useEffect(() => { load(); }, [load]);
+  useEffect(() => {
+    void load();
+    const timer = setInterval(() => {
+      void reloadVisit();
+    }, 8_000);
+    (timer as unknown as { unref?: () => void }).unref?.();
+    return () => clearInterval(timer);
+  }, [load]);
 
   const reload = useCallback(() => {
     setLoading(true);

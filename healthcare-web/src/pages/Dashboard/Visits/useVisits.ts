@@ -143,9 +143,11 @@ export function useVisits(): UseVisitsReturn {
 
   useEffect(() => {
     let cancelled = false;
-    const load = async (): Promise<void> => {
-      setIsLoading(true);
-      setError(null);
+    const load = async (silent: boolean): Promise<void> => {
+      if (!silent) {
+        setIsLoading(true);
+        setError(null);
+      }
       try {
         const params = new URLSearchParams({ page: String(page), limit: '50' });
         if (statusFilter !== 'ALL') params.set('status', statusFilter);
@@ -167,15 +169,34 @@ export function useVisits(): UseVisitsReturn {
         if (cancelled) return;
         setVisits(data.data);
         setMeta(data.meta);
+        if (silent) setError(null);
       } catch (err) {
-        if (!cancelled) setError(extractApiError(err).message);
+        if (!cancelled && !silent) setError(extractApiError(err).message);
       } finally {
-        if (!cancelled) setIsLoading(false);
+        if (!cancelled && !silent) setIsLoading(false);
       }
     };
-    void load();
+    void load(false);
+
+    const intervalId = window.setInterval(() => {
+      if (document.visibilityState === 'visible') {
+        void load(true);
+      }
+    }, 6_000);
+
+    const handleFocus = (): void => {
+      if (document.visibilityState === 'visible') {
+        void load(true);
+      }
+    };
+    window.addEventListener('focus', handleFocus);
+    document.addEventListener('visibilitychange', handleFocus);
+
     return () => {
       cancelled = true;
+      window.clearInterval(intervalId);
+      window.removeEventListener('focus', handleFocus);
+      document.removeEventListener('visibilitychange', handleFocus);
     };
   }, [statusFilter, dateFilter, page, reloadFlag]);
 

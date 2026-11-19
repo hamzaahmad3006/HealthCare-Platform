@@ -108,9 +108,11 @@ export function useMyBookings(): UseMyBookingsReturn {
 
   useEffect(() => {
     let cancelled = false;
-    const fetch = async (): Promise<void> => {
-      setIsLoading(true);
-      setError(null);
+    const fetchBookings = async (silent: boolean): Promise<void> => {
+      if (!silent) {
+        setIsLoading(true);
+        setError(null);
+      }
       try {
         const statuses = STATUS_GROUPS[activeTab];
         const results = await Promise.all(
@@ -131,15 +133,35 @@ export function useMyBookings(): UseMyBookingsReturn {
           limit: 20,
           hasNext: results.some((r) => r.data.meta?.hasNext === true),
         });
+        if (silent) setError(null);
       } catch (err) {
-        if (!cancelled) setError(extractApiError(err).message);
+        if (!cancelled && !silent) setError(extractApiError(err).message);
       } finally {
-        if (!cancelled) setIsLoading(false);
+        if (!cancelled && !silent) setIsLoading(false);
       }
     };
-    void fetch();
+
+    void fetchBookings(false);
+
+    const intervalId = window.setInterval(() => {
+      if (document.visibilityState === 'visible') {
+        void fetchBookings(true);
+      }
+    }, 6_000);
+
+    const handleFocus = (): void => {
+      if (document.visibilityState === 'visible') {
+        void fetchBookings(true);
+      }
+    };
+    window.addEventListener('focus', handleFocus);
+    document.addEventListener('visibilitychange', handleFocus);
+
     return () => {
       cancelled = true;
+      window.clearInterval(intervalId);
+      window.removeEventListener('focus', handleFocus);
+      document.removeEventListener('visibilitychange', handleFocus);
     };
   }, [activeTab, page, reloadFlag]);
 
