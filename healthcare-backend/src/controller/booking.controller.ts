@@ -17,6 +17,7 @@ import {
 } from '../utils/stateMachine';
 import { notificationQueue } from '../../worker/notification.worker';
 import { pickParam } from '../helper/request.helper';
+import { computeVisitLiveTracking } from '../helper/liveTracking.helper';
 import { bookingAccessWhere, doctorRequestWhere, assertBookingAccess, bookingVisitAccessWhere } from '../helper/bookingAccess.helper';
 import { rescheduleBooking, canRescheduleBooking, cancelPlannedVisits } from '../helper/reschedule.helper';
 
@@ -270,7 +271,23 @@ export const bookingController = {
         throw new ForbiddenError('FORBIDDEN');
       }
 
-      success(res, { ...booking, canReschedule: req.user.role !== 'STAFF' && canRescheduleBooking(booking) });
+      const visitsWithTracking = await Promise.all(
+        booking.visits.map(async (v) => ({
+          ...v,
+          liveTracking: await computeVisitLiveTracking(v, booking.address),
+        })),
+      );
+      const activeLiveTracking =
+        visitsWithTracking.find((v) => v.status === 'EN_ROUTE')?.liveTracking ??
+        visitsWithTracking.find((v) => v.status === 'CHECKED_IN')?.liveTracking ??
+        null;
+
+      success(res, {
+        ...booking,
+        visits: visitsWithTracking,
+        activeLiveTracking,
+        canReschedule: req.user.role !== 'STAFF' && canRescheduleBooking(booking),
+      });
     } catch (err) { next(err); }
   },
 

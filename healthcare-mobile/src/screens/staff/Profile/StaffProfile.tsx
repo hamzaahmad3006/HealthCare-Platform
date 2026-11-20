@@ -33,7 +33,7 @@ export function StaffProfile(): JSX.Element {
   const navigation = useNavigation<Nav>();
   const unreadCount = useUnreadBadge();
   const {
-    user, staffCode, experienceYears, locationLabel, verified, specializations, available, togglingDuty, toggleDuty,
+    user, staffCode, experienceYears, locationLabel, verified, specializations, reviewSummary, available, togglingDuty, toggleDuty,
     editModalVisible, editFullName, setEditFullName, editEmail, setEditEmail, savingEdit, openEditModal, closeEditModal, saveEdit,
     passwordModalVisible, openPasswordModal, closePasswordModal,
     oldPwd, setOldPwd, newPwd, setNewPwd, confirmPwd, setConfirmPwd,
@@ -127,6 +127,47 @@ export function StaffProfile(): JSX.Element {
               </View>
             ))}
           </View>
+        </View>
+
+        {/* ── Customer Reviews & Ratings ── */}
+        <View style={styles.section}>
+          <View style={styles.reviewsHeaderRow}>
+            <Text style={styles.sectionTitle}>Customer Reviews</Text>
+            {reviewSummary && reviewSummary.totalReviews > 0 ? (
+              <View style={styles.ratingSummaryPill}>
+                <Text style={styles.ratingSummaryText}>
+                  ★ {reviewSummary.averageRating} ({reviewSummary.totalReviews})
+                </Text>
+              </View>
+            ) : null}
+          </View>
+
+          {!reviewSummary || reviewSummary.recentReviews.length === 0 ? (
+            <Text style={styles.emptyReviewsText}>
+              No customer reviews yet. Completed visit ratings will appear here.
+            </Text>
+          ) : (
+            <View style={{ gap: 8 }}>
+              {reviewSummary.recentReviews.map((rev) => (
+                <View key={rev.id} style={styles.reviewItemCard}>
+                  <View style={styles.reviewItemTop}>
+                    <Text style={styles.reviewAuthor}>{rev.customerName}</Text>
+                    <Text style={styles.reviewStars}>
+                      {'★'.repeat(rev.rating)}
+                      {'☆'.repeat(Math.max(0, 5 - rev.rating))}
+                    </Text>
+                  </View>
+                  <Text style={styles.reviewBody}>
+                    {rev.reviewText ? `"${rev.reviewText}"` : 'Customer submitted a star rating.'}
+                  </Text>
+                  <Text style={styles.reviewMeta}>
+                    {rev.serviceName ? `${rev.serviceName} · ` : ''}
+                    {new Date(rev.createdAt).toLocaleDateString()}
+                  </Text>
+                </View>
+              ))}
+            </View>
+          )}
         </View>
 
         {/* ── Settings ── */}
@@ -591,5 +632,60 @@ const styles = StyleSheet.create({
     fontSize: FontSize.md,
     fontWeight: '700',
     color: Colors.white,
+  },
+  reviewsHeaderRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  ratingSummaryPill: {
+    backgroundColor: '#FEF3C7',
+    paddingHorizontal: 10,
+    paddingVertical: 3,
+    borderRadius: Radius.full,
+  },
+  ratingSummaryText: {
+    fontSize: 12,
+    fontWeight: '800',
+    color: '#92400E',
+  },
+  emptyReviewsText: {
+    fontSize: FontSize.sm,
+    color: Colors.textMuted,
+    fontStyle: 'italic',
+  },
+  reviewItemCard: {
+    backgroundColor: Colors.neutralLight,
+    borderRadius: Radius.md,
+    padding: Spacing.sm,
+    borderWidth: 1,
+    borderColor: Colors.neutralBorder,
+  },
+  reviewItemTop: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  reviewAuthor: {
+    fontSize: FontSize.sm,
+    fontWeight: '700',
+    color: Colors.textPrimary,
+  },
+  reviewStars: {
+    fontSize: FontSize.sm,
+    color: '#F59E0B',
+    fontWeight: '700',
+  },
+  reviewBody: {
+    fontSize: FontSize.xs,
+    color: Colors.textSecondary,
+    fontStyle: 'italic',
+    marginTop: 4,
+  },
+  reviewMeta: {
+    fontSize: 10,
+    color: Colors.textMuted,
+    marginTop: 4,
   },
 });

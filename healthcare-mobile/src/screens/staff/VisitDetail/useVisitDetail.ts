@@ -99,10 +99,35 @@ export function useVisitDetail() {
     }
   };
 
+  useEffect(() => {
+    if (visit?.status !== 'EN_ROUTE') return;
+    const gpsTimer = setInterval(() => {
+      void (async () => {
+        try {
+          const coords = await getCurrentCoords();
+          if (coords) {
+            await api.patch(API.VISITS.LOCATION(id), {
+              latitude: coords.latitude,
+              longitude: coords.longitude,
+            });
+          }
+        } catch {
+          // Non-fatal background telemetry ping
+        }
+      })();
+    }, 8_000);
+    (gpsTimer as unknown as { unref?: () => void }).unref?.();
+    return () => clearInterval(gpsTimer);
+  }, [id, visit?.status]);
+
   const markEnRoute = async (): Promise<void> => {
     setActionLoading(true);
     try {
-      await api.patch(API.VISITS.EN_ROUTE(id));
+      const coords = await getCurrentCoords();
+      await api.patch(
+        API.VISITS.EN_ROUTE(id),
+        coords ? { latitude: coords.latitude, longitude: coords.longitude } : {},
+      );
       await reloadVisit();
     } catch (err) {
       Alert.alert('Error', extractApiError(err));

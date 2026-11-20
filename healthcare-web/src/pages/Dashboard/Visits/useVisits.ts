@@ -206,8 +206,12 @@ export function useVisits(): UseVisitsReturn {
     async (visitId: string): Promise<void> => {
       setActionLoadingId(visitId);
       try {
-        await api.patch(API.VISITS.EN_ROUTE(visitId));
-        toast.success('Marked en route — customer notified');
+        const coords = await getCoords();
+        await api.patch(
+          API.VISITS.EN_ROUTE(visitId),
+          coords ? { latitude: coords.lat, longitude: coords.lng } : {},
+        );
+        toast.success('Marked en route — live GPS tracking active for customer');
         reload();
       } catch (err) {
         toast.error(extractApiError(err).message);

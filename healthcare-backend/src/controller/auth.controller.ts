@@ -21,9 +21,11 @@ import { FAILED_LOGIN_LOCKOUT } from '../utils/constants';
 import { sendWhatsAppMessage } from '../helper/axios';
 import { sendEmail } from '../helper/email.helper';
 import { renderTemplate } from '../helper/template.helper';
+import { notificationService } from '../services/notification';
 import { Role } from '@prisma/client';
 
 const lockoutKey = (phone: string): string => `login_attempts:${phone}`;
+const ipFailureKey = (ip: string): string => `security:failed_ip:${ip}`;
 
 const LoginSchema = z.object({
   phone: z.string().min(1),
@@ -68,6 +70,8 @@ export const authController = {
       const attemptKey = lockoutKey(phone);
       const currentAttempts = Number((await redis.get(attemptKey)) ?? 0);
       if (currentAttempts >= FAILED_LOGIN_LOCKOUT.MAX_ATTEMPTS) {
+        res.locals['auditForceLog'] = true;
+        res.locals['auditAction'] = 'ACCOUNT_LOCKED';
         throw new AppError(
           429,
           'ACCOUNT_LOCKED',
@@ -76,8 +80,44 @@ export const authController = {
       }
 
       const recordFailure = async (): Promise<void> => {
-        const next = currentAttempts + 1;
-        await redis.set(attemptKey, String(next), 'EX', FAILED_LOGIN_LOCKOUT.WINDOW_MINUTES * 60);
+        const nextPhoneAttempts = currentAttempts + 1;
+        await redis.set(
+          attemptKey,
+          String(nextPhoneAttempts),
+          'EX',
+          FAILED_LOGIN_LOCKOUT.WINDOW_MINUTES * 60,
+        );
+
+        const clientIp = req.ip ?? 'unknown';
+        const ipKey = ipFailureKey(clientIp);
+        const currentIpAttempts = Number((await redis.get(ipKey)) ?? 0) + 1;
+        // 5-minute rolling window for suspicious IP activity detection
+        await redis.set(ipKey, String(currentIpAttempts), 'EX', 5 * 60);
+
+        if (currentIpAttempts >= 5 || nextPhoneAttempts >= 5) {
+          res.locals['auditAction'] = 'SUSPICIOUS_ACTIVITY';
+          // Dispatch real-time push alert to all Super Admin devices (fire-and-forget)
+          prisma.deviceToken
+            .findMany({
+              where: { role: 'ADMIN' },
+              select: { fcmToken: true },
+            })
+            .then((devices) => {
+              const tokens = devices.map((d) => d.fcmToken);
+              if (tokens.length === 0) return;
+              return notificationService.sendToTokens(tokens, {
+                title: '🚨 Red Security Alert: Brute-Force Detected',
+                body: `${Math.max(currentIpAttempts, nextPhoneAttempts)} failed login attempts from IP ${clientIp} within 5 minutes.`,
+                data: {
+                  templateCode: 'SECURITY_ALERT',
+                  ipAddress: clientIp,
+                  role: 'ADMIN',
+                },
+                collapseKey: `sec_alert_${clientIp}`,
+              });
+            })
+            .catch(() => null);
+        }
       };
 
       const user = await prisma.user.findUnique({
@@ -98,16 +138,25 @@ export const authController = {
 
       if (!user || user.deletedAt) {
         await recordFailure();
+        res.locals['auditForceLog'] = true;
+        res.locals['auditAction'] = 'LOGIN_FAILED';
         throw new UnauthorizedError('INVALID_CREDENTIALS', 'Phone or password is incorrect');
       }
+
+      res.locals['auditActorId'] = user.id;
+      res.locals['auditEntityId'] = user.id;
 
       const valid = await verifyPassword(password, user.passwordHash);
       if (!valid) {
         await recordFailure();
+        res.locals['auditForceLog'] = true;
+        res.locals['auditAction'] = 'LOGIN_FAILED';
         throw new UnauthorizedError('INVALID_CREDENTIALS', 'Phone or password is incorrect');
       }
 
       if (user.status !== 'ACTIVE') {
+        res.locals['auditForceLog'] = true;
+        res.locals['auditAction'] = 'LOGIN_FAILED';
         throw new UnauthorizedError('ACCOUNT_SUSPENDED', 'Your account has been suspended');
       }
 

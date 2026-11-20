@@ -13,6 +13,15 @@ import {
 } from '../utils/stateMachine';
 import { notificationQueue } from '../../worker/notification.worker';
 import { pickParam } from '../helper/request.helper';
+import {
+  computeVisitLiveTracking,
+  recordStaffTelemetry,
+} from '../helper/liveTracking.helper';
+
+const LocationPingSchema = z.object({
+  latitude: z.number().optional(),
+  longitude: z.number().optional(),
+});
 
 const CheckInSchema = z.object({
   checkInLatitude: z.number(),
@@ -207,13 +216,16 @@ export const visitController = {
         throw new ForbiddenError('FORBIDDEN');
       }
 
-      success(res, visit);
+      const liveTracking = await computeVisitLiveTracking(visit, visit.booking?.address);
+      success(res, { ...visit, liveTracking });
     } catch (err) { next(err); }
   },
 
   async enRoute(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       if (!req.user) throw new UnauthorizedError('UNAUTHENTICATED');
+
+      const coords = LocationPingSchema.safeParse(req.body ?? {});
 
       const visit = await prisma.bookingVisit.findUnique({
         where: { id: pickParam(req, 'id') },
@@ -222,11 +234,19 @@ export const visitController = {
             select: {
               bookingNumber: true,
               customerUserId: true,
-              address: { select: { contactPhone: true } },
+              address: {
+                select: {
+                  contactPhone: true,
+                  latitude: true,
+                  longitude: true,
+                  area: true,
+                  line1: true,
+                },
+              },
               customer: { select: { phone: true } },
             },
           },
-          assignedStaff: { select: { user: { select: { fullName: true } } } },
+          assignedStaff: { select: { user: { select: { fullName: true, phone: true } } } },
         },
       });
       if (!visit) throw new NotFoundError('VISIT_NOT_FOUND');
@@ -241,6 +261,12 @@ export const visitController = {
         where: { id: visit.id, status: visit.status, ...(req.user.role === 'STAFF' && { assignedStaffUserId: req.user.sub }) },
         data: { status: 'EN_ROUTE' },
       });
+
+      await recordStaffTelemetry(
+        visit.id,
+        coords.success ? coords.data : undefined,
+        true,
+      );
 
       // NotificationLog.recipient is VarChar(20) — must be a phone, never a
       // UUID. Same fix as booking confirm/assign paths.
@@ -266,10 +292,54 @@ export const visitController = {
 
       await notificationQueue.add('send', { notificationLogId: notifLog.id }).catch(() => null);
 
-      success(res, updated);
+      const liveTracking = await computeVisitLiveTracking(
+        { ...updated, assignedStaff: visit.assignedStaff },
+        visit.booking.address,
+      );
+
+      success(res, { ...updated, liveTracking });
     } catch (err) {
       next(err instanceof Prisma.PrismaClientKnownRequestError && err.code === 'P2025'
         ? new ConflictError('VISIT_CHANGED', 'The visit changed. Refresh before trying again.') : err);
+    }
+  },
+
+  async updateLocation(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      if (!req.user) throw new UnauthorizedError('UNAUTHENTICATED');
+
+      const coords = LocationPingSchema.parse(req.body ?? {});
+      const visit = await prisma.bookingVisit.findUnique({
+        where: { id: pickParam(req, 'id') },
+        include: {
+          booking: {
+            select: {
+              address: {
+                select: {
+                  latitude: true,
+                  longitude: true,
+                  area: true,
+                  line1: true,
+                },
+              },
+            },
+          },
+          assignedStaff: {
+            select: { user: { select: { fullName: true, phone: true } } },
+          },
+        },
+      });
+
+      if (!visit) throw new NotFoundError('VISIT_NOT_FOUND');
+      if (req.user.role === 'STAFF' && visit.assignedStaffUserId !== req.user.sub) {
+        throw new ForbiddenError('FORBIDDEN');
+      }
+
+      await recordStaffTelemetry(visit.id, coords, false);
+      const liveTracking = await computeVisitLiveTracking(visit, visit.booking?.address);
+      success(res, { visitId: visit.id, liveTracking });
+    } catch (err) {
+      next(err);
     }
   },
 

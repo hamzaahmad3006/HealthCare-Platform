@@ -5,7 +5,7 @@ import { api, extractApiError } from '../../../helper/axios';
 import { API } from '../../../constant/apiUrls';
 import { useAppDispatch, useAppSelector } from '../../../redux/store';
 import { setUser } from '../../../redux/slices/authSlice';
-import type { Gender } from '../../../types/booking.types';
+import type { Gender, StaffReviewSummary } from '../../../types/booking.types';
 import type { VerifStatus } from '../../../types/staff.types';
 
 export interface MyStaffProfile {
@@ -26,6 +26,7 @@ export interface MyStaffProfile {
   city: { id: string; name: string } | null;
   zone: { id: string; name: string } | null;
   serviceTypes: Array<{ serviceType: { id: string; code: string; name: string } }>;
+  reviewSummary?: StaffReviewSummary | null;
 }
 
 interface UseStaffProfileReturn {

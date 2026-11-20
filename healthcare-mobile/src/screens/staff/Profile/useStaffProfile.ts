@@ -7,6 +7,7 @@ import { api, extractApiError, STORAGE_KEYS } from '../../../api/client';
 import { API } from '../../../api/endpoints';
 import { useAppDispatch, useAppSelector } from '../../../store';
 import { logout } from '../../../store/slices/authSlice';
+import type { StaffReviewSummary } from '../../../types/booking.types';
 
 const DEFAULT_SPECIALIZATIONS = ['Nursing', 'Caregiver'];
 
@@ -21,6 +22,7 @@ export function useStaffProfile() {
   const [locationLabel, setLocationLabel] = useState<string | null>(null);
   const [verified, setVerified] = useState(false);
   const [specializations, setSpecializations] = useState<string[]>(DEFAULT_SPECIALIZATIONS);
+  const [reviewSummary, setReviewSummary] = useState<StaffReviewSummary | null>(null);
 
   const loadProfile = useCallback(async (): Promise<void> => {
     if (!user) return;
@@ -35,6 +37,7 @@ export function useStaffProfile() {
           city: { name: string } | null;
           zone: { name: string } | null;
           serviceTypes?: { serviceType: { id: string; name: string; code: string } }[];
+          reviewSummary?: StaffReviewSummary | null;
         };
       }>(API.STAFF.ME);
       setStaffCode(data.data.staffCode);
@@ -48,6 +51,7 @@ export function useStaffProfile() {
       if (names.length > 0) {
         setSpecializations(names);
       }
+      setReviewSummary(data.data.reviewSummary ?? null);
     } catch {
       // Non-fatal — keeps the default local state.
     }
@@ -179,6 +183,7 @@ export function useStaffProfile() {
     locationLabel,
     verified,
     specializations,
+    reviewSummary,
     available,
     togglingDuty,
     toggleDuty,

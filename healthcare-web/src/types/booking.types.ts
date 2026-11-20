@@ -124,6 +124,44 @@ export interface Booking {
   updatedAt: string;
 }
 
+export interface StaffReviewSummaryItem {
+  id: string;
+  rating: number;
+  reviewText: string | null;
+  customerName: string;
+  serviceName: string | null;
+  bookingNumber: string | null;
+  createdAt: string;
+}
+
+export interface StaffReviewSummary {
+  averageRating: number | null;
+  totalReviews: number;
+  recentReviews: StaffReviewSummaryItem[];
+}
+
+export interface LiveTrackingInfo {
+  isActive: boolean;
+  visitId: string;
+  sequenceNo: number;
+  status: 'EN_ROUTE' | 'CHECKED_IN';
+  staffName: string;
+  staffPhone: string | null;
+  staffReviews?: StaffReviewSummary | null;
+  staffLatitude: number;
+  staffLongitude: number;
+  patientLatitude: number;
+  patientLongitude: number;
+  originLatitude: number;
+  originLongitude: number;
+  distanceKm: number;
+  etaMinutes: number;
+  progressPercent: number;
+  headingLabel: string;
+  telemetrySource: 'LIVE_GPS' | 'LIVE_DISPATCH_CORRIDOR';
+  lastUpdatedAt: string;
+}
+
 export interface BookingVisit {
   id: string;
   bookingId: string;
@@ -140,6 +178,7 @@ export interface BookingVisit {
   beforeConditionText: string | null;
   afterConditionText: string | null;
   visitNotes: string | null;
+  liveTracking?: LiveTrackingInfo | null;
   createdAt: string;
 }
 
@@ -164,6 +203,7 @@ export interface BookingPayment {
 
 export interface BookingWithRelations extends Booking {
   canReschedule?: boolean;
+  activeLiveTracking?: LiveTrackingInfo | null;
   patient: Patient;
   serviceType: ServiceType;
   package: Package;

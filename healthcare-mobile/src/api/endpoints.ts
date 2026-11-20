@@ -60,6 +60,7 @@ export const API = {
     LIST: '/visits',
     DETAIL: (id: string) => `/visits/${id}`,
     EN_ROUTE: (id: string) => `/visits/${id}/en-route`,
+    LOCATION: (id: string) => `/visits/${id}/location`,
     CHECK_IN: (id: string) => `/visits/${id}/check-in`,
     CHECK_OUT: (id: string) => `/visits/${id}/check-out`,
     COMPLETE: (id: string) => `/visits/${id}/complete`,
@@ -80,5 +81,6 @@ export const API = {
   },
   ADMIN: {
     CUSTOMERS: '/admin/customers',
+    AUDIT_LOGS: '/admin/audit-logs',
   },
 };

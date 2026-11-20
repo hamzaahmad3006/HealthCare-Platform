@@ -16,6 +16,8 @@ import {
   CheckCircle2,
   ArrowRight,
   ShieldCheck,
+  Star,
+  MessageSquareQuote,
 } from 'lucide-react';
 import { SidebarLayout } from '../../../component/admin/SidebarLayout';
 import { LoadingSpinner } from '../../../component/common/LoadingSpinner';
@@ -309,6 +311,76 @@ export function StaffProfile(): JSX.Element {
                     <CheckCircle2 className="h-3.5 w-3.5 mr-1 text-brand-600" />
                     {st.serviceType.name}
                   </Badge>
+                ))}
+              </div>
+            )}
+          </Card>
+
+          {/* Customer Reviews & Ratings Card */}
+          <Card padding="md" className="shadow-card rounded-2xl border border-ink-100">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
+              <div>
+                <h3 className="text-base font-bold text-ink-900 flex items-center gap-2">
+                  <MessageSquareQuote className="h-4 w-4 text-brand-600" />
+                  <span>Customer Reviews &amp; Ratings</span>
+                </h3>
+                <p className="text-xs text-ink-500">
+                  Feedback submitted by customers after your completed home visits
+                </p>
+              </div>
+              {profile.reviewSummary && profile.reviewSummary.totalReviews > 0 ? (
+                <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl bg-amber-50 border border-amber-200">
+                  <Star className="h-4 w-4 fill-amber-400 text-amber-500" />
+                  <span className="text-sm font-extrabold text-amber-900">
+                    {profile.reviewSummary.averageRating} / 5.0
+                  </span>
+                  <span className="text-xs font-medium text-amber-700">
+                    ({profile.reviewSummary.totalReviews}{' '}
+                    {profile.reviewSummary.totalReviews === 1 ? 'review' : 'reviews'})
+                  </span>
+                </div>
+              ) : null}
+            </div>
+
+            {!profile.reviewSummary || profile.reviewSummary.recentReviews.length === 0 ? (
+              <div className="rounded-xl bg-ink-50/70 border border-dashed border-ink-200 px-4 py-6 text-center">
+                <Star className="h-7 w-7 text-ink-300 mx-auto mb-2" />
+                <p className="text-sm font-semibold text-ink-700">No customer reviews yet</p>
+                <p className="text-xs text-ink-500 mt-0.5">
+                  Customer ratings and comments will appear here once visits are reviewed.
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {profile.reviewSummary.recentReviews.map((rev) => (
+                  <div
+                    key={rev.id}
+                    className="rounded-xl bg-ink-50/60 border border-ink-100 p-4 space-y-1.5"
+                  >
+                    <div className="flex items-center justify-between gap-2 flex-wrap">
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm font-bold text-ink-900">{rev.customerName}</span>
+                        {rev.bookingNumber ? (
+                          <span className="font-mono text-2xs px-1.5 py-0.5 rounded bg-white border border-ink-200 text-ink-600">
+                            {rev.bookingNumber}
+                          </span>
+                        ) : null}
+                        {rev.serviceName ? (
+                          <span className="text-2xs font-medium text-brand-700 bg-brand-50 px-2 py-0.5 rounded-full">
+                            {rev.serviceName}
+                          </span>
+                        ) : null}
+                      </div>
+                      <span className="text-sm font-bold text-amber-500 tracking-wider">
+                        {'★'.repeat(rev.rating)}
+                        {'☆'.repeat(Math.max(0, 5 - rev.rating))}
+                      </span>
+                    </div>
+                    <p className="text-xs text-ink-700 leading-relaxed italic">
+                      {rev.reviewText ? `"${rev.reviewText}"` : 'Customer submitted a star rating without comments.'}
+                    </p>
+                    <p className="text-2xs text-ink-400">{formatDate(rev.createdAt)}</p>
+                  </div>
                 ))}
               </div>
             )}

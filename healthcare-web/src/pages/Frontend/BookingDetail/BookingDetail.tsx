@@ -7,6 +7,7 @@ import { Card } from '../../../constant/Card';
 import { StatusBadge } from '../../../component/common/StatusBadge';
 import { LoadingSpinner } from '../../../component/common/LoadingSpinner';
 import { VisitTimeline } from '../../../component/booking/VisitTimeline';
+import { LiveStaffTrackerCard } from '../../../component/booking/LiveStaffTrackerCard';
 import { TopNav } from '../../../component/common/TopNav';
 import { formatCurrency, formatDateTime } from '../../../helper/format';
 import { useBookingDetail, type ReviewFormData } from './useBookingDetail';
@@ -72,6 +73,22 @@ export function BookingDetail(): JSX.Element {
             </div>
           </div>
         </Card>
+
+        {/* Uber-Style Live Staff Tracking Map when a visit is EN_ROUTE or CHECKED_IN */}
+        {(() => {
+          const activeTrack =
+            b.activeLiveTracking ??
+            b.visits?.find((v) => v.status === 'EN_ROUTE')?.liveTracking ??
+            b.visits?.find((v) => v.status === 'CHECKED_IN')?.liveTracking ??
+            null;
+          return activeTrack ? (
+            <LiveStaffTrackerCard
+              tracking={activeTrack}
+              patientName={b.patient.fullName}
+              addressLine={`${b.address.line1}, ${b.address.area}`}
+            />
+          ) : null;
+        })()}
 
         {/* PENDING_DOCTOR banner */}
         {b.status === 'PENDING_DOCTOR' ? (

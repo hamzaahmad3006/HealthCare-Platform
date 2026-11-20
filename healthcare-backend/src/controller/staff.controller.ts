@@ -17,6 +17,7 @@ import { VerifStatus, Prisma } from '@prisma/client';
 import { assertVerifiedStaff } from '../middleware/verifiedStaff.middleware';
 import { MAX_FILE_SIZE_BYTES } from '../utils/constants';
 import { pickParam } from '../helper/request.helper';
+import { getStaffReviewSummary } from '../helper/liveTracking.helper';
 
 // Self-onboarding flow: admin invite only needs identity (name + how to reach
 // them). Staff fills the rest themselves via PATCH /staff/me/profile after
@@ -746,7 +747,15 @@ export const staffController = {
         },
       });
       if (!profile) throw new NotFoundError('PROFILE_NOT_FOUND');
-      success(res, { ...profile, canManageDoctorRequests: Boolean(await findEligibleDoctor(prisma, req.user.sub)) });
+      const [eligibleDoctor, reviewSummary] = await Promise.all([
+        findEligibleDoctor(prisma, req.user.sub),
+        getStaffReviewSummary(req.user.sub, 20),
+      ]);
+      success(res, {
+        ...profile,
+        canManageDoctorRequests: Boolean(eligibleDoctor),
+        reviewSummary,
+      });
     } catch (err) { next(err); }
   },
 
