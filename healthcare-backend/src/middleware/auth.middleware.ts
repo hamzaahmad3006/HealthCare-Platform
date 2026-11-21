@@ -4,13 +4,22 @@ import { UnauthorizedError } from '../utils/stateMachine';
 
 export function authenticateToken(req: Request, _res: Response, next: NextFunction): void {
   const authHeader = req.headers['authorization'];
+  const queryToken = typeof req.query?.['token'] === 'string' ? req.query['token'] : undefined;
+  const cookieToken = (req as any).cookies?.['accessToken'] as string | undefined;
 
-  if (!authHeader || !authHeader.startsWith('Bearer ')) {
-    next(new UnauthorizedError('MISSING_TOKEN', 'Authorization header is required'));
-    return;
+  let token: string | undefined;
+  if (authHeader && authHeader.startsWith('Bearer ')) {
+    token = authHeader.slice(7);
+  } else if (queryToken) {
+    token = queryToken;
+  } else if (cookieToken) {
+    token = cookieToken;
   }
 
-  const token = authHeader.slice(7);
+  if (!token) {
+    next(new UnauthorizedError('MISSING_TOKEN', 'Authorization token is required'));
+    return;
+  }
 
   try {
     const payload = verifyToken(token);

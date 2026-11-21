@@ -1,5 +1,8 @@
-import { Check, Clock, Truck, MapPin, AlertCircle, User, Phone, FileText, Download } from 'lucide-react';
+import { useState } from 'react';
+import { Check, Clock, Truck, MapPin, AlertCircle, User, Phone, FileText, Download, RefreshCw } from 'lucide-react';
 import clsx from 'clsx';
+import toast from 'react-hot-toast';
+import { api } from '../../helper/axios';
 import { StatusBadge } from '../common/StatusBadge';
 import { formatDateTime, formatTime } from '../../helper/format';
 import type { BookingVisit, VisitStatus } from '../../types/booking.types';
@@ -29,6 +32,28 @@ const NODE_TONE: Record<VisitStatus, string> = {
 };
 
 export function VisitTimeline({ visits }: VisitTimelineProps): JSX.Element {
+  const [downloadingId, setDownloadingId] = useState<string | null>(null);
+
+  const handleDownloadPdf = async (visitId: string, sequenceNo: number) => {
+    setDownloadingId(visitId);
+    try {
+      const { data } = await api.get<Blob>(`/visits/${visitId}/clinical-pdf`, {
+        responseType: 'blob',
+      });
+      const objectUrl = URL.createObjectURL(data);
+      const link = document.createElement('a');
+      link.href = objectUrl;
+      link.download = `clinical-summary-visit-${sequenceNo}.pdf`;
+      link.click();
+      window.setTimeout(() => URL.revokeObjectURL(objectUrl), 60_000);
+      toast.success('Clinical Summary PDF downloaded');
+    } catch {
+      window.open(`/api/v1/visits/${visitId}/clinical-pdf`, '_blank');
+    } finally {
+      setDownloadingId(null);
+    }
+  };
+
   if (visits.length === 0) {
     return (
       <p className="text-sm text-ink-500 italic">No visits scheduled yet.</p>
@@ -104,15 +129,19 @@ export function VisitTimeline({ visits }: VisitTimelineProps): JSX.Element {
                     <p className="text-2xs text-teal-700 truncate">Vitals, clinical notes & digital signature</p>
                   </div>
                 </div>
-                <a
-                  href={`/api/v1/visits/${v.id}/clinical-pdf`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-teal-700 hover:bg-teal-800 text-white text-xs font-bold shadow-xs transition-colors shrink-0"
+                <button
+                  type="button"
+                  onClick={() => void handleDownloadPdf(v.id, v.sequenceNo)}
+                  disabled={downloadingId === v.id}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-teal-700 hover:bg-teal-800 disabled:opacity-60 text-white text-xs font-bold shadow-xs transition-colors shrink-0"
                 >
-                  <Download className="h-3.5 w-3.5" />
-                  <span>Download PDF</span>
-                </a>
+                  {downloadingId === v.id ? (
+                    <RefreshCw className="h-3.5 w-3.5 animate-spin" />
+                  ) : (
+                    <Download className="h-3.5 w-3.5" />
+                  )}
+                  <span>{downloadingId === v.id ? 'Downloading...' : 'Download PDF'}</span>
+                </button>
               </div>
             ) : null}
           </li>
