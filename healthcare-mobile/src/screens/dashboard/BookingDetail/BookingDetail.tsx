@@ -15,6 +15,8 @@ import {
   Linking,
 } from 'react-native';
 import { Colors, FontSize, Spacing, Radius } from '../../../constants/theme';
+import { MaterialDesignIcons } from '@react-native-vector-icons/material-design-icons/static';
+import { api } from '../../../api/client';
 import { useBookingDetail } from './useBookingDetail';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { CustomerStackParamList } from '../../../navigation/types';
@@ -59,6 +61,14 @@ export function BookingDetail({ navigation, route }: Props): JSX.Element {
   }
 
   const color = STATUS_COLORS[booking.status];
+
+  const openClinicalPdf = (visitId: string) => {
+    const base = api.defaults.baseURL ?? 'http://10.0.2.2:3000/api/v1';
+    const url = `${base}/visits/${visitId}/clinical-pdf`;
+    Linking.openURL(url).catch(() => {
+      Alert.alert('Unable to open PDF', 'Could not open clinical summary PDF on your device.');
+    });
+  };
 
   return (
     <ScrollView refreshControl={<RefreshControl refreshing={loading} onRefresh={() => void reload()} />}
@@ -279,9 +289,22 @@ export function BookingDetail({ navigation, route }: Props): JSX.Element {
       {(booking.visits?.length ?? 0) > 0 && (
         <Section title={`Visits (${booking.visits.length})`}>
           {booking.visits.map((v, i) => (
-            <View key={v.id} style={styles.visitRow}>
-              <Text style={styles.visitLabel}>Visit #{i + 1}</Text>
-              <Text style={styles.visitStatus}>{v.status}</Text>
+            <View key={v.id} style={{ marginBottom: Spacing.sm }}>
+              <View style={styles.visitRow}>
+                <Text style={styles.visitLabel}>Visit #{i + 1}</Text>
+                <Text style={styles.visitStatus}>{v.status}</Text>
+              </View>
+              {v.status === 'COMPLETED' && (
+                <TouchableOpacity
+                  style={styles.clinicalPdfRow}
+                  onPress={() => openClinicalPdf(v.id)}
+                  activeOpacity={0.8}
+                >
+                  <MaterialDesignIcons name="file-pdf-box" size={18} color="#0F766E" />
+                  <Text style={styles.clinicalPdfText}>Clinical Medical Summary (PDF)</Text>
+                  <MaterialDesignIcons name="download" size={16} color="#0F766E" />
+                </TouchableOpacity>
+              )}
             </View>
           ))}
         </Section>
@@ -834,5 +857,24 @@ const styles = StyleSheet.create({
     fontSize: 11,
     color: Colors.textMuted,
     fontStyle: 'italic',
+  },
+  clinicalPdfRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: '#F0FDFA',
+    borderWidth: 1,
+    borderColor: '#99F6E4',
+    borderRadius: Radius.md,
+    paddingHorizontal: 12,
+    paddingVertical: 9,
+    marginTop: 6,
+  },
+  clinicalPdfText: {
+    fontSize: FontSize.xs,
+    fontWeight: '700',
+    color: '#0F766E',
+    flex: 1,
+    marginLeft: 6,
   },
 });

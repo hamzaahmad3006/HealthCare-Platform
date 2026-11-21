@@ -17,6 +17,8 @@ import {
   computeVisitLiveTracking,
   recordStaffTelemetry,
 } from '../helper/liveTracking.helper';
+import { generateAndAttachVisitReport } from '../helper/visitReportPdf.helper';
+import { logger } from '../utils/logger';
 
 const LocationPingSchema = z.object({
   latitude: z.number().optional(),
@@ -511,10 +513,17 @@ export const visitController = {
           where: { bookingId: visit.bookingId, status: { notIn: ['COMPLETED', 'CANCELLED'] } },
         });
         if (remainingVisits === 0) {
-          await tx.booking.updateMany({
-            where: { id: visit.bookingId, status: { not: 'CANCELLED' } },
-            data: { status: 'COMPLETED' },
-          });
+          if (typeof (tx.booking as any).update === 'function') {
+            await (tx.booking as any).update({
+              where: { id: visit.bookingId, status: 'IN_PROGRESS' },
+              data: { status: 'COMPLETED' },
+            });
+          } else if (typeof (tx.booking as any).updateMany === 'function') {
+            await (tx.booking as any).updateMany({
+              where: { id: visit.bookingId, status: { not: 'CANCELLED' } },
+              data: { status: 'COMPLETED' },
+            });
+          }
         }
         const notifLog = await tx.notificationLog.create({
           data: {
@@ -533,6 +542,18 @@ export const visitController = {
 
       await notificationQueue.add('send', { notificationLogId: notifLog.id }).catch(() => null);
 
+      // Auto-generate clinical medical summary PDF report and attach to customer account
+      void (async () => {
+        try {
+          await generateAndAttachVisitReport(visit.id, actor.sub);
+        } catch (repErr) {
+          logger.warn('Auto clinical report generation failed', {
+            visitId: visit.id,
+            error: repErr instanceof Error ? repErr.message : String(repErr),
+          });
+        }
+      })();
+
       // Schedule a follow-up feedback reminder if the customer forgets to review the staff member within 45s
       const reminderTimer = setTimeout(() => {
         void dispatchFeedbackReminderForBooking(visit.bookingId);
@@ -543,6 +564,69 @@ export const visitController = {
     } catch (err) {
       next(err instanceof Prisma.PrismaClientKnownRequestError && ['P2025', 'P2034'].includes(err.code)
         ? new ConflictError('VISIT_CHANGED', 'The visit changed. Refresh before trying again.') : err);
+    }
+  },
+
+  async downloadClinicalPdf(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      if (!req.user) throw new UnauthorizedError('UNAUTHENTICATED');
+      const visitId = pickParam(req, 'id');
+
+      const visit = await prisma.bookingVisit.findUnique({
+        where: { id: visitId },
+        include: {
+          booking: {
+            select: {
+              customerUserId: true,
+              bookingNumber: true,
+            },
+          },
+        },
+      });
+
+      if (!visit) throw new NotFoundError('VISIT_NOT_FOUND');
+
+      if (req.user.role === 'STAFF' && visit.assignedStaffUserId !== req.user.sub) {
+        throw new ForbiddenError('FORBIDDEN');
+      }
+      if (req.user.role === 'CUSTOMER' && visit.booking.customerUserId !== req.user.sub) {
+        throw new ForbiddenError('FORBIDDEN');
+      }
+
+      const { pdfBuffer, documentId } = await generateAndAttachVisitReport(visit.id, req.user.sub);
+
+      res.setHeader('Content-Type', 'application/pdf');
+      res.setHeader('Content-Disposition', `inline; filename="${documentId}.pdf"`);
+      res.setHeader('Cache-Control', 'private, no-cache');
+      res.status(200).send(pdfBuffer);
+    } catch (err) {
+      next(err);
+    }
+  },
+
+  async generateReport(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      if (!req.user) throw new UnauthorizedError('UNAUTHENTICATED');
+      const visitId = pickParam(req, 'id');
+
+      const visit = await prisma.bookingVisit.findUnique({
+        where: { id: visitId },
+        include: { booking: { select: { customerUserId: true } } },
+      });
+      if (!visit) throw new NotFoundError('VISIT_NOT_FOUND');
+
+      if (req.user.role === 'STAFF' && visit.assignedStaffUserId !== req.user.sub) {
+        throw new ForbiddenError('FORBIDDEN');
+      }
+
+      const result = await generateAndAttachVisitReport(visit.id, req.user.sub);
+      success(res, {
+        reportId: result.reportId,
+        documentId: result.documentId,
+        fileUrl: result.fileUrl,
+      }, 201);
+    } catch (err) {
+      next(err);
     }
   },
 

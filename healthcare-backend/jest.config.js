@@ -11,6 +11,9 @@ module.exports = {
     '!src/**/*.d.ts',
   ],
   setupFiles: ['<rootDir>/tests/setup.ts'],
+  moduleNameMapper: {
+    '^pdfkit$': '<rootDir>/node_modules/pdfkit/js/pdfkit.standalone.js',
+  },
   testPathIgnorePatterns: ['/node_modules/', '/dist/', '/tests/integration/'],
   moduleFileExtensions: ['ts', 'js', 'json'],
   clearMocks: true,

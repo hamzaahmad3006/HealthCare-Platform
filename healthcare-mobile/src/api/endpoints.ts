@@ -64,6 +64,8 @@ export const API = {
     CHECK_IN: (id: string) => `/visits/${id}/check-in`,
     CHECK_OUT: (id: string) => `/visits/${id}/check-out`,
     COMPLETE: (id: string) => `/visits/${id}/complete`,
+    CLINICAL_PDF: (id: string) => `/visits/${id}/clinical-pdf`,
+    GENERATE_REPORT: (id: string) => `/visits/${id}/generate-report`,
     MISS: (id: string) => `/visits/${id}/miss`,
     CANCEL: (id: string) => `/visits/${id}/cancel`,
   },

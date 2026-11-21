@@ -180,6 +180,15 @@ export function useVisitDetail() {
     }
   };
 
+  const openClinicalPdf = (): void => {
+    if (!visit) return;
+    const base = api.defaults.baseURL ?? 'http://10.0.2.2:3000/api/v1';
+    const url = `${base}/visits/${visit.id}/clinical-pdf`;
+    Linking.openURL(url).catch(() => {
+      Alert.alert('Unable to open PDF', 'Could not open clinical summary PDF on your device.');
+    });
+  };
+
   const completeVisit = async (): Promise<void> => {
     setActionLoading(true);
     try {
@@ -368,6 +377,7 @@ export function useVisitDetail() {
     checkIn,
     checkOut,
     completeVisit,
+    openClinicalPdf,
     goBack: () => navigation.goBack(),
     reportModalVisible,
     openReportModal,

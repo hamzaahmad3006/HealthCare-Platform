@@ -9,6 +9,8 @@ const router = Router();
 
 router.get('/', authenticateToken, adminOrStaff, visitController.list);
 router.get('/:id', authenticateToken, visitController.getById);
+router.get('/:id/clinical-pdf', authenticateToken, visitController.downloadClinicalPdf);
+router.post('/:id/generate-report', authenticateToken, adminOrStaff, verifiedStaff, visitController.generateReport);
 router.patch('/:id/en-route', authenticateToken, adminOrStaff, verifiedStaff, visitController.enRoute);
 router.patch('/:id/location', authenticateToken, adminOrStaff, verifiedStaff, visitController.updateLocation);
 router.patch('/:id/check-in', authenticateToken, adminOrStaff, verifiedStaff, visitController.checkIn);

@@ -41,7 +41,7 @@ export function VisitDetail(): JSX.Element {
     openDirections, callContact,
     beforeCondition, afterCondition, visitNotes,
     setBeforeCondition, setAfterCondition, setVisitNotes,
-    markEnRoute, checkIn, checkOut, completeVisit,
+    markEnRoute, checkIn, checkOut, completeVisit, openClinicalPdf,
     reportModalVisible, openReportModal, closeReportModal,
     reportTitle, setReportTitle, reportType, setReportType, reportNotes, setReportNotes,
     pickedFile, pickReportFile, reportSubmitting, submitReport,
@@ -235,6 +235,31 @@ export function VisitDetail(): JSX.Element {
             editable={canEditAfter}
           />
         </View>
+
+        {/* ── Auto-Generated Clinical Report Card (when completed) ── */}
+        {status === 'COMPLETED' && (
+          <View style={styles.clinicalReportCard}>
+            <View style={styles.clinicalReportHeader}>
+              <View style={styles.clinicalReportIconBox}>
+                <MaterialDesignIcons name="file-document-check-outline" size={24} color="#0D9488" />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.clinicalReportTitle}>Clinical Medical Summary (PDF)</Text>
+                <Text style={styles.clinicalReportSubtitle}>
+                  Auto-generated clinical report with vitals & doctor signature attached to customer account.
+                </Text>
+              </View>
+            </View>
+            <TouchableOpacity
+              style={styles.clinicalReportBtn}
+              onPress={openClinicalPdf}
+              activeOpacity={0.8}
+            >
+              <MaterialDesignIcons name="file-pdf-box" size={20} color={Colors.white} />
+              <Text style={styles.clinicalReportBtnText}>View Clinical Summary PDF</Text>
+            </TouchableOpacity>
+          </View>
+        )}
 
         {/* ── Upload Report button ── */}
         <TouchableOpacity
@@ -820,5 +845,53 @@ const styles = StyleSheet.create({
     fontSize: FontSize.md,
     fontWeight: '700',
     color: Colors.white,
+  },
+  clinicalReportCard: {
+    marginHorizontal: Spacing.md,
+    marginTop: Spacing.md,
+    backgroundColor: '#F0FDFA',
+    borderRadius: Radius.lg,
+    borderWidth: 1.5,
+    borderColor: '#99F6E4',
+    padding: Spacing.md,
+    gap: 12,
+  },
+  clinicalReportHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  clinicalReportIconBox: {
+    width: 42,
+    height: 42,
+    borderRadius: Radius.md,
+    backgroundColor: '#CCFBF1',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  clinicalReportTitle: {
+    fontSize: FontSize.md,
+    fontWeight: '800',
+    color: '#0F766E',
+  },
+  clinicalReportSubtitle: {
+    fontSize: FontSize.xs,
+    color: '#115E59',
+    marginTop: 2,
+    lineHeight: 16,
+  },
+  clinicalReportBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    backgroundColor: '#0F766E',
+    paddingVertical: 11,
+    borderRadius: Radius.md,
+  },
+  clinicalReportBtnText: {
+    color: Colors.white,
+    fontSize: FontSize.sm,
+    fontWeight: '700',
   },
 });

@@ -1,4 +1,4 @@
-import { Check, Clock, Truck, MapPin, AlertCircle, User, Phone } from 'lucide-react';
+import { Check, Clock, Truck, MapPin, AlertCircle, User, Phone, FileText, Download } from 'lucide-react';
 import clsx from 'clsx';
 import { StatusBadge } from '../common/StatusBadge';
 import { formatDateTime, formatTime } from '../../helper/format';
@@ -90,6 +90,29 @@ export function VisitTimeline({ visits }: VisitTimelineProps): JSX.Element {
             {v.visitNotes ? (
               <div className="mt-2 p-3 rounded-lg bg-ink-50 ring-1 ring-ink-100 text-sm text-ink-700">
                 <span className="font-medium text-ink-800">Notes:</span> {v.visitNotes}
+              </div>
+            ) : null}
+
+            {v.status === 'COMPLETED' ? (
+              <div className="mt-3 p-3 rounded-xl bg-teal-50 border border-teal-200/80 flex items-center justify-between gap-3 shadow-2xs">
+                <div className="flex items-center gap-2.5 min-w-0">
+                  <div className="h-8 w-8 rounded-lg bg-teal-600 text-white flex items-center justify-center shrink-0">
+                    <FileText className="h-4 w-4" />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-xs font-bold text-teal-900 truncate">Clinical Medical Summary (PDF)</p>
+                    <p className="text-2xs text-teal-700 truncate">Vitals, clinical notes & digital signature</p>
+                  </div>
+                </div>
+                <a
+                  href={`/api/v1/visits/${v.id}/clinical-pdf`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-teal-700 hover:bg-teal-800 text-white text-xs font-bold shadow-xs transition-colors shrink-0"
+                >
+                  <Download className="h-3.5 w-3.5" />
+                  <span>Download PDF</span>
+                </a>
               </div>
             ) : null}
           </li>

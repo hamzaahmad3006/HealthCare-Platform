@@ -58,6 +58,8 @@ export const API = {
     CHECK_IN: (id: string): string => `/visits/${id}/check-in`,
     CHECK_OUT: (id: string): string => `/visits/${id}/check-out`,
     COMPLETE: (id: string): string => `/visits/${id}/complete`,
+    CLINICAL_PDF: (id: string): string => `/visits/${id}/clinical-pdf`,
+    GENERATE_REPORT: (id: string): string => `/visits/${id}/generate-report`,
     MISS: (id: string): string => `/visits/${id}/miss`,
     CANCEL: (id: string): string => `/visits/${id}/cancel`,
   },
